@@ -1,0 +1,45 @@
+{
+  "name": "gamcapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.3.3",
+    "@types/react": "18.2.45",
+    "@types/react-dom": "18.2.18",
+    "@types/node": "20.10.5",
+    "pg": "^8.11.3",
+    "@types/pg": "^8.10.9",
+    "razorpay": "^2.9.2",
+    "nodemailer": "^6.9.7",
+    "@types/nodemailer": "^6.4.14",
+    "bcryptjs": "^2.4.3",
+    "@types/bcryptjs": "^2.4.6",
+    "jsonwebtoken": "^9.0.2",
+    "@types/jsonwebtoken": "^9.0.5",
+    "multer": "^1.4.5-lts.1",
+    "@types/multer": "^1.4.11",
+    "tailwindcss": "^3.3.6",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "@tailwindcss/forms": "^0.5.7",
+    "axios": "^1.6.2",
+    "crypto": "^1.0.1",
+    "otplib": "^12.0.1",
+    "uuid": "^9.0.1",
+    "@types/uuid": "^9.0.7"
+  },
+  "devDependencies": {
+    "eslint": "8.56.0",
+    "eslint-config-next": "14.0.4"
+  }
+}
