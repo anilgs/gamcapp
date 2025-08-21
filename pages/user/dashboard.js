@@ -181,11 +181,11 @@ export default function UserDashboard() {
 
   const getStatusColor = (status) => {
     const colors = {
-      payment_pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
-      ready: 'bg-green-100 text-green-800',
-      payment_failed: 'bg-red-100 text-red-800',
-      unknown: 'bg-gray-100 text-gray-800'
+      payment_pending: 'bg-gradient-to-r from-accent-yellow-100 to-accent-yellow-200 text-accent-yellow-800 border border-accent-yellow-300',
+      processing: 'bg-gradient-to-r from-clinical-100 to-medical-100 text-medical-800 border border-medical-300',
+      ready: 'bg-gradient-to-r from-accent-green-100 to-accent-green-200 text-accent-green-800 border border-accent-green-300',
+      payment_failed: 'bg-gradient-to-r from-accent-red-100 to-accent-red-200 text-accent-red-800 border border-accent-red-300',
+      unknown: 'bg-gradient-to-r from-health-100 to-health-200 text-health-800 border border-health-300'
     }
     return colors[status] || colors.unknown
   }
@@ -227,10 +227,17 @@ export default function UserDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-clinical-50 via-health-50 to-medical-50 flex items-center justify-center">
+        <div className="card-medical text-center max-w-md">
+          <div className="mx-auto flex items-center justify-center w-16 h-16 bg-gradient-to-br from-medical-500 to-clinical-600 rounded-full mb-6 animate-pulse shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3zM4 8h2v8h8v2H4z"/>
+              <path d="M11.5 2L6 6.5V10h2V7.5L11.5 4 15 7.5V10h2V6.5z"/>
+            </svg>
+          </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-medical-200 border-t-medical-600 mx-auto mb-4"></div>
+          <h3 className="text-xl font-semibold text-clinical-800 mb-2">Loading Dashboard</h3>
+          <p className="text-health-600">Retrieving your medical appointment information...</p>
         </div>
       </div>
     )
@@ -267,39 +274,56 @@ export default function UserDashboard() {
   return (
     <>
       <Head>
-        <title>Dashboard - GAMCA Medical Verification</title>
-        <meta name="description" content="Your medical appointment dashboard" />
+        <title>Patient Dashboard - GAMCA Medical Verification</title>
+        <meta name="description" content="Your secure medical appointment dashboard" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gradient-to-br from-clinical-50 via-health-50 to-medical-50">
+        {/* Medical Header */}
+        <header className="bg-medical-600 text-white shadow-xl">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
-              <div className="flex items-center">
-                <Link href="/" className="text-2xl font-bold text-primary-600">
-                  GAMCA
-                </Link>
-                <span className="ml-4 text-sm text-gray-500">Dashboard</span>
-              </div>
               <div className="flex items-center space-x-4">
-                <nav className="hidden sm:flex space-x-6">
-                  <Link href="/" className="text-gray-600 hover:text-primary-600">
+                <Link href="/" className="flex items-center space-x-3 hover-lift">
+                  <div className="bg-white rounded-lg p-2">
+                    <svg className="w-8 h-8 text-medical-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3zM4 8h2v8h8v2H4z"/>
+                      <path d="M11.5 2L6 6.5V10h2V7.5L11.5 4 15 7.5V10h2V6.5z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight">GAMCA</h1>
+                    <p className="text-medical-100 text-sm">Gulf Approved Medical Centers Association</p>
+                  </div>
+                </Link>
+                <div className="hidden md:block">
+                  <span className="bg-medical-700 text-medical-100 px-3 py-1 rounded-full text-sm font-medium">
+                    Patient Dashboard
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6">
+                <nav className="hidden sm:flex space-x-6 text-sm">
+                  <Link href="/" className="text-medical-100 hover:text-white transition-colors hover-lift">
                     Home
                   </Link>
-                  <Link href="/book-appointment" className="text-gray-600 hover:text-primary-600">
+                  <Link href="/book-appointment" className="text-medical-100 hover:text-white transition-colors hover-lift">
                     Book Appointment
                   </Link>
                 </nav>
-                <span className="text-sm text-gray-700">
-                  Welcome, <span className="font-medium">{user.user.name}</span>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Logout
-                </button>
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <p className="text-sm text-medical-100">Welcome back</p>
+                    <p className="font-semibold">{user.user.name}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-medical-700 hover:bg-medical-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors hover-lift"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
