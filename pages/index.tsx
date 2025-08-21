@@ -1,7 +1,52 @@
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 
 export default function Home() {
+  const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userPhone, setUserPhone] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      fetch('/api/auth/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsAuthenticated(true)
+          setUserPhone(data.user.phone)
+        } else {
+          localStorage.removeItem('token')
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        localStorage.removeItem('token')
+        setLoading(false)
+      })
+    } else {
+      setLoading(false)
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      setIsAuthenticated(false)
+      setUserPhone('')
+    }
+  }
   return (
     <>
       <Head>
@@ -21,12 +66,31 @@ export default function Home() {
                 <Link href="/book-appointment" className="text-gray-600 hover:text-primary-600">
                   Book Appointment
                 </Link>
-                <Link href="/user/dashboard" className="text-gray-600 hover:text-primary-600">
-                  User Login
-                </Link>
-                <Link href="/admin/login" className="text-gray-600 hover:text-primary-600">
-                  Admin Login
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <Link href="/user/dashboard" className="text-gray-600 hover:text-primary-600">
+                      Dashboard
+                    </Link>
+                    <span className="text-sm text-gray-500">
+                      {userPhone}
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      className="text-gray-600 hover:text-red-600 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/user/dashboard" className="text-gray-600 hover:text-primary-600">
+                      User Login
+                    </Link>
+                    <Link href="/admin/login" className="text-gray-600 hover:text-primary-600">
+                      Admin Login
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
           </div>

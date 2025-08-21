@@ -12,6 +12,17 @@ export default function PaymentSuccess() {
   const [userDetails, setUserDetails] = useState(null)
   const [error, setError] = useState('')
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      router.push('/')
+    }
+  }
+
   useEffect(() => {
     if (!paymentId) return
 
@@ -113,6 +124,12 @@ export default function PaymentSuccess() {
                 <Link href="/user/dashboard" className="text-gray-600 hover:text-primary-600">
                   Dashboard
                 </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-red-600 transition-colors"
+                >
+                  Logout
+                </button>
               </nav>
             </div>
           </div>

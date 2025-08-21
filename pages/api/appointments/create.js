@@ -11,36 +11,97 @@ async function handler(req, res) {
 
   try {
     const {
-      name,
+      firstName,
+      lastName,
+      dateOfBirth,
+      nationality,
+      gender,
+      maritalStatus,
+      passportNumber,
+      confirmPassportNumber,
+      passportIssueDate,
+      passportIssuePlace,
+      passportExpiryDate,
+      visaType,
       email,
       phone,
-      passport_number,
-      appointment_type,
-      preferred_date,
-      medical_center,
-      additional_notes
+      nationalId,
+      positionAppliedFor,
+      country,
+      city,
+      countryTravelingTo,
+      appointmentType,
+      medicalCenter,
+      appointmentDate
     } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !passport_number || !appointment_type || !preferred_date || !medical_center) {
+    const requiredFields = [
+      'firstName', 'lastName', 'dateOfBirth', 'nationality', 'gender', 'maritalStatus',
+      'passportNumber', 'passportIssueDate', 'passportIssuePlace', 'passportExpiryDate',
+      'visaType', 'email', 'phone', 'country', 'countryTravelingTo', 'appointmentType',
+      'medicalCenter', 'appointmentDate'
+    ];
+
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'All required fields must be provided'
+        error: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Validate passport number confirmation
+    if (passportNumber !== confirmPassportNumber) {
+      return res.status(400).json({
+        success: false,
+        error: 'Passport number confirmation does not match'
       });
     }
 
     // Get user from token
     const userId = req.user.id;
 
-    // Prepare appointment details
+    // Prepare comprehensive appointment details for wafid.com integration
     const appointmentDetails = {
-      appointment_type,
-      preferred_date,
-      medical_center,
-      additional_notes: additional_notes || ''
+      // Personal Information
+      firstName,
+      lastName,
+      fullName: `${firstName} ${lastName}`,
+      dateOfBirth,
+      nationality,
+      gender,
+      maritalStatus,
+      
+      // Passport Information
+      passportNumber,
+      passportIssueDate,
+      passportIssuePlace,
+      passportExpiryDate,
+      visaType,
+      
+      // Contact Information
+      email,
+      phone,
+      nationalId,
+      
+      // Employment & Travel
+      positionAppliedFor,
+      country,
+      city,
+      countryTravelingTo,
+      
+      // Appointment Details
+      appointmentType,
+      medicalCenter,
+      appointmentDate,
+      
+      // WAFID Integration Fields
+      wafidBookingReady: true,
+      submittedAt: new Date().toISOString()
     };
 
-    // Update user with appointment details
+    // Update user with comprehensive appointment details
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -49,16 +110,16 @@ async function handler(req, res) {
       });
     }
 
-    // Update user information
+    // Update user information with all details
     await user.update({
-      name,
+      name: `${firstName} ${lastName}`,
       email,
       phone,
-      passport_number,
+      passport_number: passportNumber,
       appointment_details: appointmentDetails
     });
 
-    console.log(`Appointment created for user: ${userId}`);
+    console.log(`Comprehensive appointment created for user: ${userId}`);
 
     return res.status(200).json({
       success: true,

@@ -38,8 +38,18 @@ export default async function handler(req, res) {
       });
     }
 
-    // Verify OTP
-    const isValidOTP = await verifyOTP(formattedPhone, otp);
+    // Check if phone verification bypass is enabled
+    const bypassPhoneVerification = process.env.BYPASS_PHONE_VERIFICATION === 'true';
+    
+    let isValidOTP;
+    if (bypassPhoneVerification) {
+      // In bypass mode, accept any 6-digit OTP
+      isValidOTP = true;
+      console.log(`Phone verification bypassed for ${formattedPhone}`);
+    } else {
+      // Verify OTP normally
+      isValidOTP = await verifyOTP(formattedPhone, otp);
+    }
 
     if (!isValidOTP) {
       return res.status(400).json({
@@ -55,10 +65,10 @@ export default async function handler(req, res) {
       // If user doesn't exist, create a basic user record
       // This will be completed when they fill out the appointment form
       user = await User.create({
-        name: '', // Will be filled later
-        email: '', // Will be filled later
+        name: '',
+        email: '',
         phone: formattedPhone,
-        passport_number: '', // Will be filled later
+        passport_number: '',
         appointment_details: {},
         payment_status: 'pending'
       });

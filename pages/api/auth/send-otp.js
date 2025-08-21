@@ -29,6 +29,22 @@ export default async function handler(req, res) {
       });
     }
 
+    // Check if phone verification bypass is enabled
+    const bypassPhoneVerification = process.env.BYPASS_PHONE_VERIFICATION === 'true';
+    
+    if (bypassPhoneVerification) {
+      console.log(`Phone verification bypassed for ${formattedPhone} - OTP: 123456`);
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully (bypass mode)',
+        data: {
+          phone: formattedPhone,
+          otp: '123456',
+          expiresIn: 600
+        }
+      });
+    }
+
     // Check rate limiting
     if (!checkOTPRateLimit(formattedPhone)) {
       return res.status(429).json({
@@ -66,7 +82,7 @@ export default async function handler(req, res) {
         data: {
           phone: formattedPhone,
           messageId: smsResult.messageId,
-          expiresIn: 600 // 10 minutes in seconds
+          expiresIn: 600
         }
       });
 
@@ -81,7 +97,7 @@ export default async function handler(req, res) {
           message: 'OTP sent successfully (development mode)',
           data: {
             phone: formattedPhone,
-            otp: otp, // Include OTP in development mode for testing
+            otp: otp,
             expiresIn: 600
           }
         });

@@ -20,6 +20,17 @@ export default function Payment() {
   const [userDetails, setUserDetails] = useState(null)
   const [appointmentDetails, setAppointmentDetails] = useState(null)
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      router.push('/')
+    }
+  }
+
   useEffect(() => {
     if (!appointmentId) return
 
@@ -232,6 +243,12 @@ export default function Payment() {
                 <Link href="/user/dashboard" className="text-gray-600 hover:text-primary-600">
                   Dashboard
                 </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-red-600 transition-colors"
+                >
+                  Logout
+                </button>
               </nav>
             </div>
           </div>

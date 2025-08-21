@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-const bcrypt = require('bcryptjs');
-const { query } = require('../lib/db');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+const bcrypt = require('bcryptjs');
+const { query } = require('../lib/db');
 
 /**
  * CLI utility to create admin users for GAMCA Medical Services
@@ -107,33 +108,51 @@ async function checkAdminExists(username) {
   }
 }
 
-// Helper function to create admin user
-async function createAdmin(username, password) {
+// Helper function to create or update admin user
+async function createOrUpdateAdmin(username, password) {
   try {
     // Hash the password
     printColor('blue', '🔐 Hashing password...');
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
-    // Insert admin into database
-    printColor('blue', '💾 Creating admin user in database...');
-    const result = await query(
-      `INSERT INTO admins (username, password_hash, created_at) 
-       VALUES ($1, $2, CURRENT_TIMESTAMP) 
-       RETURNING id, username, created_at`,
-      [username, passwordHash]
-    );
+    // Check if admin exists
+    const existingAdmin = await query('SELECT id FROM admins WHERE username = $1', [username]);
     
-    if (result.rows.length === 0) {
-      throw new Error('Failed to create admin user');
+    if (existingAdmin.rows.length > 0) {
+      // Update existing admin password
+      printColor('yellow', '🔄 Admin exists, updating password...');
+      const result = await query(
+        `UPDATE admins 
+         SET password_hash = $2, updated_at = CURRENT_TIMESTAMP 
+         WHERE username = $1 
+         RETURNING id, username, created_at, updated_at`,
+        [username, passwordHash]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error('Failed to update admin user');
+      }
+      
+      return { ...result.rows[0], updated: true };
+    } else {
+      // Create new admin
+      printColor('blue', '💾 Creating new admin user in database...');
+      const result = await query(
+        `INSERT INTO admins (username, password_hash, created_at) 
+         VALUES ($1, $2, CURRENT_TIMESTAMP) 
+         RETURNING id, username, created_at`,
+        [username, passwordHash]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error('Failed to create admin user');
+      }
+      
+      return { ...result.rows[0], updated: false };
     }
-    
-    return result.rows[0];
   } catch (error) {
-    if (error.code === '23505') { // Unique constraint violation
-      throw new Error('Admin user with this username already exists');
-    }
-    throw new Error(`Database error while creating admin: ${error.message}`);
+    throw new Error(`Database error while creating/updating admin: ${error.message}`);
   }
 }
 

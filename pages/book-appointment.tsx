@@ -25,6 +25,8 @@ export default function BookAppointment() {
         if (data.success) {
           setIsAuthenticated(true)
           setUserPhone(data.user.phone)
+          // Redirect authenticated users to the comprehensive appointment form
+          router.push('/appointment-form')
         } else {
           localStorage.removeItem('token')
         }

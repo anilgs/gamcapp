@@ -58,9 +58,15 @@ export default function UserDashboard() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/')
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      router.push('/')
+    }
   }
 
   const handleFileSelect = (e) => {
@@ -277,6 +283,14 @@ export default function UserDashboard() {
                 <span className="ml-4 text-sm text-gray-500">Dashboard</span>
               </div>
               <div className="flex items-center space-x-4">
+                <nav className="hidden sm:flex space-x-6">
+                  <Link href="/" className="text-gray-600 hover:text-primary-600">
+                    Home
+                  </Link>
+                  <Link href="/book-appointment" className="text-gray-600 hover:text-primary-600">
+                    Book Appointment
+                  </Link>
+                </nav>
                 <span className="text-sm text-gray-700">
                   Welcome, <span className="font-medium">{user.user.name}</span>
                 </span>

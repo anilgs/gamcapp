@@ -66,8 +66,8 @@ export default function Login() {
         // Store token
         localStorage.setItem('token', result.data.token)
         
-        // Redirect to appointment booking or dashboard
-        const redirectTo = router.query.redirect || '/book-appointment'
+        // Redirect to appointment form instead of booking page
+        const redirectTo = router.query.redirect || '/appointment-form'
         router.push(redirectTo)
       } else {
         setError(result.error || 'Invalid OTP')
