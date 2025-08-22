@@ -80,9 +80,6 @@ export default function Home() {
                     <Link href="/user/dashboard" className="text-clinical-600 hover:text-medical-600 font-medical font-medium transition-colors">
                       Dashboard
                     </Link>
-                    <span className="text-sm text-clinical-500 bg-clinical-200 px-3 py-1 rounded-full">
-                      {userPhone}
-                    </span>
                     <button
                       onClick={handleLogout}
                       className="text-clinical-600 hover:text-red-600 font-medical font-medium transition-colors"

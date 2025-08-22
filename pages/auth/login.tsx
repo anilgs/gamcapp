@@ -39,16 +39,23 @@ export default function Login() {
       const result = await response.json()
 
       if (result.success) {
-        setOtpSent(true)
-        setStep('otp')
-        setLastOtpSentTime(now)
-        setRetryCount(0)
+        // Clear any existing errors first
         setError('')
         
+        // Update success states
+        setOtpSent(true)
+        setLastOtpSentTime(now)
+        setRetryCount(0)
+        
         // In development mode, show the OTP
-        if (result.data.otp) {
+        if (result.data && result.data.otp) {
           console.log('Development OTP:', result.data.otp)
         }
+        
+        // Use setTimeout to ensure step change happens after all other state updates
+        setTimeout(() => {
+          setStep('otp')
+        }, 50)
       } else {
         // Handle specific error cases with better messaging
         const errorMessage = result.error || 'Failed to send OTP'
@@ -145,7 +152,7 @@ export default function Login() {
         setOtp('') // Clear previous OTP input
         
         // In development mode, show the OTP
-        if (result.data.otp) {
+        if (result.data && result.data.otp) {
           console.log('Development OTP:', result.data.otp)
         }
         
