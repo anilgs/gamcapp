@@ -3,13 +3,25 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 
+interface PaymentDetails {
+  [key: string]: any
+}
+
+interface UserDetails {
+  name: string
+  email: string
+  phone: string
+  appointment_details: any
+  [key: string]: any
+}
+
 export default function PaymentSuccess() {
   const router = useRouter()
   const { paymentId } = router.query
   
   const [loading, setLoading] = useState(true)
-  const [paymentDetails, setPaymentDetails] = useState(null)
-  const [userDetails, setUserDetails] = useState(null)
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null)
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null)
   const [error, setError] = useState('')
 
   const handleLogout = async () => {
@@ -60,7 +72,7 @@ export default function PaymentSuccess() {
     fetchPaymentDetails()
   }, [paymentId, router])
 
-  const formatAmount = (amountInPaise) => {
+  const formatAmount = (amountInPaise: number) => {
     const rupees = amountInPaise / 100
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',

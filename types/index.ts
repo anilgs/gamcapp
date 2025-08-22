@@ -455,6 +455,8 @@ export interface AppConfig {
 }
 
 // Next.js specific types
+import { NextApiRequest } from 'next'
+
 export interface NextApiRequestWithAuth extends NextApiRequest {
   user?: User;
   admin?: Admin;

@@ -41,7 +41,7 @@ export default function BookAppointment() {
     }
   }, [])
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = async (formData: any) => {
     try {
       const token = localStorage.getItem('token')
       

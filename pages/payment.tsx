@@ -9,6 +9,34 @@ declare global {
   }
 }
 
+interface OrderData {
+  id: string
+  amount: number
+  currency: string
+  razorpay_key_id: string
+  [key: string]: any
+}
+
+interface UserDetails {
+  name: string
+  email: string
+  phone: string
+  [key: string]: any
+}
+
+interface AppointmentDetails {
+  type: string
+  details: any
+  amount: number
+  [key: string]: any
+}
+
+interface PaymentResponse {
+  razorpay_payment_id: string
+  razorpay_order_id: string
+  razorpay_signature: string
+}
+
 export default function Payment() {
   const router = useRouter()
   const { appointmentId } = router.query
@@ -16,9 +44,9 @@ export default function Payment() {
   const [loading, setLoading] = useState(true)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [error, setError] = useState('')
-  const [orderData, setOrderData] = useState(null)
-  const [userDetails, setUserDetails] = useState(null)
-  const [appointmentDetails, setAppointmentDetails] = useState(null)
+  const [orderData, setOrderData] = useState<OrderData | null>(null)
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null)
+  const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null)
 
   const handleLogout = async () => {
     try {
@@ -119,7 +147,7 @@ export default function Payment() {
             console.log('Payment modal dismissed')
           }
         },
-        handler: async (response) => {
+        handler: async (response: PaymentResponse) => {
           try {
             // Verify payment
             const token = localStorage.getItem('token')
@@ -144,7 +172,7 @@ export default function Payment() {
             } else {
               throw new Error(verifyResult.error || 'Payment verification failed')
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('Payment verification error:', error)
             setError('Payment verification failed. Please contact support.')
             setPaymentLoading(false)
@@ -155,14 +183,15 @@ export default function Payment() {
       const razorpay = new window.Razorpay(options)
       razorpay.open()
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Payment error:', error)
-      setError(error.message || 'Payment failed. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed. Please try again.'
+      setError(errorMessage)
       setPaymentLoading(false)
     }
   }
 
-  const formatAmount = (amountInPaise) => {
+  const formatAmount = (amountInPaise: number) => {
     const rupees = amountInPaise / 100
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -172,8 +201,8 @@ export default function Payment() {
     }).format(rupees)
   }
 
-  const getAppointmentTypeLabel = (type) => {
-    const labels = {
+  const getAppointmentTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
       employment_visa: 'Employment Visa Medical',
       family_visa: 'Family Visa Medical',
       visit_visa: 'Visit Visa Medical',

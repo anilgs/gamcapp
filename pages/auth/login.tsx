@@ -5,16 +5,16 @@ import { useRouter } from 'next/router'
 
 export default function Login() {
   const router = useRouter()
-  const [step, setStep] = useState('phone') // 'phone' or 'otp'
+  const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
-  const [lastOtpSentTime, setLastOtpSentTime] = useState(null)
+  const [lastOtpSentTime, setLastOtpSentTime] = useState<number | null>(null)
 
-  const handleSendOTP = async (e) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -72,11 +72,11 @@ export default function Login() {
         
         setRetryCount(prev => prev + 1)
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Send OTP error:', error)
       
       // Handle network errors specifically
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
         setError('Network connection error. Please check your internet connection and try again.')
       } else {
         setError('Failed to send OTP. Please check your connection and try again.')
@@ -88,7 +88,7 @@ export default function Login() {
     }
   }
 
-  const handleVerifyOTP = async (e) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -109,7 +109,9 @@ export default function Login() {
         localStorage.setItem('token', result.data.token)
         
         // Redirect to appointment form instead of booking page
-        const redirectTo = router.query.redirect || '/appointment-form'
+        const redirectTo = Array.isArray(router.query.redirect) 
+          ? router.query.redirect[0] 
+          : router.query.redirect || '/appointment-form'
         router.push(redirectTo)
       } else {
         setError(result.error || 'Invalid OTP')

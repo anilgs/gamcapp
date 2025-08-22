@@ -3,13 +3,42 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 
+interface AppointmentFormData {
+  firstName: string
+  lastName: string
+  dateOfBirth: string
+  nationality: string
+  gender: string
+  maritalStatus: string
+  passportNumber: string
+  confirmPassportNumber: string
+  passportIssueDate: string
+  passportIssuePlace: string
+  passportExpiryDate: string
+  visaType: string
+  email: string
+  phone: string
+  nationalId: string
+  positionAppliedFor: string
+  country: string
+  city: string
+  countryTravelingTo: string
+  appointmentType: string
+  medicalCenter: string
+  appointmentDate: string
+}
+
+interface FormErrors {
+  [key: string]: string
+}
+
 export default function AppointmentForm() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [userPhone, setUserPhone] = useState('')
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState<FormErrors>({})
 
   const handleLogout = async () => {
     try {
@@ -22,7 +51,7 @@ export default function AppointmentForm() {
     }
   }
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AppointmentFormData>({
     firstName: '',
     lastName: '',
     dateOfBirth: '',
@@ -133,7 +162,7 @@ export default function AppointmentForm() {
     }
   }, [])
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -149,7 +178,7 @@ export default function AppointmentForm() {
   }
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors: FormErrors = {}
 
     // Required field validation
     const requiredFields = [
@@ -160,7 +189,7 @@ export default function AppointmentForm() {
     ]
 
     requiredFields.forEach(field => {
-      if (!formData[field] || !formData[field].toString().trim()) {
+      if (!formData[field as keyof AppointmentFormData] || !formData[field as keyof AppointmentFormData].toString().trim()) {
         newErrors[field] = 'This field is required'
       }
     })
@@ -184,7 +213,7 @@ export default function AppointmentForm() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
