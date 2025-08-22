@@ -24,8 +24,8 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
-      'gamca.in',
-      'www.gamca.in',
+      'gamca-wafid.com',
+      'www.gamca-wafid.com',
     ],
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -64,7 +64,7 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Origin',
             value: process.env.NODE_ENV === 'production' 
-              ? 'https://gamca.in' 
+              ? 'https://gamca-wafid.com' 
               : 'http://localhost:3000'
           },
           {

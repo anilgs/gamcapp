@@ -3,7 +3,7 @@ A comprehensive medical appointment booking system for travel verification, desi
 
 ## 🏥 Project Overview
 
-GAMCA Medical Services (gamca.in) is a full-stack web application that facilitates medical appointment booking for travel verification purposes. The platform provides a seamless experience for user
+GAMCA Medical Services (gamca-wafid.com) is a full-stack web application that facilitates medical appointment booking for travel verification purposes. The platform provides a seamless experience for user
 s to book appointments, make payments, and manage their medical verification documents, while offering administrators powerful tools for user management and appointment processing.
 
 ### Key Features
@@ -345,8 +345,8 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_app_password
-ADMIN_EMAIL=admin@gamca.in
-FROM_EMAIL=noreply@gamca.in
+ADMIN_EMAIL=admin@gamca-wafid.com
+FROM_EMAIL=noreply@gamca-wafid.com
 FROM_NAME=GAMCA Medical Services
 
 # SMS API Configuration (for OTP)
@@ -1145,7 +1145,7 @@ Document Download & Management
 #### Detailed User Workflow
 
 1. **Landing Page Access**
-   - User visits gamca.in
+   - User visits gamca-wafid.com
    - Views service information and pricing
    - Clicks "Book Appointment" to start process
 
@@ -1355,10 +1355,10 @@ NEXTAUTH_SECRET=your_nextauth_production_secret
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=production@gamca.in
+SMTP_USER=production@gamca-wafid.com
 SMTP_PASS=your_production_app_password
-ADMIN_EMAIL=admin@gamca.in
-FROM_EMAIL=noreply@gamca.in
+ADMIN_EMAIL=admin@gamca-wafid.com
+FROM_EMAIL=noreply@gamca-wafid.com
 FROM_NAME=GAMCA Medical Services
 
 # Production SMS Configuration
@@ -1366,13 +1366,13 @@ SMS_API_KEY=your_production_sms_api_key
 SMS_API_URL=your_production_sms_api_url
 
 # Production Application Configuration
-NEXTAUTH_URL=https://gamca.in
+NEXTAUTH_URL=https://gamca-wafid.com
 UPLOAD_DIR=/var/www/gamcapp/uploads
 MAX_FILE_SIZE=10485760
 
 # Production Security Headers
-CORS_ORIGIN=https://gamca.in
-ALLOWED_ORIGINS=https://gamca.in,https://www.gamca.in
+CORS_ORIGIN=https://gamca-wafid.com
+ALLOWED_ORIGINS=https://gamca-wafid.com,https://www.gamca-wafid.com
 ```
 
 #### Build and Deployment Commands
@@ -1469,7 +1469,7 @@ const pool = new Pool({
 const jwtConfig = {
   secret: process.env.JWT_SECRET, // Minimum 64 characters
   expiresIn: '24h', // Token expiration
-  issuer: 'gamca.in',
+  issuer: 'gamca-wafid.com',
   audience: 'gamca-users',
   algorithm: 'HS256'
 };
@@ -1489,7 +1489,7 @@ const cookieConfig = {
 // next.config.js - Production CORS settings
 const corsConfig = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://gamca.in', 'https://www.gamca.in']
+    ? ['https://gamca-wafid.com', 'https://www.gamca-wafid.com']
     : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -1583,7 +1583,7 @@ const nextConfig = {
   
   // Optimize images
   images: {
-    domains: ['gamca.in', 'www.gamca.in'],
+    domains: ['gamca-wafid.com', 'www.gamca-wafid.com'],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: false
@@ -1990,7 +1990,7 @@ pm2 restart gamcapp
 openssl x509 -in /path/to/certificate.crt -text -noout | grep "Not After"
 
 # Test SSL configuration
-openssl s_client -connect gamca.in:443 -servername gamca.in
+openssl s_client -connect gamca-wafid.com:443 -servername gamca-wafid.com
 
 # Renew Let's Encrypt certificate
 certbot renew --dry-run
