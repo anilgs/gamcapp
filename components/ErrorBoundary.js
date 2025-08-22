@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -109,7 +110,7 @@ class ErrorBoundary extends React.Component {
                 Something went wrong
               </h2>
               <p className="text-gray-600 mb-6">
-                We're sorry, but something unexpected happened. Please try again or contact support if the problem persists.
+                We&apos;re sorry, but something unexpected happened. Please try again or contact support if the problem persists.
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
@@ -139,12 +140,12 @@ class ErrorBoundary extends React.Component {
                 >
                   Reload Page
                 </button>
-                <a
+                <Link
                   href="/"
                   className="block w-full text-center text-primary-600 hover:text-primary-700 py-2"
                 >
                   Go to Home
-                </a>
+                </Link>
               </div>
               
               {this.state.errorId && (

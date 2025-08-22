@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -23,9 +23,9 @@ export default function UserDashboard() {
 
     // Load user profile
     fetchUserProfile()
-  }, [router])
+  }, [router, fetchUserProfile])
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     setLoading(true)
     setError('')
 
@@ -56,7 +56,7 @@ export default function UserDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
 
   const handleLogout = async () => {
     try {

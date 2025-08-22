@@ -39,7 +39,7 @@ export default function BookAppointment() {
     } else {
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   const handleFormSubmit = async (formData: any) => {
     try {

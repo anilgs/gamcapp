@@ -251,7 +251,7 @@ export default function PaymentSuccess() {
 
           {/* Next Steps */}
           <div className="card mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">What's Next?</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">What&apos;s Next?</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -260,7 +260,7 @@ export default function PaymentSuccess() {
                   </svg>
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">Email Confirmation</h3>
-                <p className="text-sm text-gray-600">You'll receive a confirmation email with your appointment details within 5 minutes.</p>
+                <p className="text-sm text-gray-600">You&apos;ll receive a confirmation email with your appointment details within 5 minutes.</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -269,7 +269,7 @@ export default function PaymentSuccess() {
                   </svg>
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">Processing Time</h3>
-                <p className="text-sm text-gray-600">Your appointment will be processed within 24-48 hours. You'll be notified once confirmed.</p>
+                <p className="text-sm text-gray-600">Your appointment will be processed within 24-48 hours. You&apos;ll be notified once confirmed.</p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">

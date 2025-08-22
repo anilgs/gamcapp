@@ -160,7 +160,7 @@ export default function AppointmentForm() {
       router.push('/auth/login')
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -31,36 +31,7 @@ export default function AdminDashboard() {
   const [showUserDetails, setShowUserDetails] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
 
-  useEffect(() => {
-    // Check admin authentication
-    const adminToken = localStorage.getItem('adminToken')
-    const adminUserData = localStorage.getItem('adminUser')
-    
-    if (!adminToken || !adminUserData) {
-      router.push('/admin/login')
-      return
-    }
-
-    try {
-      setAdminUser(JSON.parse(adminUserData))
-    } catch (error) {
-      console.error('Error parsing admin user data:', error)
-      router.push('/admin/login')
-      return
-    }
-
-    // Load initial data
-    fetchUsers()
-  }, [router])
-
-  useEffect(() => {
-    // Fetch users when filters change
-    if (adminUser) {
-      fetchUsers()
-    }
-  }, [filters, pagination.current_page, adminUser])
-
-  const fetchUsers = async (page = pagination.current_page) => {
+  const fetchUsers = useCallback(async (page = pagination.current_page) => {
     setLoading(true)
     setError('')
 
@@ -100,7 +71,36 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.current_page, pagination.per_page, filters, router])
+
+  useEffect(() => {
+    // Check admin authentication
+    const adminToken = localStorage.getItem('adminToken')
+    const adminUserData = localStorage.getItem('adminUser')
+    
+    if (!adminToken || !adminUserData) {
+      router.push('/admin/login')
+      return
+    }
+
+    try {
+      setAdminUser(JSON.parse(adminUserData))
+    } catch (error) {
+      console.error('Error parsing admin user data:', error)
+      router.push('/admin/login')
+      return
+    }
+
+    // Load initial data
+    fetchUsers()
+  }, [router, fetchUsers])
+
+  useEffect(() => {
+    // Fetch users when filters change
+    if (adminUser) {
+      fetchUsers()
+    }
+  }, [filters, pagination.current_page, adminUser, fetchUsers])
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({

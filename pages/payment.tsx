@@ -441,7 +441,7 @@ export default function Payment() {
                   <ul className="list-disc list-inside space-y-1">
                     <li>Your payment information is encrypted and secure</li>
                     <li>We do not store your card details</li>
-                    <li>All transactions are processed through RazorPay's secure gateway</li>
+                    <li>All transactions are processed through RazorPay&apos;s secure gateway</li>
                     <li>You will receive a confirmation email after successful payment</li>
                   </ul>
                 </div>
