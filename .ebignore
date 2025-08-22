@@ -1,0 +1,26 @@
+# Ignore files for ElasticBeanstalk deployment
+.git/
+.gitignore
+.ebextensions/
+.elasticbeanstalk/
+README.md
+deploy/
+infrastructure/
+.github/
+.env*
+*.log
+node_modules/.cache/
+.next/cache/
+coverage/
+.nyc_output/
+test/
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+jest.config.js
+cypress/
+cypress.json
+Dockerfile
+docker-compose.yml

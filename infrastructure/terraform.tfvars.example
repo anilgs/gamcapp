@@ -1,0 +1,61 @@
+# Example terraform variables file
+# Copy this file and rename to terraform.tfvars, then update with your values
+
+# Project Configuration
+project_name = "gamcapp"
+environment  = "dev"  # or staging, prod
+aws_region   = "us-east-1"
+
+# Database Configuration (REQUIRED: Set a secure password)
+db_name     = "gamcapp"
+db_username = "postgres"
+db_password = "your-secure-password-here"  # CHANGE THIS
+
+# VPC Configuration (Optional - defaults provided)
+# vpc_cidr                = "10.0.0.0/16"
+# availability_zones      = ["us-east-1a", "us-east-1b"]
+# public_subnet_cidrs     = ["10.0.1.0/24", "10.0.2.0/24"]
+# private_subnet_cidrs    = ["10.0.11.0/24", "10.0.12.0/24"]
+# database_subnet_cidrs   = ["10.0.21.0/24", "10.0.22.0/24"]
+
+# ElasticBeanstalk Configuration (Optional - defaults provided)
+# eb_instance_type    = "t3.small"
+# eb_min_size        = 1
+# eb_max_size        = 3
+# eb_desired_capacity = 1
+
+# SSL Configuration (Optional - for production)
+# ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+# domain_name = "yourdomain.com"
+
+# Environment Variables (Required - Update with your values)
+environment_variables = {
+  # JWT Secret (REQUIRED: Generate a secure random string)
+  JWT_SECRET = "your-jwt-secret-key-here"  # CHANGE THIS
+  
+  # Razorpay Configuration (REQUIRED)
+  RAZORPAY_KEY_ID     = "your-razorpay-key-id"
+  RAZORPAY_KEY_SECRET = "your-razorpay-key-secret"
+  
+  # Email Configuration (REQUIRED)
+  SMTP_HOST     = "smtp.gmail.com"
+  SMTP_PORT     = "587"
+  SMTP_SECURE   = "false"
+  SMTP_USER     = "your-email@gmail.com"
+  SMTP_PASS     = "your-app-password"
+  ADMIN_EMAIL   = "admin@yourdomain.com"
+  FROM_EMAIL    = "noreply@yourdomain.com"
+  FROM_NAME     = "GAMCA Medical Services"
+  
+  # Application Configuration
+  NEXTAUTH_URL    = "https://yourdomain.com"  # Update for production
+  NEXTAUTH_SECRET = "your-nextauth-secret"    # Generate a secure random string
+  
+  # File Upload Configuration
+  UPLOAD_DIR      = "/tmp/uploads"
+  MAX_FILE_SIZE   = "10485760"  # 10MB
+  
+  # SMS Configuration (Optional)
+  SMS_API_KEY = "your-sms-api-key"
+  SMS_API_URL = "your-sms-api-url"
+}
