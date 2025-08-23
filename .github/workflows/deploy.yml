@@ -58,12 +58,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -107,12 +107,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -156,12 +156,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
