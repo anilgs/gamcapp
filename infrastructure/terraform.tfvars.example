@@ -4,7 +4,7 @@
 # Project Configuration
 project_name = "gamcapp"
 environment  = "dev"  # or staging, prod
-aws_region   = "us-east-1"
+aws_region   = "ap-south-1"
 
 # Database Configuration (REQUIRED: Set a secure password)
 db_name     = "gamcapp"
@@ -13,7 +13,7 @@ db_password = "your-secure-password-here"  # CHANGE THIS
 
 # VPC Configuration (Optional - defaults provided)
 # vpc_cidr                = "10.0.0.0/16"
-# availability_zones      = ["us-east-1a", "us-east-1b"]
+# availability_zones      = ["ap-south-1a", "ap-south-1b"]
 # public_subnet_cidrs     = ["10.0.1.0/24", "10.0.2.0/24"]
 # private_subnet_cidrs    = ["10.0.11.0/24", "10.0.12.0/24"]
 # database_subnet_cidrs   = ["10.0.21.0/24", "10.0.22.0/24"]
@@ -25,7 +25,7 @@ db_password = "your-secure-password-here"  # CHANGE THIS
 # eb_desired_capacity = 1
 
 # SSL Configuration (Optional - for production)
-# ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id"
+# ssl_certificate_arn = "arn:aws:acm:ap-south-1:123456789012:certificate/your-cert-id"
 # domain_name = "yourdomain.com"
 
 # Environment Variables (Required - Update with your values)

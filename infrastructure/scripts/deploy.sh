@@ -53,7 +53,7 @@ fi
 # Initialize EB CLI if needed
 if [ ! -f ".elasticbeanstalk/config.yml" ]; then
     echo "🔧 Initializing EB CLI..."
-    eb init $APP_NAME --region us-east-1 --platform "Node.js 18 running on 64bit Amazon Linux 2023"
+    eb init $APP_NAME --region ap-south-1 --platform "Node.js 18 running on 64bit Amazon Linux 2023"
 fi
 
 # Create application version

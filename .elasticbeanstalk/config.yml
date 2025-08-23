@@ -4,7 +4,7 @@ global:
   branch: null
   default_ec2_keyname: null
   default_platform: Node.js 18 running on 64bit Amazon Linux 2023
-  default_region: us-east-1
+  default_region: ap-south-1
   include_git_submodules: true
   instance_profile: null
   platform_name: null

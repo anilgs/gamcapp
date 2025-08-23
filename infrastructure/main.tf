@@ -11,7 +11,7 @@ terraform {
     # Configure your S3 backend here
     # bucket = "your-terraform-state-bucket"
     # key    = "gamcapp/terraform.tfstate"
-    # region = "us-east-1"
+    # region = "ap-south-1"
   }
 }
 

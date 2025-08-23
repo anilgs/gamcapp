@@ -1,9 +1,9 @@
 environment = "prod"
-aws_region  = "us-east-1"
+aws_region  = "ap-south-1"
 
 # VPC Configuration
 vpc_cidr                = "10.2.0.0/16"
-availability_zones      = ["us-east-1a", "us-east-1b", "us-east-1c"]
+availability_zones      = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
 public_subnet_cidrs     = ["10.2.1.0/24", "10.2.2.0/24", "10.2.3.0/24"]
 private_subnet_cidrs    = ["10.2.11.0/24", "10.2.12.0/24", "10.2.13.0/24"]
 database_subnet_cidrs   = ["10.2.21.0/24", "10.2.22.0/24", "10.2.23.0/24"]
@@ -25,7 +25,7 @@ eb_max_size           = 6
 eb_desired_capacity   = 3
 
 # SSL Configuration (update with your certificate ARN)
-# ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+# ssl_certificate_arn = "arn:aws:acm:ap-south-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
 # domain_name = "gamca-wafid.com"
 
 # Environment Variables (add your specific values)

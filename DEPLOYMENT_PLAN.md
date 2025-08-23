@@ -37,7 +37,7 @@ Create `infrastructure/terraform.tfvars` from `terraform.tfvars.example`:
 # Project settings
 project_name = "gamcapp"
 environment  = "prod"  # or dev, staging
-aws_region   = "us-east-1"
+aws_region   = "ap-south-1"
 
 # Database (CRITICAL - Set secure password)
 db_password = "your-secure-database-password"
