@@ -41,7 +41,7 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0",
     "uuid": "^10.0.0",
-    "cheerio":"1.1.2"
+    "cheerio":"1.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.0",
