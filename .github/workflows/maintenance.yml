@@ -1,0 +1,139 @@
+name: Infrastructure Maintenance
+
+on:
+  # Run after successful deployments
+  workflow_run:
+    workflows: ["Deploy to AWS ElasticBeanstalk"]
+    types:
+      - completed
+    branches:
+      - develop  # Only for dev deployments
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to clean up'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      
+      cleanup_type:
+        description: 'Type of cleanup to perform'
+        required: true
+        default: 'eips_only'
+        type: choice
+        options:
+        - eips_only
+        - full_verification
+        - emergency_cleanup
+
+env:
+  AWS_REGION: ap-south-1
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  maintenance:
+    name: Infrastructure Maintenance
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsMaintenance
+          audience: sts.amazonaws.com
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.0
+
+      - name: Determine Environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "cleanup_type=${{ github.event.inputs.cleanup_type }}" >> $GITHUB_OUTPUT
+          else
+            # Auto-triggered after deployment, default to dev and EIP cleanup
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "cleanup_type=eips_only" >> $GITHUB_OUTPUT
+          fi
+
+      - name: EIP Cleanup
+        if: steps.env.outputs.cleanup_type == 'eips_only' || steps.env.outputs.cleanup_type == 'full_verification'
+        run: |
+          cd infrastructure
+          chmod +x scripts/cleanup_eips.sh
+          
+          echo "🧹 Cleaning up unused Elastic IP addresses..."
+          ./scripts/cleanup_eips.sh --release-unused
+          
+          echo "📊 Current EIP status:"
+          ./scripts/cleanup_eips.sh --check
+
+      - name: State Verification
+        if: steps.env.outputs.cleanup_type == 'full_verification'
+        run: |
+          cd infrastructure
+          chmod +x scripts/verify_state.sh
+          
+          echo "🔍 Running full infrastructure verification..."
+          ./scripts/verify_state.sh
+
+      - name: Emergency Cleanup
+        if: steps.env.outputs.cleanup_type == 'emergency_cleanup'
+        run: |
+          cd infrastructure
+          chmod +x scripts/emergency_cleanup.sh
+          
+          echo "🚨 Running emergency cleanup (dry-run first)..."
+          ./scripts/emergency_cleanup.sh ${{ steps.env.outputs.environment }} --dry-run
+          
+          echo ""
+          echo "⚠️  This would perform emergency cleanup."
+          echo "   Review the dry-run output above carefully."
+          echo "   To execute, manually run the workflow again without dry-run."
+
+      - name: Upload Maintenance Logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: maintenance-logs-${{ steps.env.outputs.environment }}-${{ github.run_number }}
+          path: |
+            infrastructure/*.txt
+            infrastructure/*.log
+          retention-days: 7
+
+      - name: Maintenance Summary
+        if: always()
+        run: |
+          echo ""
+          echo "🛠️ ========================================"
+          echo "🛠️  MAINTENANCE COMPLETED"
+          echo "🛠️ ========================================"
+          echo ""
+          echo "Environment: ${{ steps.env.outputs.environment }}"
+          echo "Cleanup Type: ${{ steps.env.outputs.cleanup_type }}"
+          echo "Status: ${{ job.status }}"
+          echo ""
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "⚠️  Some maintenance tasks failed."
+            echo "   Check the logs above for details."
+          else
+            echo "✅ All maintenance tasks completed successfully."
+          fi

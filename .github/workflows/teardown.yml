@@ -1,0 +1,504 @@
+name: Infrastructure Teardown
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to teardown'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      
+      confirm_environment:
+        description: 'Type environment name again to confirm'
+        required: true
+        type: string
+      
+      create_backups:
+        description: 'Create backups before teardown?'
+        required: true
+        default: true
+        type: boolean
+      
+      skip_rds_snapshot:
+        description: 'Skip RDS final snapshot? (faster but data loss)'
+        required: false
+        default: false
+        type: boolean
+      
+      download_s3_data:
+        description: 'Download S3 bucket contents before deletion?'
+        required: true
+        default: true
+        type: boolean
+      
+      reason:
+        description: 'Reason for teardown (for audit trail)'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: ap-south-1
+  NODE_VERSION: '18'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-inputs:
+    name: Validate Teardown Request
+    runs-on: ubuntu-latest
+    
+    outputs:
+      environment: ${{ steps.validate.outputs.environment }}
+      proceed: ${{ steps.validate.outputs.proceed }}
+    
+    steps:
+      - name: Validate Input Parameters
+        id: validate
+        run: |
+          echo "Validating teardown request..."
+          
+          # Validate environment confirmation
+          if [ "${{ github.event.inputs.environment }}" != "${{ github.event.inputs.confirm_environment }}" ]; then
+            echo "❌ Environment confirmation mismatch!"
+            echo "Environment: ${{ github.event.inputs.environment }}"
+            echo "Confirmation: ${{ github.event.inputs.confirm_environment }}"
+            exit 1
+          fi
+          
+          # Validate reason is provided and meaningful
+          REASON_LENGTH=$(echo "${{ github.event.inputs.reason }}" | wc -c)
+          if [ $REASON_LENGTH -lt 10 ]; then
+            echo "❌ Please provide a meaningful reason for teardown (at least 10 characters)"
+            exit 1
+          fi
+          
+          # Additional production safety checks
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "🔥 PRODUCTION TEARDOWN REQUESTED"
+            if [ "${{ github.event.inputs.create_backups }}" != "true" ]; then
+              echo "❌ Backups are MANDATORY for production teardown"
+              exit 1
+            fi
+            if [ "${{ github.event.inputs.download_s3_data }}" != "true" ]; then
+              echo "❌ S3 data download is MANDATORY for production teardown"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ All validations passed"
+          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "proceed=true" >> $GITHUB_OUTPUT
+      
+      - name: Log Teardown Request
+        run: |
+          echo "=== TEARDOWN REQUEST DETAILS ==="
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Requested by: ${{ github.actor }}"
+          echo "Timestamp: $(date -u)"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Create backups: ${{ github.event.inputs.create_backups }}"
+          echo "Skip RDS snapshot: ${{ github.event.inputs.skip_rds_snapshot }}"
+          echo "Download S3 data: ${{ github.event.inputs.download_s3_data }}"
+          echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  teardown:
+    name: Execute Infrastructure Teardown
+    runs-on: ubuntu-latest
+    needs: validate-inputs
+    if: needs.validate-inputs.outputs.proceed == 'true'
+    environment: ${{ needs.validate-inputs.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsTeardown
+          audience: sts.amazonaws.com
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.0
+
+      - name: Install Python and Dependencies
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Additional Dependencies
+        run: |
+          pip install awsebcli
+          
+          # Install jq for JSON processing (if not available)
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Verify Prerequisites
+        run: |
+          echo "Verifying prerequisites..."
+          aws --version
+          terraform --version
+          jq --version
+          
+          # Verify AWS connectivity
+          echo "AWS Account ID: $(aws sts get-caller-identity --query Account --output text)"
+          echo "AWS Region: ${{ env.AWS_REGION }}"
+
+      - name: Initialize Terraform
+        run: |
+          cd infrastructure
+          terraform init
+
+      - name: Pre-Teardown State Check
+        run: |
+          cd infrastructure
+          echo "=== CURRENT TERRAFORM STATE ==="
+          
+          if terraform state list | grep -q "gamcapp-${{ github.event.inputs.environment }}"; then
+            echo "Resources found in state:"
+            terraform state list | grep "gamcapp-${{ github.event.inputs.environment }}" | sort
+            
+            echo ""
+            echo "Resource count by type:"
+            terraform state list | grep "gamcapp-${{ github.event.inputs.environment }}" | \
+              sed 's/module\.[^.]*\.aws_/aws_/' | cut -d'.' -f1 | sort | uniq -c | sort -nr
+          else
+            echo "⚠️  No resources found in Terraform state for gamcapp-${{ github.event.inputs.environment }}"
+            echo "This may indicate:"
+            echo "  - Resources already destroyed"
+            echo "  - State file issues"
+            echo "  - Resources created outside Terraform"
+          fi
+
+      - name: Generate Destruction Plan
+        run: |
+          cd infrastructure
+          echo "Generating terraform destroy plan..."
+          
+          # Set environment-specific variables
+          case "${{ github.event.inputs.environment }}" in
+            dev)
+              DB_PASSWORD_SECRET="${{ secrets.DEV_DB_PASSWORD }}"
+              ;;
+            staging)
+              DB_PASSWORD_SECRET="${{ secrets.STAGING_DB_PASSWORD }}"
+              ;;
+            prod)
+              DB_PASSWORD_SECRET="${{ secrets.PROD_DB_PASSWORD }}"
+              ;;
+          esac
+          
+          export TF_VAR_db_password="$DB_PASSWORD_SECRET"
+          export TF_VAR_skip_final_snapshot="${{ github.event.inputs.skip_rds_snapshot }}"
+          
+          if terraform plan -destroy \
+            -var-file="environments/${{ github.event.inputs.environment }}/terraform.tfvars" \
+            -no-color > "destroy_plan_${{ github.event.inputs.environment }}_$(date +%Y%m%d_%H%M%S).txt" 2>&1; then
+            
+            echo "✅ Destruction plan generated successfully"
+            
+            # Show plan summary
+            PLAN_FILE=$(ls destroy_plan_${{ github.event.inputs.environment }}_*.txt | head -1)
+            echo ""
+            echo "=== DESTRUCTION PLAN SUMMARY ==="
+            grep -E "(Plan:|will be destroyed)" "$PLAN_FILE" | head -10 || echo "Check full plan in artifacts"
+            
+            RESOURCE_COUNT=$(grep -c "will be destroyed" "$PLAN_FILE" 2>/dev/null || echo "0")
+            echo ""
+            echo "📊 Resources to be destroyed: $RESOURCE_COUNT"
+            
+          else
+            echo "❌ Failed to generate destruction plan"
+            cat "destroy_plan_${{ github.event.inputs.environment }}_$(date +%Y%m%d_%H%M%S).txt"
+            exit 1
+          fi
+
+      - name: Create Backups
+        if: github.event.inputs.create_backups == 'true'
+        run: |
+          cd infrastructure
+          echo "Creating pre-teardown backups..."
+          
+          # Create backup directory with timestamp
+          BACKUP_DIR="teardown_backup_${{ github.event.inputs.environment }}_$(date +%Y%m%d_%H%M%S)"
+          mkdir -p "$BACKUP_DIR"
+          
+          # Backup Terraform state
+          if [ -f "terraform.tfstate" ]; then
+            cp terraform.tfstate "$BACKUP_DIR/"
+            echo "✅ Backed up Terraform state"
+          fi
+          
+          # Backup environment configuration
+          if [ -f "environments/${{ github.event.inputs.environment }}/terraform.tfvars" ]; then
+            cp "environments/${{ github.event.inputs.environment }}/terraform.tfvars" "$BACKUP_DIR/"
+            echo "✅ Backed up environment configuration"
+          fi
+          
+          # Export resource metadata
+          echo "Exporting AWS resource metadata..."
+          
+          # RDS snapshots
+          aws rds describe-db-snapshots \
+            --region ${{ env.AWS_REGION }} \
+            --query "DBSnapshots[?contains(DBSnapshotIdentifier, 'gamcapp-${{ github.event.inputs.environment }}')].[DBSnapshotIdentifier,SnapshotCreateTime,Status]" \
+            --output table > "$BACKUP_DIR/rds_snapshots.txt" 2>/dev/null || echo "No RDS snapshots found"
+          
+          # S3 bucket contents
+          for bucket in "gamcapp-${{ github.event.inputs.environment }}-uploads" "gamcapp-${{ github.event.inputs.environment }}-eb-versions"; do
+            if aws s3api head-bucket --bucket "$bucket" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+              aws s3 ls "s3://$bucket" --recursive > "$BACKUP_DIR/${bucket}_contents.txt" 2>/dev/null || true
+              echo "✅ Listed contents of $bucket"
+            fi
+          done
+          
+          # Secrets metadata
+          aws secretsmanager list-secrets \
+            --region ${{ env.AWS_REGION }} \
+            --query "SecretList[?contains(Name, 'gamcapp-${{ github.event.inputs.environment }}')].[Name,Description,CreatedDate]" \
+            --output table > "$BACKUP_DIR/secrets_metadata.txt" 2>/dev/null || echo "No secrets found"
+          
+          # Create backup summary
+          cat > "$BACKUP_DIR/backup_info.txt" << EOF
+          GAMCAPP Infrastructure Teardown Backup
+          =====================================
+          Environment: ${{ github.event.inputs.environment }}
+          Triggered by: ${{ github.actor }}
+          Timestamp: $(date -u)
+          Reason: ${{ github.event.inputs.reason }}
+          GitHub Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          Backup Contents:
+          - Terraform state and configuration
+          - AWS resource metadata
+          - RDS snapshots list
+          - S3 bucket contents lists
+          - Secrets Manager metadata
+          
+          Options Selected:
+          - Create backups: ${{ github.event.inputs.create_backups }}
+          - Skip RDS snapshot: ${{ github.event.inputs.skip_rds_snapshot }}
+          - Download S3 data: ${{ github.event.inputs.download_s3_data }}
+          EOF
+          
+          echo "✅ Backup created in: $BACKUP_DIR"
+          echo "BACKUP_DIR=$BACKUP_DIR" >> $GITHUB_ENV
+
+      - name: Download S3 Data
+        if: github.event.inputs.download_s3_data == 'true'
+        run: |
+          cd infrastructure
+          echo "Downloading S3 bucket contents..."
+          
+          # Use existing backup directory or create new one
+          BACKUP_DIR="${BACKUP_DIR:-s3_backup_${{ github.event.inputs.environment }}_$(date +%Y%m%d_%H%M%S)}"
+          mkdir -p "$BACKUP_DIR/s3_data"
+          
+          for bucket in "gamcapp-${{ github.event.inputs.environment }}-uploads" "gamcapp-${{ github.event.inputs.environment }}-eb-versions"; do
+            if aws s3api head-bucket --bucket "$bucket" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+              echo "Downloading contents of $bucket..."
+              
+              # Check if bucket has objects
+              OBJECT_COUNT=$(aws s3 ls "s3://$bucket" --recursive | wc -l)
+              if [ $OBJECT_COUNT -gt 0 ]; then
+                aws s3 sync "s3://$bucket" "$BACKUP_DIR/s3_data/$bucket" --region ${{ env.AWS_REGION }}
+                echo "✅ Downloaded $OBJECT_COUNT objects from $bucket"
+              else
+                echo "ℹ️  Bucket $bucket is empty"
+              fi
+            else
+              echo "⚠️  Bucket $bucket does not exist or is not accessible"
+            fi
+          done
+
+      - name: Execute Teardown
+        env:
+          TF_VAR_skip_final_snapshot: ${{ github.event.inputs.skip_rds_snapshot }}
+        run: |
+          cd infrastructure
+          echo "🔥 Starting infrastructure teardown for ${{ github.event.inputs.environment }}..."
+          
+          # Set environment-specific database password
+          case "${{ github.event.inputs.environment }}" in
+            dev)
+              export TF_VAR_db_password="${{ secrets.DEV_DB_PASSWORD }}"
+              ;;
+            staging)
+              export TF_VAR_db_password="${{ secrets.STAGING_DB_PASSWORD }}"
+              ;;
+            prod)
+              export TF_VAR_db_password="${{ secrets.PROD_DB_PASSWORD }}"
+              ;;
+          esac
+          
+          # Make teardown script executable
+          chmod +x scripts/teardown.sh
+          
+          # Set automation environment variables
+          export TEARDOWN_AUTOMATED="true"
+          export TEARDOWN_CONFIRM_ENV="${{ github.event.inputs.environment }}"
+          export TEARDOWN_CONFIRM_PROJECT="gamcapp"
+          export TEARDOWN_CONFIRM_DESTROY="DESTROY"
+          export TEARDOWN_CREATE_BACKUPS="${{ github.event.inputs.create_backups }}"
+          export TEARDOWN_REASON="${{ github.event.inputs.reason }}"
+          export TEARDOWN_ACTOR="${{ github.actor }}"
+          
+          # Execute teardown with force flag (confirmations handled by GitHub)
+          timeout 1800 ./scripts/teardown.sh ${{ github.event.inputs.environment }} --force || {
+            TEARDOWN_EXIT_CODE=$?
+            
+            if [ $TEARDOWN_EXIT_CODE -eq 124 ]; then
+              echo "❌ Teardown timed out after 30 minutes"
+              echo "Some resources may still be in process of deletion"
+              echo "Check AWS Console for current status"
+            else
+              echo "❌ Teardown failed with exit code: $TEARDOWN_EXIT_CODE"
+            fi
+            
+            echo "Attempting emergency cleanup..."
+            chmod +x scripts/emergency_cleanup.sh
+            ./scripts/emergency_cleanup.sh ${{ github.event.inputs.environment }} || true
+            
+            exit $TEARDOWN_EXIT_CODE
+          }
+
+      - name: Post-Teardown Verification
+        if: always()
+        run: |
+          cd infrastructure
+          echo "=== POST-TEARDOWN VERIFICATION ==="
+          
+          # Check Terraform state
+          echo "Checking remaining resources in Terraform state..."
+          REMAINING_RESOURCES=$(terraform state list | grep -c "gamcapp-${{ github.event.inputs.environment }}" || echo "0")
+          
+          if [ $REMAINING_RESOURCES -eq 0 ]; then
+            echo "✅ No resources found in Terraform state"
+          else
+            echo "⚠️  $REMAINING_RESOURCES resources still in Terraform state:"
+            terraform state list | grep "gamcapp-${{ github.event.inputs.environment }}"
+          fi
+          
+          # Check for remaining AWS resources
+          echo ""
+          echo "Checking for remaining AWS resources..."
+          
+          # S3 buckets
+          REMAINING_BUCKETS=$(aws s3api list-buckets --region ${{ env.AWS_REGION }} --query "Buckets[?contains(Name, 'gamcapp-${{ github.event.inputs.environment }}')].Name" --output text 2>/dev/null || echo "")
+          if [ -n "$REMAINING_BUCKETS" ]; then
+            echo "⚠️  Remaining S3 buckets: $REMAINING_BUCKETS"
+          else
+            echo "✅ No remaining S3 buckets found"
+          fi
+          
+          # RDS instances
+          REMAINING_RDS=$(aws rds describe-db-instances --region ${{ env.AWS_REGION }} --query "DBInstances[?contains(DBInstanceIdentifier, 'gamcapp-${{ github.event.inputs.environment }}')].DBInstanceIdentifier" --output text 2>/dev/null || echo "")
+          if [ -n "$REMAINING_RDS" ]; then
+            echo "⚠️  Remaining RDS instances: $REMAINING_RDS"
+          else
+            echo "✅ No remaining RDS instances found"
+          fi
+          
+          # IAM roles
+          REMAINING_ROLES=$(aws iam list-roles --query "Roles[?contains(RoleName, 'gamcapp-${{ github.event.inputs.environment }}')].RoleName" --output text 2>/dev/null || echo "")
+          if [ -n "$REMAINING_ROLES" ]; then
+            echo "⚠️  Remaining IAM roles: $REMAINING_ROLES"
+          else
+            echo "✅ No remaining IAM roles found"
+          fi
+
+      - name: Generate Teardown Report
+        if: always()
+        run: |
+          cd infrastructure
+          
+          # Create teardown report
+          REPORT_FILE="teardown_report_${{ github.event.inputs.environment }}_$(date +%Y%m%d_%H%M%S).md"
+          
+          cat > "$REPORT_FILE" << EOF
+          # Infrastructure Teardown Report
+          
+          ## Summary
+          - **Environment**: ${{ github.event.inputs.environment }}
+          - **Requested by**: ${{ github.actor }}
+          - **Timestamp**: $(date -u)
+          - **Reason**: ${{ github.event.inputs.reason }}
+          - **GitHub Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          ## Configuration
+          - **Create backups**: ${{ github.event.inputs.create_backups }}
+          - **Skip RDS snapshot**: ${{ github.event.inputs.skip_rds_snapshot }}
+          - **Download S3 data**: ${{ github.event.inputs.download_s3_data }}
+          
+          ## Execution Status
+          - **Job Status**: ${{ job.status }}
+          - **Workflow Status**: In Progress
+          
+          ## Next Steps
+          1. Verify all resources are deleted in AWS Console
+          2. Check for any unexpected charges in AWS Billing
+          3. Review backup artifacts if restoration is needed
+          4. Update DNS records if they pointed to deleted resources
+          5. Remove environment references from monitoring systems
+          
+          ## Artifacts
+          - Teardown logs and plans are available as GitHub Actions artifacts
+          - Backups created (if enabled): Available for 30 days
+          - S3 data downloads (if enabled): Available for 30 days
+          EOF
+          
+          echo "✅ Teardown report created: $REPORT_FILE"
+
+      - name: Upload Teardown Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: teardown-artifacts-${{ github.event.inputs.environment }}-${{ github.run_number }}
+          path: |
+            infrastructure/*_${{ github.event.inputs.environment }}_*.txt
+            infrastructure/*_${{ github.event.inputs.environment }}_*.md
+            infrastructure/teardown_backup_*/
+            infrastructure/s3_backup_*/
+          retention-days: 30
+
+      - name: Teardown Summary
+        if: always()
+        run: |
+          echo ""
+          echo "🎉 ========================================"
+          echo "🎉  TEARDOWN COMPLETED"
+          echo "🎉 ========================================"
+          echo ""
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Status: ${{ job.status }}"
+          echo "Artifacts: Available for 30 days"
+          echo ""
+          echo "📋 Post-teardown checklist:"
+          echo "  ✓ Verify resources deleted in AWS Console"
+          echo "  ✓ Check AWS billing for unexpected charges"
+          echo "  ✓ Update DNS records if needed"
+          echo "  ✓ Remove monitoring configurations"
+          echo "  ✓ Clean up backup files when no longer needed"
+          echo ""
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "⚠️  Some issues occurred during teardown."
+            echo "   Check the logs above and AWS Console for remaining resources."
+          fi

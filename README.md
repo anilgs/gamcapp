@@ -1,6 +1,18 @@
 
 A comprehensive medical appointment booking system for travel verification, designed as a clone of wafid.com functionality with enhanced features and streamlined user experience.
 
+## 🚨 Deployment Issues? 
+
+If you're encountering "resource already exists" or EIP limit errors during deployment, see **[IMPORT_GUIDE.md](./IMPORT_GUIDE.md)** for automated solutions.
+
+## 🔥 Need to Destroy Infrastructure?
+
+For safe teardown or emergency cleanup when no longer needed, see **[TEARDOWN_GUIDE.md](./TEARDOWN_GUIDE.md)** for comprehensive destruction procedures.
+
+## 🤖 CI/CD Integration
+
+For incorporating teardown into your GitHub Actions workflows with safety measures, see **[CI_CD_TEARDOWN_GUIDE.md](./CI_CD_TEARDOWN_GUIDE.md)** for complete automation setup.
+
 ## 🏥 Project Overview
 
 GAMCA Medical Services (gamca-wafid.com) is a full-stack web application that facilitates medical appointment booking for travel verification purposes. The platform provides a seamless experience for user
