@@ -90,7 +90,7 @@ jobs:
 
       - name: Deploy to Development
         env:
-          db_password: ${{ secrets.DEV_DB_PASSWORD }}
+          TF_VAR_db_password: ${{ secrets.DEV_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh dev ${{ github.sha }}
@@ -140,7 +140,7 @@ jobs:
 
       - name: Deploy to Staging
         env:
-          db_password: ${{ secrets.STAGING_DB_PASSWORD }}
+          TF_VAR_db_password: ${{ secrets.STAGING_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh staging ${{ github.sha }}
@@ -190,7 +190,7 @@ jobs:
 
       - name: Deploy to Production
         env:
-          db_password: ${{ secrets.PROD_DB_PASSWORD }}
+          TF_VAR_db_password: ${{ secrets.PROD_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh prod ${{ github.sha }}
