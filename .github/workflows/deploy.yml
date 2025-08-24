@@ -13,6 +13,8 @@ on:
 env:
   AWS_REGION: ap-south-1
   NODE_VERSION: '18'
+  TF_LOG: DEBUG
+  
 permissions:
       id-token: write
       contents: read

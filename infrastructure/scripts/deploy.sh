@@ -32,8 +32,8 @@ fi
 echo "🏗️ Deploying infrastructure..."
 cd infrastructure
 terraform workspace select $ENVIRONMENT 2>/dev/null || terraform workspace new $ENVIRONMENT
-terraform plan -var-file="environments/$ENVIRONMENT/terraform.tfvars" -out=tfplan
-terraform apply tfplan
+terraform plan -input=false -var-file="environments/$ENVIRONMENT/terraform.tfvars" -out=tfplan
+terraform apply -input=false tfplan
 
 # Get ElasticBeanstalk application and environment names
 APP_NAME=$(terraform output -raw eb_application_name)
