@@ -9,7 +9,7 @@ aws_region   = "ap-south-1"
 # Database Configuration (REQUIRED: Set a secure password)
 db_name     = "gamcapp"
 db_username = "postgres"
-db_password = "your-secure-password-here"  # CHANGE THIS
+db_password = "postgres"  # CHANGE THIS
 
 # VPC Configuration (Optional - defaults provided)
 # vpc_cidr                = "10.0.0.0/16"
