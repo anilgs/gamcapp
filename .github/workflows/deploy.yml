@@ -14,7 +14,7 @@ env:
   AWS_REGION: ap-south-1
   NODE_VERSION: '18'
   TF_LOG: DEBUG
-  
+
 permissions:
       id-token: write
       contents: read
@@ -90,7 +90,7 @@ jobs:
 
       - name: Deploy to Development
         env:
-          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          db_password: ${{ secrets.DEV_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh dev ${{ github.sha }}
@@ -140,7 +140,7 @@ jobs:
 
       - name: Deploy to Staging
         env:
-          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          db_password: ${{ secrets.STAGING_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh staging ${{ github.sha }}
@@ -190,7 +190,7 @@ jobs:
 
       - name: Deploy to Production
         env:
-          DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          db_password: ${{ secrets.PROD_DB_PASSWORD }}
         run: |
           chmod +x infrastructure/scripts/deploy.sh
           ./infrastructure/scripts/deploy.sh prod ${{ github.sha }}
