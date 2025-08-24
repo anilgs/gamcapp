@@ -9,9 +9,9 @@ terraform {
 
   backend "s3" {
     # Configure your S3 backend here
-    # bucket = "your-terraform-state-bucket"
-    # key    = "gamcapp/terraform.tfstate"
-    # region = "ap-south-1"
+    bucket = "gamcapp-terraform-state-bucket"
+    key    = "gamcapp/terraform.tfstate"
+    region = "ap-south-1"
   }
 }
 
