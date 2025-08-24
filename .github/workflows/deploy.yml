@@ -10,12 +10,12 @@ on:
     branches:
       - main
 
-
-
 env:
   AWS_REGION: ap-south-1
   NODE_VERSION: '18'
-
+permissions:
+      id-token: write
+      contents: read
 jobs:
   test:
     name: Test and Lint
@@ -49,9 +49,7 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment: development
-    permissions:
-      id-token: write
-      contents: read
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,6 +65,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
           aws-region: ap-south-1
+          role-session-name: GitHubActionsDeploy
           audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
@@ -100,9 +99,7 @@ jobs:
     needs: test
     if: startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push'
     environment: staging
-    permissions:
-      id-token: write
-      contents: read
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,6 +115,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
           aws-region: ap-south-1
+          role-session-name: GitHubActionsDeploy
           audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
@@ -151,9 +149,7 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
-    permissions:
-      id-token: write
-      contents: read
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -169,6 +165,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::520943650389:role/ElasticBeanstalkAdmin # Replace with your IAM role ARN
           aws-region: ap-south-1
+          role-session-name: GitHubActionsDeploy
           audience: sts.amazonaws.com # Recommended for OIDC
 
       - name: Setup Terraform
