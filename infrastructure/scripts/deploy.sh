@@ -66,7 +66,7 @@ safe_import() {
     
     print_status "Importing $resource_address with ID: $resource_id"
     
-    if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
+    if terraform import -var-file="environments/$ENVIRONMENT/terraform.tfvars" "$resource_address" "$resource_id" 2>/dev/null; then
         print_success "Successfully imported $resource_address"
         return 0
     else
