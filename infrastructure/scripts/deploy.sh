@@ -83,29 +83,54 @@ check_and_cleanup_eips() {
     current_eips=$(aws ec2 describe-addresses --region ap-south-1 --output json | jq '.Addresses | length' 2>/dev/null || echo "0")
     
     print_status "Current EIPs in use: $current_eips"
+    print_status "AWS default limit: 5 EIPs per region"
+    print_status "This deployment needs: 3 EIPs for NAT gateways"
     
-    if [[ "$current_eips" -ge 5 ]]; then
-        print_warning "EIP limit may be reached. Checking for unused EIPs to release..."
+    # Be more aggressive - cleanup if we have 3+ EIPs to ensure we have room for 3 new NAT gateway EIPs
+    if [[ "$current_eips" -ge 3 ]]; then
+        print_warning "Cleaning up unused EIPs to ensure sufficient capacity for deployment..."
         
-        local unused_eip_ids
-        unused_eip_ids=$(aws ec2 describe-addresses --region ap-south-1 --output json | jq -r '.Addresses[] | select(.AssociationId == null) | .AllocationId' 2>/dev/null || echo "")
+        # Get all EIPs with detailed info
+        local eip_details
+        eip_details=$(aws ec2 describe-addresses --region ap-south-1 --output json 2>/dev/null)
         
-        if [[ -n "$unused_eip_ids" ]]; then
-            print_warning "Found unused EIPs. Releasing them automatically..."
-            while IFS= read -r allocation_id; do
-                if [[ -n "$allocation_id" ]]; then
-                    print_status "Releasing unused EIP: $allocation_id"
-                    if aws ec2 release-address --region ap-south-1 --allocation-id "$allocation_id" 2>/dev/null; then
-                        print_success "Released EIP: $allocation_id"
-                    else
-                        print_error "Failed to release EIP: $allocation_id"
+        if [[ -n "$eip_details" ]]; then
+            # Show current EIP usage
+            echo "$eip_details" | jq -r '.Addresses[] | "EIP: \(.PublicIp) | AllocationId: \(.AllocationId) | Associated: \(if .AssociationId then "Yes (\(.AssociationId))" else "No" end)"'
+            
+            # Get unused EIPs
+            local unused_eip_ids
+            unused_eip_ids=$(echo "$eip_details" | jq -r '.Addresses[] | select(.AssociationId == null) | .AllocationId' 2>/dev/null)
+            
+            if [[ -n "$unused_eip_ids" ]] && [[ "$unused_eip_ids" != "" ]]; then
+                print_warning "Releasing unused EIPs..."
+                while IFS= read -r allocation_id; do
+                    if [[ -n "$allocation_id" ]] && [[ "$allocation_id" != "null" ]]; then
+                        print_status "Releasing unused EIP: $allocation_id"
+                        if aws ec2 release-address --region ap-south-1 --allocation-id "$allocation_id" 2>/dev/null; then
+                            print_success "Released EIP: $allocation_id"
+                        else
+                            print_error "Failed to release EIP: $allocation_id"
+                        fi
+                        sleep 2
                     fi
-                    sleep 1
-                fi
-            done <<< "$unused_eip_ids"
-        else
-            print_warning "No unused EIPs found. You may need to request a limit increase from AWS."
+                done <<< "$unused_eip_ids"
+                
+                # Recheck count after cleanup
+                current_eips=$(aws ec2 describe-addresses --region ap-south-1 --output json | jq '.Addresses | length' 2>/dev/null || echo "0")
+                print_status "EIPs after cleanup: $current_eips"
+            fi
+            
+            # Check if we still don't have enough room
+            if [[ "$current_eips" -gt 2 ]]; then
+                print_warning "Still have $current_eips EIPs. This may cause issues if deployment needs 3 new NAT gateway EIPs."
+                print_warning "Consider releasing more EIPs manually or requesting a limit increase from AWS."
+            else
+                print_success "EIP cleanup successful. Ready for deployment."
+            fi
         fi
+    else
+        print_success "EIP count is within acceptable range for deployment."
     fi
 }
 
@@ -129,10 +154,8 @@ import_existing_resources() {
         safe_import "module.iam.aws_iam_role.codedeploy_service_role" "${env_prefix}-codedeploy-service-role"
         safe_import "module.vpc.aws_iam_role.flow_log" "${env_prefix}-vpc-flow-log-role"
         
-        # Import RDS Resources
-        safe_import "module.rds.aws_db_subnet_group.main" "${env_prefix}-db-subnet-group"
-        safe_import "module.rds.aws_db_parameter_group.main" "${env_prefix}-db-params"
-        safe_import "module.vpc.aws_db_subnet_group.database" "${env_prefix}-database-subnet-group"
+        # Import IAM Instance Profile
+        safe_import "module.iam.aws_iam_instance_profile.eb_instance_profile" "${env_prefix}-eb-instance-profile"
         
         # Import Secrets Manager
         safe_import "module.rds.aws_secretsmanager_secret.db_password" "${env_prefix}-db-password"
@@ -140,12 +163,31 @@ import_existing_resources() {
         # Import CloudWatch Log Groups
         safe_import "module.vpc.aws_cloudwatch_log_group.vpc" "/aws/vpc/${env_prefix}"
         
-        # Check and import VPC if it exists
+        # Check and import VPC and related resources
         local vpc_id
         vpc_id=$(aws ec2 describe-vpcs --region ap-south-1 --filters "Name=tag:Name,Values=${env_prefix}-vpc" --query "Vpcs[0].VpcId" --output text 2>/dev/null || echo "None")
         if [[ "$vpc_id" != "None" && "$vpc_id" != "null" && -n "$vpc_id" ]]; then
+            print_status "Found existing VPC: $vpc_id"
             safe_import "module.vpc.aws_vpc.main" "$vpc_id"
+            
+            # Try to import existing subnets that belong to this VPC
+            import_existing_subnets "$vpc_id" "$env_prefix"
+            
+            # Try to import existing internet gateway
+            local igw_id
+            igw_id=$(aws ec2 describe-internet-gateways --region ap-south-1 --filters "Name=attachment.vpc-id,Values=$vpc_id" --query "InternetGateways[0].InternetGatewayId" --output text 2>/dev/null || echo "None")
+            if [[ "$igw_id" != "None" && "$igw_id" != "null" && -n "$igw_id" ]]; then
+                safe_import "module.vpc.aws_internet_gateway.main" "$igw_id"
+            fi
+        else
+            print_warning "No existing VPC found with name ${env_prefix}-vpc"
         fi
+        
+        # Handle DB subnet groups - try to import them AFTER VPC and subnets
+        print_status "Importing database subnet groups..."
+        safe_import "module.rds.aws_db_subnet_group.main" "${env_prefix}-db-subnet-group"
+        safe_import "module.rds.aws_db_parameter_group.main" "${env_prefix}-db-params"
+        safe_import "module.vpc.aws_db_subnet_group.database" "${env_prefix}-database-subnet-group"
         
         # Check and import ElasticBeanstalk application if it exists
         local eb_app_exists
@@ -156,6 +198,53 @@ import_existing_resources() {
     fi
     
     print_success "Resource import check completed"
+}
+
+# Function to import existing subnets for a VPC
+import_existing_subnets() {
+    local vpc_id=$1
+    local env_prefix=$2
+    
+    print_status "Checking for existing subnets in VPC: $vpc_id"
+    
+    # Get all subnets in the VPC
+    local subnets
+    subnets=$(aws ec2 describe-subnets --region ap-south-1 --filters "Name=vpc-id,Values=$vpc_id" --output json 2>/dev/null)
+    
+    if [[ -n "$subnets" ]]; then
+        # Try to import subnets by their tags/names
+        local subnet_ids
+        
+        # Public subnets
+        subnet_ids=$(echo "$subnets" | jq -r '.Subnets[] | select(.Tags[]?.Value | test(".*public.*"; "i")) | .SubnetId' 2>/dev/null)
+        local count=0
+        while IFS= read -r subnet_id; do
+            if [[ -n "$subnet_id" ]] && [[ "$subnet_id" != "null" ]]; then
+                safe_import "module.vpc.aws_subnet.public[$count]" "$subnet_id"
+                ((count++))
+            fi
+        done <<< "$subnet_ids"
+        
+        # Private subnets
+        subnet_ids=$(echo "$subnets" | jq -r '.Subnets[] | select(.Tags[]?.Value | test(".*private.*"; "i")) | .SubnetId' 2>/dev/null)
+        count=0
+        while IFS= read -r subnet_id; do
+            if [[ -n "$subnet_id" ]] && [[ "$subnet_id" != "null" ]]; then
+                safe_import "module.vpc.aws_subnet.private[$count]" "$subnet_id"
+                ((count++))
+            fi
+        done <<< "$subnet_ids"
+        
+        # Database subnets
+        subnet_ids=$(echo "$subnets" | jq -r '.Subnets[] | select(.Tags[]?.Value | test(".*database.*"; "i")) | .SubnetId' 2>/dev/null)
+        count=0
+        while IFS= read -r subnet_id; do
+            if [[ -n "$subnet_id" ]] && [[ "$subnet_id" != "null" ]]; then
+                safe_import "module.vpc.aws_subnet.database[$count]" "$subnet_id"
+                ((count++))
+            fi
+        done <<< "$subnet_ids"
+    fi
 }
 
 # Deploy infrastructure
