@@ -388,11 +388,12 @@ jobs:
           
           # Check Terraform state
           echo "Checking remaining resources in Terraform state..."
-          REMAINING_RESOURCES=$(terraform state list | grep -c "gamcapp-${{ github.event.inputs.environment }}" 2>/dev/null || echo "0")
-          # Ensure it's a clean number
+          REMAINING_RESOURCES=$(terraform state list 2>/dev/null | grep -c "gamcapp-${{ github.event.inputs.environment }}" || echo "0")
+          # Clean up the number and ensure it's valid
+          REMAINING_RESOURCES=$(echo "$REMAINING_RESOURCES" | tr -cd '0-9')
           REMAINING_RESOURCES=${REMAINING_RESOURCES:-0}
           
-          if [ "$REMAINING_RESOURCES" -eq 0 ]; then
+          if [ "$REMAINING_RESOURCES" -eq 0 ] 2>/dev/null; then
             echo "✅ No resources found in Terraform state"
           else
             echo "⚠️  $REMAINING_RESOURCES resources still in Terraform state:"
