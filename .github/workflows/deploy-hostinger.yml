@@ -1,0 +1,180 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '18'
+  PHP_VERSION: '8.2'
+
+jobs:
+  test:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pgsql, curl, json
+          tools: composer
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Run frontend type check
+        working-directory: ./frontend
+        run: npm run type-check
+
+      - name: Run frontend linting
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Run PHP syntax check
+        working-directory: ./backend
+        run: find src -name "*.php" -exec php -l {} \;
+
+  deploy-development:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer
+
+      - name: Install and build frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deployment
+          cp -r frontend/dist/* deployment/
+          cp -r backend deployment/
+          cp apache-config/.htaccess deployment/
+          
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deployment/
+          server-dir: /public_html/dev/
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer
+
+      - name: Install and build frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deployment
+          cp -r frontend/dist/* deployment/
+          cp -r backend deployment/
+          cp apache-config/.htaccess deployment/
+          
+          # Create environment file for production
+          echo "DB_HOST=${{ secrets.DB_HOST }}" > deployment/backend/.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> deployment/backend/.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> deployment/backend/.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> deployment/backend/.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> deployment/backend/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> deployment/backend/.env
+          echo "APP_ENV=production" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
+          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> deployment/backend/.env
+
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deployment/
+          server-dir: /public_html/
+
+      - name: Run post-deployment health check
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 30
+          curl -f ${{ secrets.FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
