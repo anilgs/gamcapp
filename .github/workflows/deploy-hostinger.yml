@@ -13,7 +13,7 @@ on:
 env:
   NODE_VERSION: '18'
   PHP_VERSION: '8.2'
-  FTP_HOST: ${{ secrets.FTP_HOST }}
+  FTP_HOST: ${{ vars.FTP_HOST }}
   FTP_USERNAME: ${{ vars.FTP_USERNAME }}
   FTP_PASSWORD: ${{ vars.FTP_PASSWORD }}
   SMTP_HOST: ${{ vars.SMTP_HOST }}
