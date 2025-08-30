@@ -31,6 +31,7 @@ env:
   FRONTEND_URL: ${{ vars.FRONTEND_URL }}
   RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
   RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+  DOMAIN: ${{ vars.DOMAIN }}
 
 jobs:
   test:
@@ -202,7 +203,7 @@ jobs:
           username: ${{ env.FTP_USERNAME }}
           password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
-          server-dir: /public_html/
+          server-dir: /domains/${{ env.DOMAIN }}/public_html/
 
       - name: Run post-deployment health check
         run: |
