@@ -123,9 +123,9 @@ jobs:
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ FTP_HOST }}
-          username: ${{ FTP_USERNAME }}
-          password: ${{ FTP_PASSWORD }}
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /public_html/dev/
 
@@ -171,36 +171,36 @@ jobs:
           cp apache-config/.htaccess deployment/
           
           # Create environment file for production
-          echo "DB_HOST=${{ DB_HOST }}" >> deployment/backend/.env
-          echo "DB_PORT=${{ DB_PORT }}" >> deployment/backend/.env
-          echo "DB_NAME=${{ DB_NAME }}" >> deployment/backend/.env
-          echo "DB_USER=${{ DB_USER }}" >> deployment/backend/.env
-          echo "DB_PASSWORD=${{ DB_PASSWORD }}" >> deployment/backend/.env
-          echo "JWT_SECRET=${{ JWT_SECRET }}" >> deployment/backend/.env
+          echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
+          echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
+          echo "DB_USER=${{ env.DB_USER }}" >> deployment/backend/.env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> deployment/backend/.env
           echo "APP_ENV=production" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_ID=${{ RAZORPAY_KEY_ID }}" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_SECRET=${{ RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
-          echo "FRONTEND_URL=${{ FRONTEND_URL }}" >> deployment/backend/.env
-          echo "SMTP_HOST=${{ SMTP_HOST }}" >> deployment/backend/.env
-          echo "SMTP_PORT=${{ SMTP_PORT }}" >> deployment/backend/.env
-          echo "SMTP_SECURE=${{ SMTP_SECURE }}" >> deployment/backend/.env
-          echo "SMTP_USER=${{ SMTP_USER }}" >> deployment/backend/.env
-          echo "SMTP_PASS=${{ SMTP_PASS }}" >> deployment/backend/.env
-          echo "ADMIN_EMAIL=${{ ADMIN_EMAIL }}" >> deployment/backend/.env
-          echo "FROM_EMAIL=${{ FROM_EMAIL }}" >> deployment/backend/.env
-          echo "FROM_NAME=${{ FROM_NAME }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_SECRET=${{ env.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
+          echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
+          echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
+          echo "SMTP_PORT=${{ env.SMTP_PORT }}" >> deployment/backend/.env
+          echo "SMTP_SECURE=${{ env.SMTP_SECURE }}" >> deployment/backend/.env
+          echo "SMTP_USER=${{ env.SMTP_USER }}" >> deployment/backend/.env
+          echo "SMTP_PASS=${{ env.SMTP_PASS }}" >> deployment/backend/.env
+          echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
+          echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
+          echo "FROM_NAME=${{ env.FROM_NAME }}" >> deployment/backend/.env
           echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
-          echo "FTP_HOST=${{ FTP_HOST }}" >> deployment/backend/.env
-          echo "FTP_USERNAME=${{ FTP_USERNAME }}" >> deployment/backend/.env
-          echo "FTP_PASSWORD=${{ FTP_PASSWORD }}" >> deployment/backend/.env
+          echo "FTP_HOST=${{ env.FTP_HOST }}" >> deployment/backend/.env
+          echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
+          echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
 
 
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ FTP_HOST }}
-          username: ${{ FTP_USERNAME }}
-          password: ${{ FTP_PASSWORD }}
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /public_html/
 
