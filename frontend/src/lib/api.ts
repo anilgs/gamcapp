@@ -228,7 +228,7 @@ export const userApi = {
         const result = await response.json();
         return { success: false, error: result.error || 'Failed to download appointment slip' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error. Please try again.' };
     }
   },
