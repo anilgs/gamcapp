@@ -1,44 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { authApi, userApi, uploadApi } from '@/lib/api'
+import { authApi, userApi, uploadApi, UserProfile } from '@/lib/api'
 import { PageLoader } from '@/components/LoadingSpinner'
-
-interface UserData {
-  user: {
-    name: string
-    email: string
-    phone: string
-    passport_number?: string
-    created_at: string
-    payment_status: string
-  }
-  status: {
-    status: string
-    message: string
-    next_steps?: string[]
-  }
-  appointment: {
-    type_label?: string
-    preferred_date?: string
-    medical_center?: string
-    details?: Record<string, unknown>
-  }
-  payment?: {
-    amount_formatted: string
-    payment_id: string
-    status: string
-    created_at: string
-  }
-  appointment_slip?: {
-    available: boolean
-    size_formatted?: string
-    uploaded_at?: string
-  }
-}
 
 export const UserDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [user, setUser] = useState<UserData | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [uploadLoading, setUploadLoading] = useState(false)
@@ -52,7 +19,7 @@ export const UserDashboard: React.FC = () => {
 
     try {
       const result = await userApi.getProfile()
-      if (result.success) {
+      if (result.success && result.data) {
         setUser(result.data)
       } else {
         setError(result.error || 'Failed to load profile')
@@ -402,12 +369,12 @@ export const UserDashboard: React.FC = () => {
                   <div>
                     <label className="text-sm font-medium text-gray-500">Additional Details</label>
                     <div className="mt-1 text-sm text-gray-600">
-                      {user.appointment.details.special_requirements && (
-                        <p><strong>Special Requirements:</strong> {user.appointment.details.special_requirements}</p>
-                      )}
-                      {user.appointment.details.emergency_contact && (
-                        <p><strong>Emergency Contact:</strong> {user.appointment.details.emergency_contact}</p>
-                      )}
+                      {user.appointment.details?.special_requirements ? (
+                        <p><strong>Special Requirements:</strong> {String(user.appointment.details.special_requirements)}</p>
+                      ) : null}
+                      {user.appointment.details?.emergency_contact ? (
+                        <p><strong>Emergency Contact:</strong> {String(user.appointment.details.emergency_contact)}</p>
+                      ) : null}
                     </div>
                   </div>
                 )}

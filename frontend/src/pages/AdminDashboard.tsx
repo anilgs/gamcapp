@@ -1,47 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { adminApi } from '@/lib/api'
+import { adminApi, AdminUser, Pagination, Statistics } from '@/lib/api'
 import { AdminUserList } from '@/components/AdminUserList'
-
-interface AdminUser {
-  username: string
-}
-
-interface Statistics {
-  total_users: number
-  paid_users: number
-  pending_users: number
-  total_revenue: number
-}
-
-interface Pagination {
-  current_page: number
-  total_pages: number
-  total_records: number
-  per_page: number
-  has_prev: boolean
-  has_next: boolean
-}
-
-interface User {
-  id: string
-  name: string
-  email: string
-  phone: string
-  passport_number?: string
-  payment_status: 'pending' | 'completed' | 'failed'
-  payment_amount?: number
-  created_at: string
-  appointment_details?: Record<string, unknown>
-  payment_info?: Record<string, unknown>
-  has_slip?: boolean
-  slip_uploaded_at?: string
-}
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
-  const [users, setUsers] = useState<User[]>([])
+  const [adminUser, setAdminUser] = useState<{ username: string } | null>(null)
+  const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statistics, setStatistics] = useState<Statistics | null>(null)
@@ -65,7 +30,7 @@ export const AdminDashboard: React.FC = () => {
   })
 
   const [showUserDetails, setShowUserDetails] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
 
   const fetchUsers = useCallback(async (page = pagination.current_page) => {
     setLoading(true)
@@ -168,7 +133,7 @@ export const AdminDashboard: React.FC = () => {
     }
   }
 
-  const handleViewDetails = (user: User) => {
+  const handleViewDetails = (user: AdminUser) => {
     setSelectedUser(user)
     setShowUserDetails(true)
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { paymentApi, appointmentApi, authApi } from '../lib/api';
+import { paymentApi, appointmentApi, authApi, User } from '../lib/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 declare global {
@@ -43,7 +43,7 @@ export default function Payment() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderData, setOrderData] = useState<OrderData | null>(null);
-  const [userDetails, setUserDetails] = useState<Record<string, unknown> | null>(null);
+  const [userDetails, setUserDetails] = useState<User | null>(null);
   const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null);
 
   const handleLogout = async () => {

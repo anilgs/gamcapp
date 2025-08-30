@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { appointmentApi, authApi } from '../lib/api';
+import { appointmentApi, authApi, User, Appointment } from '../lib/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export default function PaymentSuccess() {
@@ -10,8 +10,8 @@ export default function PaymentSuccess() {
   const paymentId = searchParams.get('paymentId');
   
   const [loading, setLoading] = useState(true);
-  const [appointmentDetails, setAppointmentDetails] = useState<Record<string, unknown> | null>(null);
-  const [userDetails, setUserDetails] = useState<Record<string, unknown> | null>(null);
+  const [appointmentDetails, setAppointmentDetails] = useState<Appointment | null>(null);
+  const [userDetails, setUserDetails] = useState<User | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {

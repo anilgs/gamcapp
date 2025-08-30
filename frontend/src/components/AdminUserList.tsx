@@ -1,25 +1,11 @@
 import React, { useState } from 'react'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  phone: string
-  passport_number?: string
-  payment_status: 'pending' | 'completed' | 'failed'
-  payment_amount?: number
-  created_at: string
-  appointment_details?: Record<string, unknown>
-  payment_info?: Record<string, unknown>
-  has_slip?: boolean
-  slip_uploaded_at?: string
-}
+import { AdminUser } from '@/lib/api'
 
 interface AdminUserListProps {
-  users: User[]
+  users: AdminUser[]
   loading: boolean
   onUploadSlip: (formData: FormData) => Promise<void>
-  onViewDetails: (user: User) => void
+  onViewDetails: (user: AdminUser) => void
   onRefresh: () => void
 }
 

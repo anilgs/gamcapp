@@ -17,6 +17,74 @@ export interface User {
   created_at: string;
 }
 
+export interface AdminUser extends User {
+  name: string;
+  email: string;
+  passport_number?: string;
+  payment_status: 'pending' | 'completed' | 'failed';
+  payment_amount?: number;
+  appointment_details?: Record<string, unknown>;
+  payment_info?: Record<string, unknown>;
+  has_slip?: boolean;
+  slip_uploaded_at?: string;
+}
+
+export interface Pagination {
+  current_page: number;
+  total_pages: number;
+  total_records: number;
+  per_page: number;
+  has_prev: boolean;
+  has_next: boolean;
+}
+
+export interface UserProfile {
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+    passport_number?: string;
+    created_at: string;
+    payment_status: string;
+  };
+  status: {
+    status: string;
+    message: string;
+    next_steps?: string[];
+  };
+  appointment: {
+    type_label?: string;
+    preferred_date?: string;
+    medical_center?: string;
+    details?: Record<string, unknown>;
+  };
+  payment?: {
+    amount_formatted: string;
+    payment_id: string;
+    status: string;
+    created_at: string;
+  };
+  slip?: {
+    filename: string;
+    original_name: string;
+    mime_type: string;
+    size_formatted?: string;
+    uploaded_at?: string;
+  };
+  appointment_slip?: {
+    available: boolean;
+    size_formatted?: string;
+    uploaded_at?: string;
+  };
+}
+
+export interface Statistics {
+  total_users: number;
+  paid_users: number;
+  pending_users: number;
+  total_revenue: number;
+}
+
 export interface Admin {
   id: string;
   username: string;
@@ -209,7 +277,7 @@ export const paymentApi = {
 
 // User profile API methods
 export const userApi = {
-  getProfile: () => api.get<Record<string, unknown>>('/user/profile'),
+  getProfile: () => api.get<UserProfile>('/user/profile'),
   getAll: () => api.get<User[]>('/admin/users'),
   getById: (id: string) => api.get<User>(`/admin/users/${id}`),
   update: (id: string, data: Partial<User>) => api.put<User>(`/admin/users/${id}`, data),
@@ -282,9 +350,9 @@ export const adminApi = {
   getUsers: (params?: Record<string, string>) => {
     const queryParams = params ? `?${new URLSearchParams(params)}` : '';
     return api.get<{
-      users: User[];
-      pagination: Record<string, unknown>;
-      statistics: Record<string, unknown>;
+      users: AdminUser[];
+      pagination: Pagination;
+      statistics: Statistics;
     }>(`/admin/users${queryParams}`);
   },
   uploadSlip: (formData: FormData) => {
@@ -322,7 +390,7 @@ export const setAuthToken = (token: string): void => {
 
 // Error handler for API responses
 export const handleApiError = (error: unknown): string => {
-  if (error?.message) {
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message;
   }
   if (typeof error === 'string') {
