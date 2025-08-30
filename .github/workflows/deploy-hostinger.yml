@@ -208,4 +208,4 @@ jobs:
         run: |
           echo "Waiting for deployment to propagate..."
           sleep 30
-          curl -f ${{ FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
+          curl -f ${{ env.FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
