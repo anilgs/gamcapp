@@ -105,9 +105,9 @@ jobs:
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /public_html/dev/
 
@@ -153,23 +153,23 @@ jobs:
           cp apache-config/.htaccess deployment/
           
           # Create environment file for production
-          echo "DB_HOST=${{ secrets.DB_HOST }}" > deployment/backend/.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> deployment/backend/.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> deployment/backend/.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> deployment/backend/.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> deployment/backend/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> deployment/backend/.env
+          echo "DB_HOST=${{ env.DB_HOST }}" > deployment/backend/.env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
+          echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
+          echo "DB_USER=${{ env.DB_USER }}" >> deployment/backend/.env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> deployment/backend/.env
           echo "APP_ENV=production" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
-          echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_SECRET=${{ env.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
+          echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
 
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /public_html/
 
@@ -177,4 +177,4 @@ jobs:
         run: |
           echo "Waiting for deployment to propagate..."
           sleep 30
-          curl -f ${{ secrets.FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
+          curl -f ${{ env.FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
