@@ -2,7 +2,7 @@
 const API_BASE_URL = '/api';
 
 // Types for API responses
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -91,14 +91,14 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
@@ -204,12 +204,12 @@ export const paymentApi = {
     appointment_id: string;
   }) => api.post<{ appointment: Appointment }>('/payment/verify', paymentData),
   
-  getPaymentHistory: () => api.get<any[]>('/payment/history'),
+  getPaymentHistory: () => api.get<Record<string, unknown>[]>('/payment/history'),
 };
 
 // User profile API methods
 export const userApi = {
-  getProfile: () => api.get<any>('/user/profile'),
+  getProfile: () => api.get<Record<string, unknown>>('/user/profile'),
   getAll: () => api.get<User[]>('/admin/users'),
   getById: (id: string) => api.get<User>(`/admin/users/${id}`),
   update: (id: string, data: Partial<User>) => api.put<User>(`/admin/users/${id}`, data),
@@ -259,7 +259,7 @@ export const externalApi = {
   bookWafid: (bookingData: {
     appointment_date: string;
     appointment_time: string;
-    user_details: any;
+    user_details: Record<string, unknown>;
   }) => api.post<{ booking_id: string; external_ref: string }>('/external/book-wafid', bookingData),
 };
 
@@ -282,9 +282,9 @@ export const adminApi = {
   getUsers: (params?: Record<string, string>) => {
     const queryParams = params ? `?${new URLSearchParams(params)}` : '';
     return api.get<{
-      users: any[];
-      pagination: any;
-      statistics: any;
+      users: User[];
+      pagination: Record<string, unknown>;
+      statistics: Record<string, unknown>;
     }>(`/admin/users${queryParams}`);
   },
   uploadSlip: (formData: FormData) => {
@@ -321,7 +321,7 @@ export const setAuthToken = (token: string): void => {
 };
 
 // Error handler for API responses
-export const handleApiError = (error: any): string => {
+export const handleApiError = (error: unknown): string => {
   if (error?.message) {
     return error.message;
   }

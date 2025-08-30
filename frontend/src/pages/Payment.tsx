@@ -5,7 +5,11 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay: {
+      new(options: Record<string, unknown>): {
+        open(): void;
+      };
+    };
   }
 }
 
@@ -39,7 +43,7 @@ export default function Payment() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderData, setOrderData] = useState<OrderData | null>(null);
-  const [userDetails, setUserDetails] = useState<any | null>(null);
+  const [userDetails, setUserDetails] = useState<Record<string, unknown> | null>(null);
   const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null);
 
   const handleLogout = async () => {
@@ -88,9 +92,9 @@ export default function Payment() {
         setOrderData(orderResult.data || null);
         setUserDetails(userResult.data || null);
         setAppointmentDetails(appointmentResult.data || null);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Payment initialization error:', error);
-        setError(error.message || 'Failed to initialize payment. Please try again.');
+        setError(error instanceof Error ? error.message : 'Failed to initialize payment. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -139,7 +143,7 @@ export default function Payment() {
             } else {
               throw new Error('Payment verification failed');
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('Payment verification error:', error);
             setError('Payment verification failed. Please contact support.');
           }
@@ -153,7 +157,7 @@ export default function Payment() {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payment error:', error);
       setError('Failed to open payment gateway. Please try again.');
       setPaymentLoading(false);

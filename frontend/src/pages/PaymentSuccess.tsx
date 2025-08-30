@@ -10,8 +10,8 @@ export default function PaymentSuccess() {
   const paymentId = searchParams.get('paymentId');
   
   const [loading, setLoading] = useState(true);
-  const [appointmentDetails, setAppointmentDetails] = useState<any | null>(null);
-  const [userDetails, setUserDetails] = useState<any | null>(null);
+  const [appointmentDetails, setAppointmentDetails] = useState<Record<string, unknown> | null>(null);
+  const [userDetails, setUserDetails] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function PaymentSuccess() {
         } else {
           setError('Could not load appointment details');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error loading details:', error);
         setError('Failed to load payment confirmation details');
       } finally {

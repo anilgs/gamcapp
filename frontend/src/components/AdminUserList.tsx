@@ -9,8 +9,8 @@ interface User {
   payment_status: 'pending' | 'completed' | 'failed'
   payment_amount?: number
   created_at: string
-  appointment_details?: any
-  payment_info?: any
+  appointment_details?: Record<string, unknown>
+  payment_info?: Record<string, unknown>
   has_slip?: boolean
   slip_uploaded_at?: string
 }

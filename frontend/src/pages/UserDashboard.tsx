@@ -21,7 +21,7 @@ interface UserData {
     type_label?: string
     preferred_date?: string
     medical_center?: string
-    details?: any
+    details?: Record<string, unknown>
   }
   payment?: {
     amount_formatted: string

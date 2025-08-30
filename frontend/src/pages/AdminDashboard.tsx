@@ -32,8 +32,8 @@ interface User {
   payment_status: 'pending' | 'completed' | 'failed'
   payment_amount?: number
   created_at: string
-  appointment_details?: any
-  payment_info?: any
+  appointment_details?: Record<string, unknown>
+  payment_info?: Record<string, unknown>
   has_slip?: boolean
   slip_uploaded_at?: string
 }
@@ -87,9 +87,11 @@ export const AdminDashboard: React.FC = () => {
       } else {
         setError(result.error || 'Failed to fetch users')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching users:', error)
-      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+      if (error && typeof error === 'object' && 'message' in error && 
+          typeof error.message === 'string' && 
+          (error.message.includes('401') || error.message.includes('Unauthorized'))) {
         // Token expired or invalid
         localStorage.removeItem('adminToken')
         localStorage.removeItem('adminUser')
