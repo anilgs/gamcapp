@@ -15,7 +15,7 @@ env:
   PHP_VERSION: '8.2'
   FTP_HOST: ${{ vars.FTP_HOST }}
   FTP_USERNAME: ${{ vars.FTP_USERNAME }}
-  FTP_PASSWORD: ${{ vars.FTP_PASSWORD }}
+  FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
   SMTP_HOST: ${{ vars.SMTP_HOST }}
   SMTP_PORT: ${{ vars.SMTP_PORT }}
   SMTP_SECURE: ${{ vars.SMTP_SECURE }}
