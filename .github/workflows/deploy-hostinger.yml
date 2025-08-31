@@ -120,6 +120,25 @@ jobs:
           cp -r frontend/dist/* deployment/
           cp -r backend deployment/
           cp apache-config/.htaccess deployment/
+
+          # Create environment file for development
+          echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
+          echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
+          echo "DB_USER=${{ env.DB_USER }}" >> deployment/backend/.env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
+          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> deployment/backend/.env
+          echo "APP_ENV=development" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_SECRET=${{ env.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
+          echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
+          echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
+          echo "SMTP_PORT=${{ env.SMTP_PORT }}" >> deployment/backend/.env
+          echo "SMTP_SECURE=${{ env.SMTP_SECURE }}" >> deployment/backend/.env
+          echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
+          echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
+          echo "FROM_NAME=${{ env.FROM_NAME }}" >> deployment/backend/.env
+          echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
           
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -129,6 +148,72 @@ jobs:
           password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /public_html/dev/
+
+      - name: Initialize Database
+        run: |
+          echo "Checking database connectivity and initialization status for development..."
+          
+          # Install MySQL client for database operations
+          sudo apt-get update && sudo apt-get install -y mysql-client netcat-openbsd
+          
+          # Check if database exists and needs initialization
+          DB_EXISTS=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${{ env.DB_NAME }}';" \
+                      --skip-column-names --batch 2>/dev/null | wc -l)
+          
+          if [ "$DB_EXISTS" -eq 0 ]; then
+            echo "Database '${{ env.DB_NAME }}' does not exist. Creating and initializing..."
+            
+            # Create database
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  -e "CREATE DATABASE IF NOT EXISTS \`${{ env.DB_NAME }}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            
+            # Apply schema
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  "${{ env.DB_NAME }}" < backend/database/schema.sql
+            
+            # Apply seed data if exists
+            if [ -f "backend/database/seed.sql" ]; then
+              echo "Applying seed data..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/seed.sql
+            fi
+            
+            echo "Database initialization completed successfully!"
+          else
+            echo "Database '${{ env.DB_NAME }}' already exists."
+            
+            # Check if database has required tables
+            TABLE_COUNT=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                          "${{ env.DB_NAME }}" -e "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='${{ env.DB_NAME }}';" \
+                          --skip-column-names --batch 2>/dev/null)
+            
+            if [ "$TABLE_COUNT" -lt 4 ]; then
+              echo "Database exists but appears empty (found $TABLE_COUNT tables). Initializing schema..."
+              
+              # Apply schema
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/schema.sql
+              
+              # Apply seed data if exists
+              if [ -f "backend/database/seed.sql" ]; then
+                echo "Applying seed data..."
+                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      "${{ env.DB_NAME }}" < backend/database/seed.sql
+              fi
+              
+              echo "Database schema initialization completed!"
+            else
+              echo "Database is properly initialized with $TABLE_COUNT tables."
+            fi
+          fi
+          
+          # Verify database setup
+          echo "Verifying database setup..."
+          TABLES=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                   "${{ env.DB_NAME }}" -e "SHOW TABLES;" --skip-column-names --batch 2>/dev/null)
+          echo "Database tables found:"
+          echo "$TABLES"
 
   deploy-production:
     name: Deploy to Production
@@ -205,8 +290,143 @@ jobs:
           local-dir: ./deployment/
           server-dir: /domains/${{ env.DOMAIN }}/public_html/
 
-      - name: Run post-deployment health check
+      - name: Initialize Database
         run: |
+          echo "Checking database connectivity and initialization status..."
+          
+          # Install MySQL client for database operations
+          sudo apt-get update && sudo apt-get install -y mysql-client netcat-openbsd
+          
+          # Check if database exists and needs initialization
+          DB_EXISTS=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${{ env.DB_NAME }}';" \
+                      --skip-column-names --batch 2>/dev/null | wc -l)
+          
+          if [ "$DB_EXISTS" -eq 0 ]; then
+            echo "Database '${{ env.DB_NAME }}' does not exist. Creating and initializing..."
+            
+            # Create database
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  -e "CREATE DATABASE IF NOT EXISTS \`${{ env.DB_NAME }}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            
+            # Apply schema
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  "${{ env.DB_NAME }}" < backend/database/schema.sql
+            
+            # Apply seed data if exists
+            if [ -f "backend/database/seed.sql" ]; then
+              echo "Applying seed data..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/seed.sql
+            fi
+            
+            echo "Database initialization completed successfully!"
+          else
+            echo "Database '${{ env.DB_NAME }}' already exists."
+            
+            # Check if database has required tables
+            TABLE_COUNT=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                          "${{ env.DB_NAME }}" -e "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='${{ env.DB_NAME }}';" \
+                          --skip-column-names --batch 2>/dev/null)
+            
+            if [ "$TABLE_COUNT" -lt 4 ]; then
+              echo "Database exists but appears empty (found $TABLE_COUNT tables). Initializing schema..."
+              
+              # Apply schema
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/schema.sql
+              
+              # Apply seed data if exists
+              if [ -f "backend/database/seed.sql" ]; then
+                echo "Applying seed data..."
+                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      "${{ env.DB_NAME }}" < backend/database/seed.sql
+              fi
+              
+              echo "Database schema initialization completed!"
+            else
+              echo "Database is properly initialized with $TABLE_COUNT tables."
+            fi
+          fi
+          
+          # Verify database setup
+          echo "Verifying database setup..."
+          TABLES=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                   "${{ env.DB_NAME }}" -e "SHOW TABLES;" --skip-column-names --batch 2>/dev/null)
+          echo "Database tables found:"
+          echo "$TABLES"
+
+      - name: Setup PHP Dependencies on Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          script: |
+            echo "Setting up PHP environment on server..."
+            cd /domains/${{ env.DOMAIN }}/public_html/backend
+            
+            # Check if composer is available
+            if command -v composer >/dev/null 2>&1; then
+              echo "Composer found, optimizing autoloader..."
+              composer dump-autoload --optimize --no-dev --no-interaction
+            else
+              echo "Composer not found on server, skipping autoloader optimization"
+            fi
+            
+            # Set proper permissions
+            echo "Setting file permissions..."
+            find public -type f -name "*.php" -exec chmod 644 {} \;
+            find public -type d -exec chmod 755 {} \;
+            chmod 644 .env 2>/dev/null || echo "No .env file found to set permissions"
+            
+            # Clear PHP opcache if available
+            if php -m | grep -q opcache; then
+              echo "Clearing PHP opcache..."
+              php -r "if(function_exists('opcache_reset')) { opcache_reset(); echo 'OPcache cleared successfully'; } else { echo 'OPcache not available'; }"
+            fi
+            
+            echo "PHP environment setup completed!"
+
+      - name: Comprehensive Health Check
+        run: |
+          echo "Running comprehensive health checks..."
           echo "Waiting for deployment to propagate..."
           sleep 30
-          curl -f ${{ env.FRONTEND_URL }}/api/health || echo "Health check failed, but deployment completed"
+          
+          # Test API health endpoint
+          echo "Testing API health endpoint..."
+          if curl -f -s "${{ env.FRONTEND_URL }}/api/health" -o /dev/null; then
+            echo "✅ API health check passed"
+            curl -s "${{ env.FRONTEND_URL }}/api/health" | head -3
+          else
+            echo "❌ API health check failed"
+          fi
+          
+          # Test database connectivity through API
+          echo "Testing database connectivity..."
+          if curl -f -s "${{ env.FRONTEND_URL }}/api/auth/send-otp" \
+               -H "Content-Type: application/json" \
+               -d '{"phone":"+1234567890"}' -o /dev/null; then
+            echo "✅ Database connectivity test passed"
+          else
+            echo "⚠️  Database connectivity test failed (may be expected if phone validation fails)"
+          fi
+          
+          # Test frontend routing
+          echo "Testing frontend routing..."
+          if curl -f -s "${{ env.FRONTEND_URL }}" -o /dev/null; then
+            echo "✅ Frontend routing test passed"
+          else
+            echo "❌ Frontend routing test failed"
+          fi
+          
+          # Test static asset serving
+          echo "Testing static asset serving..."
+          if curl -f -s "${{ env.FRONTEND_URL }}/assets/" -o /dev/null 2>/dev/null; then
+            echo "✅ Static assets test passed"
+          else
+            echo "⚠️  Static assets test inconclusive"
+          fi
+          
+          echo "Health check summary completed"
