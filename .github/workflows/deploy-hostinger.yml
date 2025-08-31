@@ -133,6 +133,7 @@ jobs:
           cp phpinfo.php deployment/
           cp simple-test.php deployment/
           cp routing-test.php deployment/
+          cp backend-diagnostics.php deployment/
 
           # Create environment file for development
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -281,6 +282,7 @@ jobs:
           cp phpinfo.php deployment/
           cp simple-test.php deployment/
           cp routing-test.php deployment/
+          cp backend-diagnostics.php deployment/
           
           # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -576,6 +578,28 @@ jobs:
             fi
           else
             echo "❌ Could not reach /api/routing-test"
+          fi
+          echo ""
+          
+          # Test backend diagnostics without framework
+          echo "Testing backend-diagnostics.php..."
+          BACKEND_DIAG_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend-diagnostics.php" 2>&1 || echo "curl_failed")
+          if [ "$BACKEND_DIAG_RESPONSE" != "curl_failed" ]; then
+            if echo "$BACKEND_DIAG_RESPONSE" | grep -q "Backend diagnostics\|autoloader\|vendor_exists"; then
+              echo "✅ Backend diagnostics successful"
+              # Check for specific issues
+              if echo "$BACKEND_DIAG_RESPONSE" | grep -q "vendor_exists.*false\|autoloader.*not_found"; then
+                echo "⚠️  Composer dependencies may be missing"
+              fi
+              if echo "$BACKEND_DIAG_RESPONSE" | grep -q "env_exists.*false\|environment.*not_found"; then
+                echo "⚠️  Environment file may be missing"  
+              fi
+            else
+              echo "❌ Backend diagnostics unexpected response"
+              echo "Response (first 500 chars): ${BACKEND_DIAG_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach backend-diagnostics.php"
           fi
           echo ""
           
