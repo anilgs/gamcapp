@@ -149,6 +149,8 @@ jobs:
           cp simple-test.php deployment/
           cp routing-test.php deployment/
           cp backend-diagnostics.php deployment/
+          cp simple-backend-test.php deployment/
+          cp minimal-backend-index.php deployment/
 
           # Create environment file for development
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -313,6 +315,8 @@ jobs:
           cp simple-test.php deployment/
           cp routing-test.php deployment/
           cp backend-diagnostics.php deployment/
+          cp simple-backend-test.php deployment/
+          cp minimal-backend-index.php deployment/
           
           # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -591,6 +595,36 @@ jobs:
           fi
           echo ""
           
+          # Test simple backend rewrite
+          echo "Testing simple backend API rewrite via /api/simple-backend..."
+          SIMPLE_BACKEND_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/simple-backend" 2>&1 || echo "curl_failed")
+          if [ "$SIMPLE_BACKEND_RESPONSE" != "curl_failed" ]; then
+            if echo "$SIMPLE_BACKEND_RESPONSE" | grep -q "minimal_backend_test\|api_path.*simple-backend"; then
+              echo "✅ Simple backend API rewrite is working"
+              echo "This confirms API routing works to backend-style files"
+            else
+              echo "❌ Simple backend API rewrite failed"  
+              echo "Response (first 500 chars): ${SIMPLE_BACKEND_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach /api/simple-backend"
+          fi
+          
+          # Test minimal backend rewrite
+          echo "Testing minimal backend API rewrite via /api/minimal..."
+          MINIMAL_BACKEND_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/minimal" 2>&1 || echo "curl_failed")
+          if [ "$MINIMAL_BACKEND_RESPONSE" != "curl_failed" ]; then
+            if echo "$MINIMAL_BACKEND_RESPONSE" | grep -q "Minimal Backend Index Test\|debug_steps"; then
+              echo "✅ Minimal backend API rewrite is working"
+              echo "This shows API routing to backend-style files with debugging"
+            else
+              echo "❌ Minimal backend API rewrite failed"  
+              echo "Response (first 500 chars): ${MINIMAL_BACKEND_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach /api/minimal"
+          fi
+          
           # Test API routing
           echo "=== API Routing Tests ==="
           
@@ -618,6 +652,22 @@ jobs:
             fi
           else
             echo "❌ Could not reach /test-rewrite"
+          fi
+          echo ""
+          
+          # Test intermediate API rewrite to a simple file
+          echo "Testing intermediate API rewrite via /api/test..."
+          API_SIMPLE_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/test" 2>&1 || echo "curl_failed")
+          if [ "$API_SIMPLE_RESPONSE" != "curl_failed" ]; then
+            if echo "$API_SIMPLE_RESPONSE" | grep -q "api_path.*test\|routing test"; then
+              echo "✅ Intermediate API rewrite is working"
+              echo "This confirms API routing works to simple PHP files"
+            else
+              echo "❌ Intermediate API rewrite failed"
+              echo "Response (first 500 chars): ${API_SIMPLE_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach /api/test"
           fi
           echo ""
           

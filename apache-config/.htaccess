@@ -6,6 +6,15 @@ RewriteEngine On
 # Test: Simple rewrite rule that should work on any server
 RewriteRule ^test-rewrite$ simple-test.php [L]
 
+# Test: API rewrite to a simple file first (for testing)
+RewriteRule ^api/test$ routing-test.php?api_path=test [L,QSA]
+
+# Test: API rewrite to simple backend test
+RewriteRule ^api/simple-backend$ simple-backend-test.php?api_path=simple-backend [L,QSA]
+
+# Test: API rewrite to minimal backend index  
+RewriteRule ^api/minimal$ minimal-backend-index.php?api_path=minimal [L,QSA]
+
 # Handle API requests - Multiple approaches for compatibility
 RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
 
