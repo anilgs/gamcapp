@@ -15,9 +15,9 @@ RewriteRule ^api/simple-backend$ simple-backend-test.php?api_path=simple-backend
 # Test: API rewrite to minimal backend index  
 RewriteRule ^api/minimal$ minimal-backend-index.php?api_path=minimal [L,QSA]
 
-# Handle API requests - Route to full backend (not minimal)
-# RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]  # DISABLED - minimal backend
-RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]  # ENABLED - full backend
+# Handle API requests - Temporary fallback to minimal backend while fixing deployment
+RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]  # ENABLED - minimal backend (temporary)
+# RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]  # DISABLED - full backend (deployment issues)
 
 # Alternative: Main backend (when dependencies are fixed)
 # RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]

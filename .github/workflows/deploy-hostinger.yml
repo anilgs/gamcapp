@@ -308,7 +308,21 @@ jobs:
           echo "=== Creating Deployment Package ==="
           mkdir -p deployment
           cp -r frontend/dist/* deployment/
-          cp -r backend deployment/
+          
+          echo "Copying backend directory..."
+          if [ -d "backend" ]; then
+            cp -r backend deployment/ || {
+              echo "❌ Failed to copy backend directory"
+              echo "Backend source contents:"
+              ls -la backend/
+              exit 1
+            }
+            echo "✅ Backend directory copied successfully"
+          else
+            echo "❌ Backend directory not found for copying"
+            exit 1
+          fi
+          
           cp apache-config/.htaccess deployment/
           
           # Add PHP test files for debugging
@@ -354,6 +368,9 @@ jobs:
             echo "Contents:"
             find deployment -type f | head -20
             echo ""
+            echo "Directory structure:"
+            find deployment -type d | sort
+            echo ""
             
             # Check critical files
             if [ -f "deployment/.htaccess" ]; then
@@ -381,8 +398,14 @@ jobs:
               echo "Contains DB_HOST: $(grep -q 'DB_HOST=' deployment/backend/.env && echo 'yes' || echo 'no')"
             else
               echo "❌ Backend .env file missing"
-              echo "Backend directory contents:"
-              ls -la deployment/backend/ 2>/dev/null || echo "backend directory not accessible"
+              if [ -d "deployment/backend" ]; then
+                echo "Backend directory exists but .env missing:"
+                ls -la deployment/backend/ 2>/dev/null || echo "backend directory not readable"
+              else
+                echo "❌ Backend directory does not exist in deployment package!"
+                echo "Deployment contents:"
+                ls -la deployment/ 2>/dev/null || echo "deployment directory not readable"
+              fi
             fi
             
             if [ -f "deployment/backend/vendor/autoload.php" ]; then
@@ -409,6 +432,7 @@ jobs:
           password: ${{ env.FTP_PASSWORD }}
           local-dir: ./deployment/
           server-dir: /domains/${{ env.DOMAIN }}/public_html/
+          log-level: verbose
 
       - name: Initialize Database
         run: |
