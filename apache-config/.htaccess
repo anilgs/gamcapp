@@ -16,11 +16,11 @@ RewriteRule ^api/simple-backend$ simple-backend-test.php?api_path=simple-backend
 RewriteRule ^api/minimal$ minimal-backend-index.php?api_path=minimal [L,QSA]
 
 # Handle API requests - Multiple approaches for compatibility
-RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
+# Temporarily use minimal backend for testing
+RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]
 
-# Alternative API rewrite (fallback)
-RewriteCond %{REQUEST_URI} ^/api/(.*)$
-RewriteRule . backend/public/index.php?api_path=%1 [L,QSA]
+# Alternative: Main backend (when dependencies are fixed)
+# RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
 
 # Handle direct backend access (for debugging and direct PHP file access)
 # Only if the file actually exists and is not an API request

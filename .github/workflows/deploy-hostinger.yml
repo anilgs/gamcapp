@@ -709,6 +709,22 @@ jobs:
           fi
           echo ""
           
+          # Test minimal backend API routing
+          echo "Testing minimal backend via /api/health..."
+          MINIMAL_API_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health" 2>&1 || echo "curl_failed")
+          if [ "$MINIMAL_API_RESPONSE" != "curl_failed" ]; then
+            if echo "$MINIMAL_API_RESPONSE" | grep -q "Minimal backend\|minimal_backend\|success.*true"; then
+              echo "✅ Minimal backend API routing is working"
+              echo "This confirms the API infrastructure is functional"
+            else
+              echo "❌ Minimal backend API may not be working properly"
+              echo "Response (first 500 chars): ${MINIMAL_API_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach minimal backend API"
+          fi
+          echo ""
+          
           # Test debug endpoint
           echo "Testing debug endpoint for routing troubleshooting..."
           DEBUG_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" 2>&1 || echo "curl_failed")

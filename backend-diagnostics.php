@@ -13,16 +13,22 @@ $tests['php_basic'] = [
 // Test 2: File system
 $tests['file_system'] = [
     'current_dir' => __DIR__,
+    'backend_dir_exists' => is_dir(__DIR__ . '/backend'),
+    'backend_vendor_exists' => file_exists(__DIR__ . '/backend/vendor/autoload.php'),
+    'backend_env_exists' => file_exists(__DIR__ . '/backend/.env'),
     'parent_exists' => is_dir(__DIR__ . '/..'),
-    'vendor_exists' => file_exists(__DIR__ . '/../vendor/autoload.php'),
-    'env_exists' => file_exists(__DIR__ . '/../.env')
+    'old_style_vendor_exists' => file_exists(__DIR__ . '/../vendor/autoload.php'),
+    'old_style_env_exists' => file_exists(__DIR__ . '/../.env')
 ];
 
 // Test 3: Autoloader
 try {
-    if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    if (file_exists(__DIR__ . '/backend/vendor/autoload.php')) {
+        require_once __DIR__ . '/backend/vendor/autoload.php';
+        $tests['autoloader'] = ['status' => 'loaded_successfully_from_backend'];
+    } else if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
         require_once __DIR__ . '/../vendor/autoload.php';
-        $tests['autoloader'] = ['status' => 'loaded_successfully'];
+        $tests['autoloader'] = ['status' => 'loaded_successfully_from_parent'];
     } else {
         $tests['autoloader'] = ['status' => 'file_not_found'];
     }
@@ -32,10 +38,17 @@ try {
 
 // Test 4: Environment
 try {
-    if (file_exists(__DIR__ . '/../.env')) {
+    if (file_exists(__DIR__ . '/backend/.env')) {
+        $envContent = file_get_contents(__DIR__ . '/backend/.env');
+        $tests['environment'] = [
+            'status' => 'file_found_in_backend',
+            'file_size' => strlen($envContent),
+            'has_db_host' => strpos($envContent, 'DB_HOST') !== false
+        ];
+    } else if (file_exists(__DIR__ . '/../.env')) {
         $envContent = file_get_contents(__DIR__ . '/../.env');
         $tests['environment'] = [
-            'status' => 'file_found',
+            'status' => 'file_found_in_parent',
             'file_size' => strlen($envContent),
             'has_db_host' => strpos($envContent, 'DB_HOST') !== false
         ];
