@@ -124,6 +124,21 @@ jobs:
 
       - name: Create deployment package
         run: |
+          echo "=== Pre-deployment Backend Verification ==="
+          echo "Backend directory contents:"
+          ls -la backend/ || echo "Backend directory not found"
+          echo ""
+          echo "Checking for vendor directory:"
+          if [ -d "backend/vendor" ]; then
+            echo "✅ Vendor directory exists"
+            echo "Vendor size: $(du -sh backend/vendor)"
+            echo "Autoloader exists: $(test -f backend/vendor/autoload.php && echo 'yes' || echo 'no')"
+          else
+            echo "❌ Vendor directory missing before deployment"
+          fi
+          echo ""
+          
+          echo "=== Creating Deployment Package ==="
           mkdir -p deployment
           cp -r frontend/dist/* deployment/
           cp -r backend deployment/
@@ -273,6 +288,21 @@ jobs:
 
       - name: Create deployment package
         run: |
+          echo "=== Pre-deployment Backend Verification ==="
+          echo "Backend directory contents:"
+          ls -la backend/ || echo "Backend directory not found"
+          echo ""
+          echo "Checking for vendor directory:"
+          if [ -d "backend/vendor" ]; then
+            echo "✅ Vendor directory exists"
+            echo "Vendor size: $(du -sh backend/vendor)"
+            echo "Autoloader exists: $(test -f backend/vendor/autoload.php && echo 'yes' || echo 'no')"
+          else
+            echo "❌ Vendor directory missing before deployment"
+          fi
+          echo ""
+          
+          echo "=== Creating Deployment Package ==="
           mkdir -p deployment
           cp -r frontend/dist/* deployment/
           cp -r backend deployment/
@@ -341,14 +371,24 @@ jobs:
             if [ -f "deployment/backend/.env" ]; then
               echo "✅ Backend .env file present"
               echo "Environment variables count: $(wc -l < deployment/backend/.env)"
+              echo "File size: $(ls -lh deployment/backend/.env 2>/dev/null | awk '{print $5}')"
+              echo "Contains DB_HOST: $(grep -q 'DB_HOST=' deployment/backend/.env && echo 'yes' || echo 'no')"
             else
               echo "❌ Backend .env file missing"
+              echo "Backend directory contents:"
+              ls -la deployment/backend/ 2>/dev/null || echo "backend directory not accessible"
             fi
             
             if [ -f "deployment/backend/vendor/autoload.php" ]; then
               echo "✅ Composer vendor directory present"
+              echo "Vendor directory size: $(du -sh deployment/backend/vendor 2>/dev/null || echo 'unknown')"
+              echo "Autoloader file size: $(ls -lh deployment/backend/vendor/autoload.php 2>/dev/null || echo 'file not found')"
             else
               echo "❌ Composer vendor directory missing"
+              echo "Backend directory contents:"
+              ls -la deployment/backend/ 2>/dev/null || echo "backend directory not accessible"
+              echo "Looking for vendor directory:"
+              find deployment/backend -name "vendor" -type d 2>/dev/null || echo "No vendor directory found"
             fi
             
           else
@@ -562,6 +602,22 @@ jobs:
             echo "Response (first 300 chars): ${ROUTING_DIRECT_RESPONSE:0:300}..."
           else
             echo "❌ Direct routing test failed"
+          fi
+          echo ""
+          
+          # Test simple rewrite rule first  
+          echo "Testing simple rewrite rule via /test-rewrite..."
+          SIMPLE_REWRITE_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/test-rewrite" 2>&1 || echo "curl_failed")
+          if [ "$SIMPLE_REWRITE_RESPONSE" != "curl_failed" ]; then
+            if echo "$SIMPLE_REWRITE_RESPONSE" | grep -q "PHP is working"; then
+              echo "✅ Simple rewrite rule is working"
+              echo "This confirms .htaccess is processed by the server"
+            else
+              echo "❌ Simple rewrite rule failed"
+              echo "Response (first 300 chars): ${SIMPLE_REWRITE_RESPONSE:0:300}"
+            fi
+          else
+            echo "❌ Could not reach /test-rewrite"
           fi
           echo ""
           

@@ -3,8 +3,15 @@
 
 RewriteEngine On
 
-# Debug: Add environment variable to track rewrites (remove in production)
-RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA,E=REWRITE_MATCHED:1]
+# Test: Simple rewrite rule that should work on any server
+RewriteRule ^test-rewrite$ simple-test.php [L]
+
+# Handle API requests - Multiple approaches for compatibility
+RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
+
+# Alternative API rewrite (fallback)
+RewriteCond %{REQUEST_URI} ^/api/(.*)$
+RewriteRule . backend/public/index.php?api_path=%1 [L,QSA]
 
 # Handle direct backend access (for debugging and direct PHP file access)
 # Only if the file actually exists and is not an API request
