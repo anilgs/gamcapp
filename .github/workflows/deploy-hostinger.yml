@@ -342,6 +342,8 @@ jobs:
           else
             echo "❌ Deployment directory does not exist!"
           fi
+
+      - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ env.FTP_HOST }}
