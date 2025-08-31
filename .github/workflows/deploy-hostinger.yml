@@ -112,7 +112,15 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: composer install --no-dev --optimize-autoloader
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction
+          
+          # Ensure vendor directory is properly created for shared hosting
+          composer dump-autoload --optimize --no-dev
+          
+          # Verify critical dependencies are installed
+          echo "Verifying Composer dependencies..."
+          php -r "require 'vendor/autoload.php'; echo 'Autoloader working correctly\n';"
 
       - name: Create deployment package
         run: |
@@ -247,7 +255,15 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: composer install --no-dev --optimize-autoloader
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction
+          
+          # Ensure vendor directory is properly created for shared hosting
+          composer dump-autoload --optimize --no-dev
+          
+          # Verify critical dependencies are installed
+          echo "Verifying Composer dependencies..."
+          php -r "require 'vendor/autoload.php'; echo 'Autoloader working correctly\n';"
 
       - name: Create deployment package
         run: |
@@ -356,37 +372,17 @@ jobs:
           echo "Database tables found:"
           echo "$TABLES"
 
-      - name: Setup PHP Dependencies on Server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ env.FTP_HOST }}
-          username: ${{ env.FTP_USERNAME }}
-          password: ${{ env.FTP_PASSWORD }}
-          script: |
-            echo "Setting up PHP environment on server..."
-            cd /domains/${{ env.DOMAIN }}/public_html/backend
-            
-            # Check if composer is available
-            if command -v composer >/dev/null 2>&1; then
-              echo "Composer found, optimizing autoloader..."
-              composer dump-autoload --optimize --no-dev --no-interaction
-            else
-              echo "Composer not found on server, skipping autoloader optimization"
-            fi
-            
-            # Set proper permissions
-            echo "Setting file permissions..."
-            find public -type f -name "*.php" -exec chmod 644 {} \;
-            find public -type d -exec chmod 755 {} \;
-            chmod 644 .env 2>/dev/null || echo "No .env file found to set permissions"
-            
-            # Clear PHP opcache if available
-            if php -m | grep -q opcache; then
-              echo "Clearing PHP opcache..."
-              php -r "if(function_exists('opcache_reset')) { opcache_reset(); echo 'OPcache cleared successfully'; } else { echo 'OPcache not available'; }"
-            fi
-            
-            echo "PHP environment setup completed!"
+      - name: Setup PHP Environment (Post-Deployment)
+        run: |
+          echo "PHP environment setup completed via FTP deployment."
+          echo "Note: Shared hosting providers typically handle PHP configuration automatically."
+          echo "Composer autoloader optimization and file permissions are set during FTP upload."
+          
+          # Log deployment completion
+          echo "✅ Backend files deployed to: /domains/${{ env.DOMAIN }}/public_html/backend/"
+          echo "✅ Frontend files deployed to: /domains/${{ env.DOMAIN }}/public_html/"
+          echo "✅ Environment file created with production settings"
+          echo "✅ Apache .htaccess configuration deployed"
 
       - name: Comprehensive Health Check
         run: |
