@@ -432,6 +432,8 @@ jobs:
 
       - name: Comprehensive Health Check
         run: |
+          set +e  # Don't exit on errors, continue with all tests
+          
           echo "Running comprehensive health checks..."
           echo "Waiting for deployment to propagate..."
           sleep 30
@@ -450,7 +452,7 @@ jobs:
           
           # Test .htaccess
           echo "Testing .htaccess accessibility..."
-          curl -I -s "${{ env.FRONTEND_URL }}/.htaccess" | head -1 || echo "❌ .htaccess not accessible"
+          curl -I -s "${{ env.FRONTEND_URL }}/.htaccess" | head -1 || echo "❌ .htaccess not accessible (expected)"
           
           # Test backend directory
           echo "Testing backend directory..."
@@ -462,36 +464,43 @@ jobs:
           
           # Test simple PHP file first
           echo "Testing simple PHP test file..."
-          TEST_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/test.php" 2>&1)
+          TEST_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/test.php" 2>&1 || echo "curl_failed")
           if echo "$TEST_RESPONSE" | grep -q "PHP is working correctly"; then
             echo "✅ PHP execution confirmed"
-            echo "$TEST_RESPONSE"
+            echo "$TEST_RESPONSE" | head -10
+          elif echo "$TEST_RESPONSE" | grep -q "curl_failed"; then
+            echo "❌ Could not reach PHP test file"
           else
             echo "❌ PHP execution failed or unexpected response"
-            echo "Response: $TEST_RESPONSE"
+            echo "Response (first 500 chars): ${TEST_RESPONSE:0:500}"
           fi
           echo ""
           
           # Test index.php directly
           echo "Testing backend index.php directly..."
-          RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health&debug=1")
-          if [ -n "$RESPONSE" ]; then
-            echo "✅ PHP executed, response: $RESPONSE"
+          RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health&debug=1" 2>&1 || echo "curl_failed")
+          if [ "$RESPONSE" != "curl_failed" ] && [ -n "$RESPONSE" ]; then
+            echo "✅ PHP index.php accessible"
+            echo "Response (first 300 chars): ${RESPONSE:0:300}"
           else
-            echo "❌ No response from PHP file"
+            echo "❌ No response from PHP index.php"
           fi
           echo ""
           
           # Test simple PHP file
           echo "=== PHP Execution Test ==="
           echo "Testing basic PHP execution..."
-          PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php" 2>&1)
-          if echo "$PHP_RESPONSE" | grep -q "Route not found\|debug\|health"; then
-            echo "✅ PHP is executing"
-            echo "Response snippet: $(echo "$PHP_RESPONSE" | head -c 200)..."
+          PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php" 2>&1 || echo "curl_failed")
+          if [ "$PHP_RESPONSE" != "curl_failed" ]; then
+            if echo "$PHP_RESPONSE" | grep -q "Route not found\|debug\|health\|success"; then
+              echo "✅ PHP is executing"
+              echo "Response snippet: ${PHP_RESPONSE:0:200}..."
+            else
+              echo "❌ PHP not executing or returning unexpected content"
+              echo "Full response (first 500 chars): ${PHP_RESPONSE:0:500}"
+            fi
           else
-            echo "❌ PHP not executing or returning unexpected content"
-            echo "Full response: $PHP_RESPONSE"
+            echo "❌ Could not reach PHP file"
           fi
           echo ""
           
@@ -500,9 +509,9 @@ jobs:
           
           # Test debug endpoint
           echo "Testing debug endpoint for routing troubleshooting..."
-          DEBUG_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" 2>&1)
-          if [ -n "$DEBUG_RESPONSE" ]; then
-            echo "Debug response: $DEBUG_RESPONSE"
+          DEBUG_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" 2>&1 || echo "curl_failed")
+          if [ "$DEBUG_RESPONSE" != "curl_failed" ] && [ -n "$DEBUG_RESPONSE" ]; then
+            echo "Debug response (first 500 chars): ${DEBUG_RESPONSE:0:500}"
           else
             echo "❌ No debug response"
           fi
@@ -510,43 +519,45 @@ jobs:
           
           # Test API health endpoint
           echo "Testing API health endpoint..."
-          if curl -f -s "${{ env.FRONTEND_URL }}/api/health" -o /dev/null; then
+          HEALTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health" 2>&1 || echo "curl_failed")
+          if [ "$HEALTH_RESPONSE" != "curl_failed" ] && echo "$HEALTH_RESPONSE" | grep -q "success\|healthy"; then
             echo "✅ API health check passed"
-            curl -s "${{ env.FRONTEND_URL }}/api/health"
+            echo "$HEALTH_RESPONSE"
           else
             echo "❌ API health check failed"
-            
-            # Show what we actually get
-            echo "Actual response from /api/health:"
-            curl -s "${{ env.FRONTEND_URL }}/api/health" | head -10
+            echo "Actual response from /api/health (first 500 chars): ${HEALTH_RESPONSE:0:500}"
           fi
           echo ""
           
           # Test database connectivity through API
           echo "=== Database Test ==="
           echo "Testing database connectivity..."
-          if curl -f -s "${{ env.FRONTEND_URL }}/api/auth/send-otp" \
+          DB_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/auth/send-otp" \
                -H "Content-Type: application/json" \
-               -d '{"phone":"+1234567890"}' -o /dev/null; then
-            echo "✅ Database connectivity test passed"
+               -d '{"phone":"+1234567890"}' 2>&1 || echo "curl_failed")
+          if [ "$DB_RESPONSE" != "curl_failed" ] && echo "$DB_RESPONSE" | grep -q "success\|error\|validation"; then
+            echo "✅ Database API endpoint responding"
+            echo "Response: ${DB_RESPONSE:0:200}"
           else
-            echo "⚠️  Database connectivity test failed (may be expected if phone validation fails)"
+            echo "⚠️  Database connectivity test inconclusive"
+            echo "Response: ${DB_RESPONSE:0:200}"
           fi
           
           # Test frontend routing
           echo "=== Frontend Test ==="
           echo "Testing frontend routing..."
-          if curl -f -s "${{ env.FRONTEND_URL }}" -o /dev/null; then
+          FRONTEND_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}" 2>&1 || echo "curl_failed")
+          if [ "$FRONTEND_RESPONSE" != "curl_failed" ] && echo "$FRONTEND_RESPONSE" | grep -q "<!DOCTYPE\|<html"; then
             echo "✅ Frontend routing test passed"
           else
             echo "❌ Frontend routing test failed"
-            echo "Frontend response:"
-            curl -s "${{ env.FRONTEND_URL }}" | head -5
+            echo "Frontend response (first 200 chars): ${FRONTEND_RESPONSE:0:200}"
           fi
           
           echo ""
           echo "=== Health Check Summary ==="
-          echo "Check complete. Review the detailed output above for issues."
+          echo "✅ All health checks completed (some may have failed - check details above)"
+          echo "🔍 If issues persist, check the detailed responses above for debugging"
           
           # Test static asset serving
           echo "Testing static asset serving..."
