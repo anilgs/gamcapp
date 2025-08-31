@@ -128,6 +128,10 @@ jobs:
           cp -r frontend/dist/* deployment/
           cp -r backend deployment/
           cp apache-config/.htaccess deployment/
+          
+          # Add PHP test files for debugging
+          cp phpinfo.php deployment/
+          cp simple-test.php deployment/
 
           # Create environment file for development
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -271,6 +275,10 @@ jobs:
           cp -r frontend/dist/* deployment/
           cp -r backend deployment/
           cp apache-config/.htaccess deployment/
+          
+          # Add PHP test files for debugging
+          cp phpinfo.php deployment/
+          cp simple-test.php deployment/
           
           # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -490,17 +498,52 @@ jobs:
           # Test simple PHP file
           echo "=== PHP Execution Test ==="
           echo "Testing basic PHP execution..."
+          
+          # Test super simple PHP file first
+          echo "Testing simple-test.php..."
+          SIMPLE_PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/simple-test.php" 2>&1 || echo "curl_failed")
+          if [ "$SIMPLE_PHP_RESPONSE" != "curl_failed" ]; then
+            if echo "$SIMPLE_PHP_RESPONSE" | grep -q "PHP is working"; then
+              echo "✅ Simple PHP test working"
+              echo "Response: ${SIMPLE_PHP_RESPONSE}"
+            else
+              echo "❌ Simple PHP test failed"
+              echo "Response (first 500 chars): ${SIMPLE_PHP_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach simple-test.php"
+          fi
+          echo ""
+          
+          # Test phpinfo
+          echo "Testing phpinfo.php..."
+          PHPINFO_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/phpinfo.php" 2>&1 || echo "curl_failed")
+          if [ "$PHPINFO_RESPONSE" != "curl_failed" ]; then
+            if echo "$PHPINFO_RESPONSE" | grep -q "PHP Version"; then
+              echo "✅ phpinfo.php working"
+              echo "PHP Version detected in response"
+            else
+              echo "❌ phpinfo.php not working properly"
+              echo "Response (first 500 chars): ${PHPINFO_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach phpinfo.php"
+          fi
+          echo ""
+          
+          # Test backend index.php
+          echo "Testing backend/public/index.php..."
           PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php" 2>&1 || echo "curl_failed")
           if [ "$PHP_RESPONSE" != "curl_failed" ]; then
             if echo "$PHP_RESPONSE" | grep -q "Route not found\|debug\|health\|success"; then
-              echo "✅ PHP is executing"
+              echo "✅ Backend PHP is executing"
               echo "Response snippet: ${PHP_RESPONSE:0:200}..."
             else
-              echo "❌ PHP not executing or returning unexpected content"
+              echo "❌ Backend PHP not executing or returning unexpected content"
               echo "Full response (first 500 chars): ${PHP_RESPONSE:0:500}"
             fi
           else
-            echo "❌ Could not reach PHP file"
+            echo "❌ Could not reach backend PHP file"
           fi
           echo ""
           
