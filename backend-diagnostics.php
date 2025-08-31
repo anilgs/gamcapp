@@ -13,12 +13,15 @@ $tests['php_basic'] = [
 // Test 2: File system
 $tests['file_system'] = [
     'current_dir' => __DIR__,
-    'backend_dir_exists' => is_dir(__DIR__ . '/backend'),
-    'backend_vendor_exists' => file_exists(__DIR__ . '/backend/vendor/autoload.php'),
-    'backend_env_exists' => file_exists(__DIR__ . '/backend/.env'),
     'parent_exists' => is_dir(__DIR__ . '/..'),
-    'old_style_vendor_exists' => file_exists(__DIR__ . '/../vendor/autoload.php'),
-    'old_style_env_exists' => file_exists(__DIR__ . '/../.env')
+    'vendor_exists' => file_exists(__DIR__ . '/../vendor/autoload.php'),
+    'vendor_dir_exists' => is_dir(__DIR__ . '/../vendor'),
+    'env_exists' => file_exists(__DIR__ . '/../.env'),
+    'backend_exists' => is_dir('./backend'),
+    'backend_vendor_exists' => file_exists('./backend/vendor/autoload.php'),
+    'backend_env_exists' => file_exists('./backend/.env'),
+    'root_backend_vendor' => file_exists('./vendor/autoload.php'),
+    'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? 'unknown'
 ];
 
 // Test 3: Autoloader

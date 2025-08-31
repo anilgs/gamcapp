@@ -149,6 +149,7 @@ jobs:
           cp simple-test.php deployment/
           cp routing-test.php deployment/
           cp backend-diagnostics.php deployment/
+          cp filesystem-diagnostic.php deployment/
           cp simple-backend-test.php deployment/
           cp minimal-backend-index.php deployment/
 
@@ -315,6 +316,7 @@ jobs:
           cp simple-test.php deployment/
           cp routing-test.php deployment/
           cp backend-diagnostics.php deployment/
+          cp filesystem-diagnostic.php deployment/
           cp simple-backend-test.php deployment/
           cp minimal-backend-index.php deployment/
           
@@ -684,6 +686,33 @@ jobs:
             fi
           else
             echo "❌ Could not reach /api/routing-test"
+          fi
+          echo ""
+          
+          # Test filesystem structure diagnostic
+          echo "Testing filesystem-diagnostic.php..."
+          FILESYSTEM_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/filesystem-diagnostic.php" 2>&1 || echo "curl_failed")
+          if [ "$FILESYSTEM_RESPONSE" != "curl_failed" ]; then
+            if echo "$FILESYSTEM_RESPONSE" | grep -q "File system diagnostic\|backend_search\|vendor_search"; then
+              echo "✅ Filesystem diagnostic successful"
+              # Check for backend directory
+              if echo "$FILESYSTEM_RESPONSE" | grep -q "backend.*exists.*true"; then
+                echo "✅ Backend directory found on server"
+              else
+                echo "⚠️  Backend directory may not exist on server"  
+              fi
+              # Check for vendor directory
+              if echo "$FILESYSTEM_RESPONSE" | grep -q "vendor.*exists.*true\|autoloader.*true"; then
+                echo "✅ Vendor directory found on server"
+              else
+                echo "⚠️  Vendor directory not found on server"
+              fi
+            else
+              echo "❌ Filesystem diagnostic unexpected response"
+              echo "Response (first 500 chars): ${FILESYSTEM_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach filesystem-diagnostic.php"
           fi
           echo ""
           
