@@ -296,8 +296,52 @@ jobs:
           echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
           echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
 
-
-      - name: Deploy to Hostinger via FTP
+      - name: Verify Deployment Package
+        run: |
+          echo "=== Deployment Package Verification ==="
+          echo "Checking deployment directory structure..."
+          
+          if [ -d "deployment" ]; then
+            echo "✅ Deployment directory exists"
+            echo "Contents:"
+            find deployment -type f | head -20
+            echo ""
+            
+            # Check critical files
+            if [ -f "deployment/.htaccess" ]; then
+              echo "✅ .htaccess file present"
+            else
+              echo "❌ .htaccess file missing"
+            fi
+            
+            if [ -f "deployment/index.html" ]; then
+              echo "✅ Frontend index.html present"
+            else
+              echo "❌ Frontend index.html missing"
+            fi
+            
+            if [ -f "deployment/backend/public/index.php" ]; then
+              echo "✅ Backend index.php present"
+            else
+              echo "❌ Backend index.php missing"
+            fi
+            
+            if [ -f "deployment/backend/.env" ]; then
+              echo "✅ Backend .env file present"
+              echo "Environment variables count: $(wc -l < deployment/backend/.env)"
+            else
+              echo "❌ Backend .env file missing"
+            fi
+            
+            if [ -f "deployment/backend/vendor/autoload.php" ]; then
+              echo "✅ Composer vendor directory present"
+            else
+              echo "❌ Composer vendor directory missing"
+            fi
+            
+          else
+            echo "❌ Deployment directory does not exist!"
+          fi
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ env.FTP_HOST }}
@@ -390,30 +434,94 @@ jobs:
           echo "Waiting for deployment to propagate..."
           sleep 30
           
-          # Test debug endpoint first
+          # Basic connectivity test
+          echo "=== Basic Connectivity Test ==="
+          if curl -I -s "${{ env.FRONTEND_URL }}" | head -1; then
+            echo "✅ Domain is accessible"
+          else
+            echo "❌ Domain not accessible"
+          fi
+          echo ""
+          
+          # Test file structure
+          echo "=== File Structure Tests ==="
+          
+          # Test .htaccess
+          echo "Testing .htaccess accessibility..."
+          curl -I -s "${{ env.FRONTEND_URL }}/.htaccess" | head -1 || echo "❌ .htaccess not accessible"
+          
+          # Test backend directory
+          echo "Testing backend directory..."
+          curl -I -s "${{ env.FRONTEND_URL }}/backend/" | head -1 || echo "❌ Backend directory not accessible"
+          
+          # Test backend/public directory
+          echo "Testing backend/public directory..."
+          curl -I -s "${{ env.FRONTEND_URL }}/backend/public/" | head -1 || echo "❌ Backend/public directory not accessible"
+          
+          # Test simple PHP file first
+          echo "Testing simple PHP test file..."
+          TEST_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/test.php" 2>&1)
+          if echo "$TEST_RESPONSE" | grep -q "PHP is working correctly"; then
+            echo "✅ PHP execution confirmed"
+            echo "$TEST_RESPONSE"
+          else
+            echo "❌ PHP execution failed or unexpected response"
+            echo "Response: $TEST_RESPONSE"
+          fi
+          echo ""
+          
+          # Test index.php directly
+          echo "Testing backend index.php directly..."
+          RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health&debug=1")
+          if [ -n "$RESPONSE" ]; then
+            echo "✅ PHP executed, response: $RESPONSE"
+          else
+            echo "❌ No response from PHP file"
+          fi
+          echo ""
+          
+          # Test simple PHP file
+          echo "=== PHP Execution Test ==="
+          echo "Testing basic PHP execution..."
+          PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php" 2>&1)
+          if echo "$PHP_RESPONSE" | grep -q "Route not found\|debug\|health"; then
+            echo "✅ PHP is executing"
+            echo "Response snippet: $(echo "$PHP_RESPONSE" | head -c 200)..."
+          else
+            echo "❌ PHP not executing or returning unexpected content"
+            echo "Full response: $PHP_RESPONSE"
+          fi
+          echo ""
+          
+          # Test API routing
+          echo "=== API Routing Tests ==="
+          
+          # Test debug endpoint
           echo "Testing debug endpoint for routing troubleshooting..."
-          curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" || echo "Debug endpoint failed"
+          DEBUG_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" 2>&1)
+          if [ -n "$DEBUG_RESPONSE" ]; then
+            echo "Debug response: $DEBUG_RESPONSE"
+          else
+            echo "❌ No debug response"
+          fi
           echo ""
           
           # Test API health endpoint
           echo "Testing API health endpoint..."
           if curl -f -s "${{ env.FRONTEND_URL }}/api/health" -o /dev/null; then
             echo "✅ API health check passed"
-            curl -s "${{ env.FRONTEND_URL }}/api/health" | head -3
+            curl -s "${{ env.FRONTEND_URL }}/api/health"
           else
             echo "❌ API health check failed"
-            echo "Trying alternative health check approaches:"
             
-            # Try direct backend access
-            echo "Testing direct backend access..."
-            curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health" || echo "Direct backend failed"
-            
-            # Check if backend files exist
-            echo "Testing backend file accessibility..."
-            curl -I -s "${{ env.FRONTEND_URL }}/backend/public/index.php" | head -2 || echo "Backend index.php not accessible"
+            # Show what we actually get
+            echo "Actual response from /api/health:"
+            curl -s "${{ env.FRONTEND_URL }}/api/health" | head -10
           fi
+          echo ""
           
           # Test database connectivity through API
+          echo "=== Database Test ==="
           echo "Testing database connectivity..."
           if curl -f -s "${{ env.FRONTEND_URL }}/api/auth/send-otp" \
                -H "Content-Type: application/json" \
@@ -424,12 +532,19 @@ jobs:
           fi
           
           # Test frontend routing
+          echo "=== Frontend Test ==="
           echo "Testing frontend routing..."
           if curl -f -s "${{ env.FRONTEND_URL }}" -o /dev/null; then
             echo "✅ Frontend routing test passed"
           else
             echo "❌ Frontend routing test failed"
+            echo "Frontend response:"
+            curl -s "${{ env.FRONTEND_URL }}" | head -5
           fi
+          
+          echo ""
+          echo "=== Health Check Summary ==="
+          echo "Check complete. Review the detailed output above for issues."
           
           # Test static asset serving
           echo "Testing static asset serving..."
