@@ -15,31 +15,51 @@ $dotenv->load();
 
 CorsMiddleware::handle();
 
+// Debug information for troubleshooting
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo json_encode([
+        'debug' => true,
+        'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? 'not set',
+        'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? 'not set',
+        'api_path' => $_GET['api_path'] ?? 'not set',
+        'QUERY_STRING' => $_SERVER['QUERY_STRING'] ?? 'not set',
+        'GET' => $_GET,
+        'SERVER_NAME' => $_SERVER['SERVER_NAME'] ?? 'not set'
+    ]);
+    exit;
+}
+
 $router = new Router();
 
-$router->post('/api/auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
-$router->post('/api/auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
-$router->post('/api/auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
-$router->get('/api/auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
-$router->post('/api/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
+// Get the API path from query parameter
+$apiPath = $_GET['api_path'] ?? '';
 
-$router->post('/api/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
-$router->get('/api/appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
+// Routes without /api prefix and leading slash
+$router->get('health', 'Gamcapp\\Controllers\\HealthController@check');
+$router->post('auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
+$router->post('auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
+$router->post('auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
+$router->get('auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
+$router->post('auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
 
-$router->post('/api/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
-$router->post('/api/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
+$router->post('appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
+$router->get('appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
 
-$router->post('/api/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
+$router->post('payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
+$router->post('payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
 
-$router->get('/api/admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
-$router->post('/api/admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
+$router->post('upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
 
-$router->post('/api/external/book-wafid', 'Gamcapp\\Controllers\\ExternalController@bookWafid');
+$router->get('admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
+$router->post('admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
 
-$router->get('/api/user/profile', 'Gamcapp\\Controllers\\UserController@getProfile');
+$router->post('external/book-wafid', 'Gamcapp\\Controllers\\ExternalController@bookWafid');
 
-$router->post('/api/notifications/payment-success', 'Gamcapp\\Controllers\\NotificationController@paymentSuccess');
+$router->get('user/profile', 'Gamcapp\\Controllers\\UserController@getProfile');
 
-$router->get('/api/health', 'Gamcapp\\Controllers\\HealthController@check');
+$router->post('notifications/payment-success', 'Gamcapp\\Controllers\\NotificationController@paymentSuccess');
+
+// Override REQUEST_URI to use the API path for routing
+$_SERVER['REQUEST_URI'] = '/' . ltrim($apiPath, '/');
 
 $router->run();

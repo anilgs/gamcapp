@@ -390,6 +390,11 @@ jobs:
           echo "Waiting for deployment to propagate..."
           sleep 30
           
+          # Test debug endpoint first
+          echo "Testing debug endpoint for routing troubleshooting..."
+          curl -s "${{ env.FRONTEND_URL }}/api/health?debug=1" || echo "Debug endpoint failed"
+          echo ""
+          
           # Test API health endpoint
           echo "Testing API health endpoint..."
           if curl -f -s "${{ env.FRONTEND_URL }}/api/health" -o /dev/null; then
@@ -397,6 +402,15 @@ jobs:
             curl -s "${{ env.FRONTEND_URL }}/api/health" | head -3
           else
             echo "❌ API health check failed"
+            echo "Trying alternative health check approaches:"
+            
+            # Try direct backend access
+            echo "Testing direct backend access..."
+            curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health" || echo "Direct backend failed"
+            
+            # Check if backend files exist
+            echo "Testing backend file accessibility..."
+            curl -I -s "${{ env.FRONTEND_URL }}/backend/public/index.php" | head -2 || echo "Backend index.php not accessible"
           fi
           
           # Test database connectivity through API

@@ -3,8 +3,8 @@
 
 RewriteEngine On
 
-# Handle API requests - forward to backend
-RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+# Handle API requests - forward to backend with query parameter
+RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
 
 # Handle React SPA routing
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -19,8 +19,8 @@ RewriteRule . /index.html [L]
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
-    # CORS for API endpoints
-    SetEnvIf Origin "http(s)?://(localhost|yourdomain\.com)(:[0-9]+)?$" AccessControlAllowOrigin=$0
+    # CORS for API endpoints - Updated for gamca-wafid.com
+    SetEnvIf Origin "http(s)?://(localhost|gamca-wafid\.com)(:[0-9]+)?$" AccessControlAllowOrigin=$0
     Header always set Access-Control-Allow-Origin %{AccessControlAllowOrigin}e env=AccessControlAllowOrigin
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
