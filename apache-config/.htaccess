@@ -9,6 +9,7 @@ RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^backend/(.*)$ backend/$1 [L]
 
 # Handle API requests - forward to backend with query parameter
+# Updated for better LiteSpeed compatibility
 RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
 
 # Handle React SPA routing

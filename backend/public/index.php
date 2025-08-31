@@ -34,8 +34,28 @@ $router = new Router();
 // Get the API path from query parameter
 $apiPath = $_GET['api_path'] ?? '';
 
+// If no API path provided, show basic info
+if (empty($apiPath)) {
+    echo json_encode([
+        'success' => true,
+        'message' => 'GAMCAPP Backend API is running',
+        'version' => '1.0.0',
+        'php_version' => phpversion(),
+        'timestamp' => date('c'),
+        'available_endpoints' => [
+            'GET /api/health',
+            'POST /api/auth/send-otp',
+            'POST /api/auth/verify-otp',
+            'GET /api/auth/verify-token',
+            // Add more as needed
+        ]
+    ]);
+    exit;
+}
+
 // Routes without /api prefix and leading slash
 $router->get('health', 'Gamcapp\\Controllers\\HealthController@check');
+$router->get('routing-test', 'Gamcapp\\Controllers\\HealthController@routingTest');
 $router->post('auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
 $router->post('auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
 $router->post('auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
@@ -60,6 +80,10 @@ $router->get('user/profile', 'Gamcapp\\Controllers\\UserController@getProfile');
 $router->post('notifications/payment-success', 'Gamcapp\\Controllers\\NotificationController@paymentSuccess');
 
 // Override REQUEST_URI to use the API path for routing
-$_SERVER['REQUEST_URI'] = '/' . ltrim($apiPath, '/');
-
-$router->run();
+if (!empty($apiPath)) {
+    $_SERVER['REQUEST_URI'] = '/' . ltrim($apiPath, '/');
+    $router->run();
+} else {
+    // For empty API path, don't run the router at all since we already responded
+    // This prevents any router processing of empty paths
+}

@@ -132,6 +132,7 @@ jobs:
           # Add PHP test files for debugging
           cp phpinfo.php deployment/
           cp simple-test.php deployment/
+          cp routing-test.php deployment/
 
           # Create environment file for development
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -279,6 +280,7 @@ jobs:
           # Add PHP test files for debugging
           cp phpinfo.php deployment/
           cp simple-test.php deployment/
+          cp routing-test.php deployment/
           
           # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -549,6 +551,33 @@ jobs:
           
           # Test API routing
           echo "=== API Routing Tests ==="
+          
+          # Test routing-test.php directly first
+          echo "Testing routing-test.php directly..."
+          ROUTING_DIRECT_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/routing-test.php" 2>&1 || echo "curl_failed")
+          if [ "$ROUTING_DIRECT_RESPONSE" != "curl_failed" ]; then
+            echo "✅ Direct routing test successful"
+            echo "Response (first 300 chars): ${ROUTING_DIRECT_RESPONSE:0:300}..."
+          else
+            echo "❌ Direct routing test failed"
+          fi
+          echo ""
+          
+          # Test .htaccess rewrite by accessing through /api/routing-test
+          echo "Testing .htaccess rewrite via /api/routing-test..."
+          REWRITE_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/routing-test" 2>&1 || echo "curl_failed")
+          if [ "$REWRITE_RESPONSE" != "curl_failed" ]; then
+            if echo "$REWRITE_RESPONSE" | grep -q "rewrite is working\|backend_routing_test\|success.*true"; then
+              echo "✅ .htaccess rewrite is working"
+              echo "Response contains expected rewrite indicators"
+            else
+              echo "❌ .htaccess rewrite may not be working properly"
+              echo "Response (first 500 chars): ${REWRITE_RESPONSE:0:500}"
+            fi
+          else
+            echo "❌ Could not reach /api/routing-test"
+          fi
+          echo ""
           
           # Test debug endpoint
           echo "Testing debug endpoint for routing troubleshooting..."
