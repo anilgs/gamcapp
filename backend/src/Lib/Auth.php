@@ -188,7 +188,7 @@ class Auth {
 
     public static function isValidPhoneNumber(string $phone): bool {
         $cleaned = preg_replace('/\D/', '', $phone);
-        return preg_match('/^(91)?[6-9]\d{9}$/', $cleaned);
+        return (bool) preg_match('/^(91)?[6-9]\d{9}$/', $cleaned);
     }
 
     public static function checkOTPRateLimit(string $phone): bool {
