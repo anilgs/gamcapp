@@ -53,31 +53,31 @@ if (empty($apiPath)) {
     exit;
 }
 
-// Routes without /api prefix and leading slash
-$router->get('health', 'Gamcapp\\Controllers\\HealthController@check');
-$router->get('routing-test', 'Gamcapp\\Controllers\\HealthController@routingTest');
-$router->post('auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
-$router->post('auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
-$router->post('auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
-$router->get('auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
-$router->post('auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
+// Routes with leading slash to match REQUEST_URI format
+$router->get('/health', 'Gamcapp\\Controllers\\HealthController@check');
+$router->get('/routing-test', 'Gamcapp\\Controllers\\HealthController@routingTest');
+$router->post('/auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
+$router->post('/auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
+$router->post('/auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
+$router->get('/auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
+$router->post('/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
 
-$router->post('appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
-$router->get('appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
+$router->post('/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
+$router->get('/appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
 
-$router->post('payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
-$router->post('payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
+$router->post('/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
+$router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
 
-$router->post('upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
+$router->post('/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
 
-$router->get('admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
-$router->post('admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
+$router->get('/admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
+$router->post('/admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
 
-$router->post('external/book-wafid', 'Gamcapp\\Controllers\\ExternalController@bookWafid');
+$router->post('/external/book-wafid', 'Gamcapp\\Controllers\\ExternalController@bookWafid');
 
-$router->get('user/profile', 'Gamcapp\\Controllers\\UserController@getProfile');
+$router->get('/user/profile', 'Gamcapp\\Controllers\\UserController@getProfile');
 
-$router->post('notifications/payment-success', 'Gamcapp\\Controllers\\NotificationController@paymentSuccess');
+$router->post('/notifications/payment-success', 'Gamcapp\\Controllers\\NotificationController@paymentSuccess');
 
 // Override REQUEST_URI to use the API path for routing
 if (!empty($apiPath)) {

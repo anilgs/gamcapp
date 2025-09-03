@@ -34,6 +34,27 @@ class Router {
         $method = $_SERVER['REQUEST_METHOD'];
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         
+        // Debug: Add debug info if debug parameter is present
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            $debug_info = [
+                'method' => $method,
+                'path' => $path,
+                'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? 'not set',
+                'registered_routes' => []
+            ];
+            
+            foreach ($this->routes as $route) {
+                $debug_info['registered_routes'][] = $route['method'] . ' ' . $route['path'];
+            }
+            
+            echo json_encode([
+                'debug' => true,
+                'router_debug' => $debug_info,
+                'timestamp' => date('c')
+            ], JSON_PRETTY_PRINT);
+            return;
+        }
+        
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && $this->matchPath($route['path'], $path)) {
                 $this->callHandler($route['handler'], $path, $route['path']);
