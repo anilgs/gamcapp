@@ -189,55 +189,55 @@ jobs:
            echo "FROM_NAME=${{ env.FROM_NAME }}" >> deployment/backend/.env
            echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
           
-       - name: Deploy Backend to Secure Location (Dev)
-         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-         with:
-           server: ${{ env.FTP_HOST }}
-           username: ${{ env.FTP_USERNAME }}
-           password: ${{ env.FTP_PASSWORD }}
-           local-dir: ./deployment/backend/
-           server-dir: /public_html/dev/backend/
-           log-level: verbose
+      - name: Deploy Backend to Secure Location (Dev)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          local-dir: ./deployment/backend/
+          server-dir: /public_html/dev/backend/
+          log-level: verbose
 
-       - name: Deploy Frontend to Public Directory (Dev)
-         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-         with:
-           server: ${{ env.FTP_HOST }}
-           username: ${{ env.FTP_USERNAME }}
-           password: ${{ env.FTP_PASSWORD }}
-           local-dir: ./deployment/frontend/
-           server-dir: /public_html/dev/
-           log-level: verbose
+      - name: Deploy Frontend to Public Directory (Dev)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          local-dir: ./deployment/frontend/
+          server-dir: /public_html/dev/
+          log-level: verbose
 
-       - name: Fix Backend File Permissions (Dev)
-         run: |
-           echo "Setting correct file permissions for PHP execution in development..."
-           
-           # Use the permission fix script deployed with the frontend
-           echo "Calling development permission fix script..."
-           DEV_URL="${{ env.FRONTEND_URL }}"
-           if [[ "$DEV_URL" == *"/dev"* ]]; then
-             DEV_PERMISSION_URL="$DEV_URL"
-           else
-             DEV_PERMISSION_URL="${DEV_URL%/}/dev"
-           fi
-           
-           PERMISSION_RESPONSE=$(curl -s -X POST "$DEV_PERMISSION_URL/fix-permissions.php" \
-                -d "action=fix_backend_permissions" 2>&1 || echo "curl_failed")
-           
-           if [ "$PERMISSION_RESPONSE" != "curl_failed" ]; then
-             echo "Permission fix script response:"
-             echo "$PERMISSION_RESPONSE"
-             
-             # Check if the response indicates success
-             if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
-               echo "✅ File permissions fixed successfully"
-             else
-               echo "⚠️  Permission fix script completed but may have encountered issues"
-             fi
-           else
-             echo "❌ Failed to call permission fix script"
-           fi
+      - name: Fix Backend File Permissions (Dev)
+        run: |
+          echo "Setting correct file permissions for PHP execution in development..."
+          
+          # Use the permission fix script deployed with the frontend
+          echo "Calling development permission fix script..."
+          DEV_URL="${{ env.FRONTEND_URL }}"
+          if [[ "$DEV_URL" == *"/dev"* ]]; then
+            DEV_PERMISSION_URL="$DEV_URL"
+          else
+            DEV_PERMISSION_URL="${DEV_URL%/}/dev"
+          fi
+          
+          PERMISSION_RESPONSE=$(curl -s -X POST "$DEV_PERMISSION_URL/fix-permissions.php" \
+               -d "action=fix_backend_permissions" 2>&1 || echo "curl_failed")
+          
+          if [ "$PERMISSION_RESPONSE" != "curl_failed" ]; then
+            echo "Permission fix script response:"
+            echo "$PERMISSION_RESPONSE"
+            
+            # Check if the response indicates success
+            if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
+              echo "✅ File permissions fixed successfully"
+            else
+              echo "⚠️  Permission fix script completed but may have encountered issues"
+            fi
+          else
+            echo "❌ Failed to call permission fix script"
+          fi
 
       - name: Initialize Database
         run: |
@@ -486,38 +486,38 @@ jobs:
              echo "❌ Deployment directory does not exist!"
            fi
 
-       - name: Deploy Backend to Secure Location
-         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-         with:
-           server: ${{ env.FTP_HOST }}
-           username: ${{ env.FTP_USERNAME }}
-           password: ${{ env.FTP_PASSWORD }}
-           local-dir: ./deployment/backend/
-           server-dir: /domains/${{ env.DOMAIN }}/backend/
-           log-level: verbose
+      - name: Deploy Backend to Secure Location
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ env.FTP_HOST }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          local-dir: ./deployment/backend/
+          server-dir: /domains/${{ env.DOMAIN }}/backend/
+          log-level: verbose
 
-       - name: Fix Backend File Permissions
-         run: |
-           echo "Setting correct file permissions for PHP execution..."
-           
-           # Use the permission fix script deployed with the frontend
-           echo "Calling permission fix script..."
-           PERMISSION_RESPONSE=$(curl -s -X POST "${{ env.FRONTEND_URL }}/fix-permissions.php" \
-                -d "action=fix_backend_permissions" 2>&1 || echo "curl_failed")
-           
-           if [ "$PERMISSION_RESPONSE" != "curl_failed" ]; then
-             echo "Permission fix script response:"
-             echo "$PERMISSION_RESPONSE"
-             
-             # Check if the response indicates success
-             if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
-               echo "✅ File permissions fixed successfully"
-             else
-               echo "⚠️  Permission fix script completed but may have encountered issues"
-             fi
-           else
-             echo "❌ Failed to call permission fix script"
-           fi
+      - name: Fix Backend File Permissions
+        run: |
+          echo "Setting correct file permissions for PHP execution..."
+          
+          # Use the permission fix script deployed with the frontend
+          echo "Calling permission fix script..."
+          PERMISSION_RESPONSE=$(curl -s -X POST "${{ env.FRONTEND_URL }}/fix-permissions.php" \
+               -d "action=fix_backend_permissions" 2>&1 || echo "curl_failed")
+          
+          if [ "$PERMISSION_RESPONSE" != "curl_failed" ]; then
+            echo "Permission fix script response:"
+            echo "$PERMISSION_RESPONSE"
+            
+            # Check if the response indicates success
+            if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
+              echo "✅ File permissions fixed successfully"
+            else
+              echo "⚠️  Permission fix script completed but may have encountered issues"
+            fi
+          else
+            echo "❌ Failed to call permission fix script"
+          fi
 
       - name: Deploy Frontend to Public Directory
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
