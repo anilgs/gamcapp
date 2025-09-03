@@ -50,7 +50,7 @@ class Router {
         $routePattern = str_replace('/', '\/', $routePattern);
         $routePattern = '/^' . $routePattern . '$/';
         
-        return preg_match($routePattern, $requestPath);
+        return (bool) preg_match($routePattern, $requestPath);
     }
     
     private function callHandler(string $handler, string $requestPath, string $routePath): void {
