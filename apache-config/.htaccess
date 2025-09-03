@@ -15,14 +15,29 @@ RewriteRule ^api/simple-backend$ simple-backend-test.php?api_path=simple-backend
 # Test: API rewrite to minimal backend index  
 RewriteRule ^api/minimal$ minimal-backend-index.php?api_path=minimal [L,QSA]
 
-# Handle API requests - Route to secure backend outside public_html
-RewriteRule ^api/(.*)$ /domains/gamca-wafid.com/backend/public/index.php?api_path=$1 [L,QSA]
+# Handle API requests - Route to secure backend 
+# Try multiple backend locations based on environment
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteCond %{DOCUMENT_ROOT}/../backend/public/index.php -f
+RewriteRule ^api/(.*)$ ../backend/public/index.php?api_path=$1 [L,QSA]
+
+# Fallback: Try backend in same directory structure (for development)
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteCond %{DOCUMENT_ROOT}/backend/public/index.php -f
+RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
+
+# Final fallback: Try relative path for shared hosting structure
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteCond %{DOCUMENT_ROOT}/../../backend/public/index.php -f
+RewriteRule ^api/(.*)$ ../../backend/public/index.php?api_path=$1 [L,QSA]
 
 # Fallback: If secure backend is not available, use minimal backend (for debugging)
 # RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]
 
-# Security: Deny direct access to any backend files in public_html (should not exist)
-RedirectMatch 404 ^/backend/.*
+# Security: Deny direct access to backend files that shouldn't be in public_html
+# Only block direct access, not internal rewrites
+RewriteCond %{THE_REQUEST} \s/+backend/ [NC]
+RewriteRule ^backend/ - [F,L]
 
 # Handle React SPA routing - exclude API and any admin paths
 RewriteCond %{REQUEST_FILENAME} !-f
