@@ -122,64 +122,91 @@ jobs:
           echo "Verifying Composer dependencies..."
           php -r "require 'vendor/autoload.php'; echo 'Autoloader working correctly\n';"
 
-      - name: Create deployment package
-        run: |
-          echo "=== Pre-deployment Backend Verification ==="
-          echo "Backend directory contents:"
-          ls -la backend/ || echo "Backend directory not found"
-          echo ""
-          echo "Checking for vendor directory:"
-          if [ -d "backend/vendor" ]; then
-            echo "✅ Vendor directory exists"
-            echo "Vendor size: $(du -sh backend/vendor)"
-            echo "Autoloader exists: $(test -f backend/vendor/autoload.php && echo 'yes' || echo 'no')"
-          else
-            echo "❌ Vendor directory missing before deployment"
-          fi
-          echo ""
-          
-          echo "=== Creating Deployment Package ==="
-          mkdir -p deployment
-          cp -r frontend/dist/* deployment/
-          cp -r backend deployment/
-          cp apache-config/.htaccess deployment/
-          
-          # Add PHP test files for debugging
-          cp phpinfo.php deployment/
-          cp simple-test.php deployment/
-          cp routing-test.php deployment/
-          cp backend-diagnostics.php deployment/
-          cp filesystem-diagnostic.php deployment/
-          cp simple-backend-test.php deployment/
-          cp minimal-backend-index.php deployment/
+       - name: Create deployment package
+         run: |
+           echo "=== Pre-deployment Backend Verification ==="
+           echo "Backend directory contents:"
+           ls -la backend/ || echo "Backend directory not found"
+           echo ""
+           echo "Checking for vendor directory:"
+           if [ -d "backend/vendor" ]; then
+             echo "✅ Vendor directory exists"
+             echo "Vendor size: $(du -sh backend/vendor)"
+             echo "Autoloader exists: $(test -f backend/vendor/autoload.php && echo 'yes' || echo 'no')"
+           else
+             echo "❌ Vendor directory missing before deployment"
+           fi
+           echo ""
+           
+           echo "=== Creating Deployment Package ==="
+           mkdir -p deployment/frontend
+           mkdir -p deployment/backend
+           
+           echo "Preparing frontend files..."
+           cp -r frontend/dist/* deployment/frontend/
+           cp apache-config/.htaccess deployment/frontend/
+           
+           echo "Copying backend directory..."
+           if [ -d "backend" ]; then
+             cp -r backend/* deployment/backend/ || {
+               echo "❌ Failed to copy backend directory"
+               echo "Backend source contents:"
+               ls -la backend/
+               exit 1
+             }
+             echo "✅ Backend directory copied successfully"
+           else
+             echo "❌ Backend directory not found for copying"
+             exit 1
+           fi
+           
+           # Add PHP test files for debugging (only to frontend/public for testing)
+           cp phpinfo.php deployment/frontend/
+           cp simple-test.php deployment/frontend/
+           cp routing-test.php deployment/frontend/
+           cp backend-diagnostics.php deployment/frontend/
+           cp filesystem-diagnostic.php deployment/frontend/
+           cp simple-backend-test.php deployment/frontend/
+           cp minimal-backend-index.php deployment/frontend/
 
-          # Create environment file for development
-          echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
-          echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
-          echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
-          echo "DB_USER=${{ env.DB_USER }}" >> deployment/backend/.env
-          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
-          echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> deployment/backend/.env
-          echo "APP_ENV=development" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_SECRET=${{ env.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
-          echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
-          echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
-          echo "SMTP_PORT=${{ env.SMTP_PORT }}" >> deployment/backend/.env
-          echo "SMTP_SECURE=${{ env.SMTP_SECURE }}" >> deployment/backend/.env
-          echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
-          echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
-          echo "FROM_NAME=${{ env.FROM_NAME }}" >> deployment/backend/.env
-          echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
+           # Create environment file for development
+           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
+           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
+           echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
+           echo "DB_USER=${{ env.DB_USER }}" >> deployment/backend/.env
+           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
+           echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> deployment/backend/.env
+           echo "APP_ENV=development" >> deployment/backend/.env
+           echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+           echo "RAZORPAY_KEY_SECRET=${{ env.RAZORPAY_KEY_SECRET }}" >> deployment/backend/.env
+           echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
+           echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
+           echo "SMTP_PORT=${{ env.SMTP_PORT }}" >> deployment/backend/.env
+           echo "SMTP_SECURE=${{ env.SMTP_SECURE }}" >> deployment/backend/.env
+           echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
+           echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
+           echo "FROM_NAME=${{ env.FROM_NAME }}" >> deployment/backend/.env
+           echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
           
-      - name: Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ env.FTP_HOST }}
-          username: ${{ env.FTP_USERNAME }}
-          password: ${{ env.FTP_PASSWORD }}
-          local-dir: ./deployment/
-          server-dir: /public_html/dev/
+       - name: Deploy Backend to Secure Location (Dev)
+         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+         with:
+           server: ${{ env.FTP_HOST }}
+           username: ${{ env.FTP_USERNAME }}
+           password: ${{ env.FTP_PASSWORD }}
+           local-dir: ./deployment/backend/
+           server-dir: /public_html/dev/backend/
+           log-level: verbose
+
+       - name: Deploy Frontend to Public Directory (Dev)
+         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+         with:
+           server: ${{ env.FTP_HOST }}
+           username: ${{ env.FTP_USERNAME }}
+           password: ${{ env.FTP_PASSWORD }}
+           local-dir: ./deployment/frontend/
+           server-dir: /public_html/dev/
+           log-level: verbose
 
       - name: Initialize Database
         run: |
@@ -305,35 +332,37 @@ jobs:
           fi
           echo ""
           
-          echo "=== Creating Deployment Package ==="
-          mkdir -p deployment
-          cp -r frontend/dist/* deployment/
+           echo "=== Creating Deployment Package ==="
+           mkdir -p deployment/frontend
+           mkdir -p deployment/backend
+           
+           echo "Preparing frontend files..."
+           cp -r frontend/dist/* deployment/frontend/
+           cp apache-config/.htaccess deployment/frontend/
+           
+           echo "Copying backend directory..."
+           if [ -d "backend" ]; then
+             cp -r backend/* deployment/backend/ || {
+               echo "❌ Failed to copy backend directory"
+               echo "Backend source contents:"
+               ls -la backend/
+               exit 1
+             }
+             echo "✅ Backend directory copied successfully"
+           else
+             echo "❌ Backend directory not found for copying"
+             exit 1
+           fi
           
-          echo "Copying backend directory..."
-          if [ -d "backend" ]; then
-            cp -r backend deployment/ || {
-              echo "❌ Failed to copy backend directory"
-              echo "Backend source contents:"
-              ls -la backend/
-              exit 1
-            }
-            echo "✅ Backend directory copied successfully"
-          else
-            echo "❌ Backend directory not found for copying"
-            exit 1
-          fi
-          
-          cp apache-config/.htaccess deployment/
-          
-          # Add PHP test files for debugging
-          cp phpinfo.php deployment/
-          cp simple-test.php deployment/
-          cp routing-test.php deployment/
-          cp backend-diagnostics.php deployment/
-          cp filesystem-diagnostic.php deployment/
-          cp simple-backend-test.php deployment/
-          cp minimal-backend-index.php deployment/
-          
+           
+           # Add PHP test files for debugging (only to frontend/public for testing)
+           cp phpinfo.php deployment/frontend/
+           cp simple-test.php deployment/frontend/
+           cp routing-test.php deployment/frontend/
+           cp backend-diagnostics.php deployment/frontend/
+           cp filesystem-diagnostic.php deployment/frontend/
+           cp simple-backend-test.php deployment/frontend/
+           cp minimal-backend-index.php deployment/frontend/
           # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
@@ -360,79 +389,90 @@ jobs:
 
       - name: Verify Deployment Package
         run: |
-          echo "=== Deployment Package Verification ==="
-          echo "Checking deployment directory structure..."
-          
-          if [ -d "deployment" ]; then
-            echo "✅ Deployment directory exists"
-            echo "Contents:"
-            find deployment -type f | head -20
-            echo ""
-            echo "Directory structure:"
-            find deployment -type d | sort
-            echo ""
-            
-            # Check critical files
-            if [ -f "deployment/.htaccess" ]; then
-              echo "✅ .htaccess file present"
-            else
-              echo "❌ .htaccess file missing"
-            fi
-            
-            if [ -f "deployment/index.html" ]; then
-              echo "✅ Frontend index.html present"
-            else
-              echo "❌ Frontend index.html missing"
-            fi
-            
-            if [ -f "deployment/backend/public/index.php" ]; then
-              echo "✅ Backend index.php present"
-            else
-              echo "❌ Backend index.php missing"
-            fi
-            
-            if [ -f "deployment/backend/.env" ]; then
-              echo "✅ Backend .env file present"
-              echo "Environment variables count: $(wc -l < deployment/backend/.env)"
-              echo "File size: $(ls -lh deployment/backend/.env 2>/dev/null | awk '{print $5}')"
-              echo "Contains DB_HOST: $(grep -q 'DB_HOST=' deployment/backend/.env && echo 'yes' || echo 'no')"
-            else
-              echo "❌ Backend .env file missing"
-              if [ -d "deployment/backend" ]; then
-                echo "Backend directory exists but .env missing:"
-                ls -la deployment/backend/ 2>/dev/null || echo "backend directory not readable"
-              else
-                echo "❌ Backend directory does not exist in deployment package!"
-                echo "Deployment contents:"
-                ls -la deployment/ 2>/dev/null || echo "deployment directory not readable"
-              fi
-            fi
-            
-            if [ -f "deployment/backend/vendor/autoload.php" ]; then
-              echo "✅ Composer vendor directory present"
-              echo "Vendor directory size: $(du -sh deployment/backend/vendor 2>/dev/null || echo 'unknown')"
-              echo "Autoloader file size: $(ls -lh deployment/backend/vendor/autoload.php 2>/dev/null || echo 'file not found')"
-            else
-              echo "❌ Composer vendor directory missing"
-              echo "Backend directory contents:"
-              ls -la deployment/backend/ 2>/dev/null || echo "backend directory not accessible"
-              echo "Looking for vendor directory:"
-              find deployment/backend -name "vendor" -type d 2>/dev/null || echo "No vendor directory found"
-            fi
-            
-          else
-            echo "❌ Deployment directory does not exist!"
-          fi
+           echo "=== Deployment Package Verification ==="
+           echo "Checking deployment directory structure..."
+           
+           if [ -d "deployment" ]; then
+             echo "✅ Deployment directory exists"
+             echo "Contents:"
+             find deployment -type f | head -20
+             echo ""
+             echo "Directory structure:"
+             find deployment -type d | sort
+             echo ""
+             
+             # Check frontend files
+             if [ -f "deployment/frontend/.htaccess" ]; then
+               echo "✅ Frontend .htaccess file present"
+             else
+               echo "❌ Frontend .htaccess file missing"
+             fi
+             
+             if [ -f "deployment/frontend/index.html" ]; then
+               echo "✅ Frontend index.html present"
+             else
+               echo "❌ Frontend index.html missing"
+             fi
+             
+             # Check backend files
+             if [ -f "deployment/backend/public/index.php" ]; then
+               echo "✅ Backend index.php present"
+             else
+               echo "❌ Backend index.php missing"
+             fi
+             
+             if [ -f "deployment/backend/.env" ]; then
+               echo "✅ Backend .env file present"
+               echo "Environment variables count: $(wc -l < deployment/backend/.env)"
+               echo "File size: $(ls -lh deployment/backend/.env 2>/dev/null | awk '{print $5}')"
+               echo "Contains DB_HOST: $(grep -q 'DB_HOST=' deployment/backend/.env && echo 'yes' || echo 'no')"
+             else
+               echo "❌ Backend .env file missing"
+               if [ -d "deployment/backend" ]; then
+                 echo "Backend directory exists but .env missing:"
+                 ls -la deployment/backend/ 2>/dev/null || echo "backend directory not readable"
+               else
+                 echo "❌ Backend directory does not exist in deployment package!"
+                 echo "Deployment contents:"
+                 ls -la deployment/ 2>/dev/null || echo "deployment directory not readable"
+               fi
+             fi
+             
+             if [ -f "deployment/backend/vendor/autoload.php" ]; then
+               echo "✅ Composer vendor directory present"
+               echo "Vendor directory size: $(du -sh deployment/backend/vendor 2>/dev/null || echo 'unknown')"
+               echo "Autoloader file size: $(ls -lh deployment/backend/vendor/autoload.php 2>/dev/null || echo 'file not found')"
+             else
+               echo "❌ Composer vendor directory missing"
+               echo "Backend directory contents:"
+               ls -la deployment/backend/ 2>/dev/null || echo "backend directory not accessible"
+               echo "Looking for vendor directory:"
+               find deployment/backend -name "vendor" -type d 2>/dev/null || echo "No vendor directory found"
+             fi
+             
+           else
+             echo "❌ Deployment directory does not exist!"
+           fi
 
-      - name: Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ env.FTP_HOST }}
-          username: ${{ env.FTP_USERNAME }}
-          password: ${{ env.FTP_PASSWORD }}
-          local-dir: ./deployment/
-          server-dir: /domains/${{ env.DOMAIN }}/public_html/
-          log-level: verbose
+       - name: Deploy Backend to Secure Location
+         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+         with:
+           server: ${{ env.FTP_HOST }}
+           username: ${{ env.FTP_USERNAME }}
+           password: ${{ env.FTP_PASSWORD }}
+           local-dir: ./deployment/backend/
+           server-dir: /domains/${{ env.DOMAIN }}/backend/
+           log-level: verbose
+
+       - name: Deploy Frontend to Public Directory
+         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+         with:
+           server: ${{ env.FTP_HOST }}
+           username: ${{ env.FTP_USERNAME }}
+           password: ${{ env.FTP_PASSWORD }}
+           local-dir: ./deployment/frontend/
+           server-dir: /domains/${{ env.DOMAIN }}/public_html/
+           log-level: verbose
 
       - name: Initialize Database
         run: |
@@ -506,11 +546,11 @@ jobs:
           echo "Note: Shared hosting providers typically handle PHP configuration automatically."
           echo "Composer autoloader optimization and file permissions are set during FTP upload."
           
-          # Log deployment completion
-          echo "✅ Backend files deployed to: /domains/${{ env.DOMAIN }}/public_html/backend/"
-          echo "✅ Frontend files deployed to: /domains/${{ env.DOMAIN }}/public_html/"
-          echo "✅ Environment file created with production settings"
-          echo "✅ Apache .htaccess configuration deployed"
+           # Log deployment completion
+           echo "✅ Backend files deployed to: /domains/${{ env.DOMAIN }}/backend/ (SECURE - not publicly accessible)"
+           echo "✅ Frontend files deployed to: /domains/${{ env.DOMAIN }}/public_html/ (PUBLIC)"
+           echo "✅ Environment file created with production settings in secure backend directory"
+           echo "✅ Apache .htaccess configuration deployed to route API calls to secure backend"
 
       - name: Comprehensive Health Check
         run: |
@@ -536,42 +576,46 @@ jobs:
           echo "Testing .htaccess accessibility..."
           curl -I -s "${{ env.FRONTEND_URL }}/.htaccess" | head -1 || echo "❌ .htaccess not accessible (expected)"
           
-          # Test backend directory
-          echo "Testing backend directory..."
-          curl -I -s "${{ env.FRONTEND_URL }}/backend/" | head -1 || echo "❌ Backend directory not accessible"
+           # Security verification tests
+           echo "=== Security Verification Tests ==="
+           echo "Testing that backend is not publicly accessible..."
+           
+           # Test that backend directory is not accessible
+           BACKEND_ACCESS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.FRONTEND_URL }}/backend/" 2>/dev/null || echo "000")
+           if [ "$BACKEND_ACCESS" = "404" ] || [ "$BACKEND_ACCESS" = "403" ]; then
+             echo "✅ Backend directory properly secured (HTTP $BACKEND_ACCESS)"
+           else
+             echo "⚠️  Backend directory may be accessible (HTTP $BACKEND_ACCESS)"
+           fi
+           
+           # Test that backend source files are not accessible
+           BACKEND_SRC_ACCESS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.FRONTEND_URL }}/backend/src/" 2>/dev/null || echo "000")
+           if [ "$BACKEND_SRC_ACCESS" = "404" ] || [ "$BACKEND_SRC_ACCESS" = "403" ]; then
+             echo "✅ Backend source directory properly secured (HTTP $BACKEND_SRC_ACCESS)"
+           else
+             echo "⚠️  Backend source directory may be accessible (HTTP $BACKEND_SRC_ACCESS)"
+           fi
+           
+           # Test that .env file is not accessible
+           ENV_ACCESS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.FRONTEND_URL }}/backend/.env" 2>/dev/null || echo "000")
+           if [ "$ENV_ACCESS" = "404" ] || [ "$ENV_ACCESS" = "403" ]; then
+             echo "✅ Environment file properly secured (HTTP $ENV_ACCESS)"
+           else
+             echo "❌ SECURITY RISK: Environment file may be accessible (HTTP $ENV_ACCESS)"
+           fi
+           
+           # Test that vendor directory is not accessible
+           VENDOR_ACCESS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.FRONTEND_URL }}/backend/vendor/" 2>/dev/null || echo "000")
+           if [ "$VENDOR_ACCESS" = "404" ] || [ "$VENDOR_ACCESS" = "403" ]; then
+             echo "✅ Vendor directory properly secured (HTTP $VENDOR_ACCESS)"
+           else
+             echo "⚠️  Vendor directory may be accessible (HTTP $VENDOR_ACCESS)"
+           fi
+           echo ""
           
-          # Test backend/public directory
-          echo "Testing backend/public directory..."
-          curl -I -s "${{ env.FRONTEND_URL }}/backend/public/" | head -1 || echo "❌ Backend/public directory not accessible"
-          
-          # Test simple PHP file first
-          echo "Testing simple PHP test file..."
-          TEST_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/test.php" 2>&1 || echo "curl_failed")
-          if echo "$TEST_RESPONSE" | grep -q "PHP is working correctly"; then
-            echo "✅ PHP execution confirmed"
-            echo "$TEST_RESPONSE" | head -10
-          elif echo "$TEST_RESPONSE" | grep -q "curl_failed"; then
-            echo "❌ Could not reach PHP test file"
-          else
-            echo "❌ PHP execution failed or unexpected response"
-            echo "Response (first 500 chars): ${TEST_RESPONSE:0:500}"
-          fi
-          echo ""
-          
-          # Test index.php directly
-          echo "Testing backend index.php directly..."
-          RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php?api_path=health&debug=1" 2>&1 || echo "curl_failed")
-          if [ "$RESPONSE" != "curl_failed" ] && [ -n "$RESPONSE" ]; then
-            echo "✅ PHP index.php accessible"
-            echo "Response (first 300 chars): ${RESPONSE:0:300}"
-          else
-            echo "❌ No response from PHP index.php"
-          fi
-          echo ""
-          
-          # Test simple PHP file
-          echo "=== PHP Execution Test ==="
-          echo "Testing basic PHP execution..."
+           # Test PHP execution via simple test files
+           echo "=== PHP Execution Test ==="
+           echo "Testing basic PHP execution..."
           
           # Test super simple PHP file first
           echo "Testing simple-test.php..."
@@ -605,23 +649,8 @@ jobs:
           fi
           echo ""
           
-          # Test backend index.php
-          echo "Testing backend/public/index.php..."
-          PHP_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/backend/public/index.php" 2>&1 || echo "curl_failed")
-          if [ "$PHP_RESPONSE" != "curl_failed" ]; then
-            if echo "$PHP_RESPONSE" | grep -q "Route not found\|debug\|health\|success"; then
-              echo "✅ Backend PHP is executing"
-              echo "Response snippet: ${PHP_RESPONSE:0:200}..."
-            else
-              echo "❌ Backend PHP not executing or returning unexpected content"
-              echo "Full response (first 500 chars): ${PHP_RESPONSE:0:500}"
-            fi
-          else
-            echo "❌ Could not reach backend PHP file"
-          fi
-          echo ""
-          
-          # Test simple backend rewrite
+           # Test API routing through secure backend
+           echo "=== API Routing Tests ==="
           echo "Testing simple backend API rewrite via /api/simple-backend..."
           SIMPLE_BACKEND_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/simple-backend" 2>&1 || echo "curl_failed")
           if [ "$SIMPLE_BACKEND_RESPONSE" != "curl_failed" ]; then
@@ -651,10 +680,7 @@ jobs:
             echo "❌ Could not reach /api/minimal"
           fi
           
-          # Test API routing
-          echo "=== API Routing Tests ==="
-          
-          # Test routing-test.php directly first
+           # Test routing-test.php directly first
           echo "Testing routing-test.php directly..."
           ROUTING_DIRECT_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/routing-test.php" 2>&1 || echo "curl_failed")
           if [ "$ROUTING_DIRECT_RESPONSE" != "curl_failed" ]; then

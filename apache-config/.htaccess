@@ -15,25 +15,20 @@ RewriteRule ^api/simple-backend$ simple-backend-test.php?api_path=simple-backend
 # Test: API rewrite to minimal backend index  
 RewriteRule ^api/minimal$ minimal-backend-index.php?api_path=minimal [L,QSA]
 
-# Handle API requests - Temporary fallback to minimal backend while fixing deployment
-RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]  # ENABLED - minimal backend (temporary)
-# RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]  # DISABLED - full backend (deployment issues)
+# Handle API requests - Route to secure backend outside public_html
+RewriteRule ^api/(.*)$ ../backend/public/index.php?api_path=$1 [L,QSA]
 
-# Alternative: Main backend (when dependencies are fixed)
-# RewriteRule ^api/(.*)$ backend/public/index.php?api_path=$1 [L,QSA]
+# Fallback: If secure backend is not available, use minimal backend (for debugging)
+# RewriteRule ^api/(.*)$ minimal-backend-index.php?api_path=$1 [L,QSA]
 
-# Handle direct backend access (for debugging and direct PHP file access)
-# Only if the file actually exists and is not an API request
-RewriteCond %{REQUEST_URI} ^/backend/
-RewriteCond %{REQUEST_URI} !^/api/
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^backend/(.*)$ backend/$1 [L]
+# Security: Deny direct access to any backend files in public_html (should not exist)
+RedirectMatch 404 ^/backend/.*
 
-# Handle React SPA routing
+# Handle React SPA routing - exclude API and any admin paths
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !^/api
-RewriteCond %{REQUEST_URI} !^/backend/
+RewriteCond %{REQUEST_URI} !\.(php|js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
 RewriteRule . /index.html [L]
 
 # Security headers
