@@ -169,6 +169,7 @@ jobs:
             cp simple-backend-test.php deployment/frontend/
             cp minimal-backend-index.php deployment/frontend/
             cp fix-permissions.php deployment/frontend/
+            cp api.php deployment/frontend/
  
             # Create environment file for development
            echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -395,6 +396,7 @@ jobs:
             cp simple-backend-test.php deployment/frontend/
             cp minimal-backend-index.php deployment/frontend/
             cp fix-permissions.php deployment/frontend/
+            cp api.php deployment/frontend/
            # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
@@ -778,21 +780,7 @@ jobs:
           fi
           echo ""
           
-          # Test .htaccess rewrite by accessing through /api/routing-test
-          echo "Testing .htaccess rewrite via /api/routing-test..."
-          REWRITE_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/routing-test" 2>&1 || echo "curl_failed")
-          if [ "$REWRITE_RESPONSE" != "curl_failed" ]; then
-            if echo "$REWRITE_RESPONSE" | grep -q "rewrite is working\|backend_routing_test\|success.*true"; then
-              echo "✅ .htaccess rewrite is working"
-              echo "Response contains expected rewrite indicators"
-            else
-              echo "❌ .htaccess rewrite may not be working properly"
-              echo "Response (first 500 chars): ${REWRITE_RESPONSE:0:500}"
-            fi
-          else
-            echo "❌ Could not reach /api/routing-test"
-          fi
-          echo ""
+          
           
           # Test filesystem structure diagnostic
           echo "Testing filesystem-diagnostic.php..."
