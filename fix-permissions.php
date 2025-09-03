@@ -17,37 +17,81 @@ $action = $_POST['action'];
 $results = [];
 
 if ($action === 'fix_backend_permissions') {
+    // Determine if we're in development or production based on current path
+    $current_path = __DIR__;
+    $is_dev = strpos($current_path, '/dev') !== false;
+    
+    // Set base backend path based on environment
+    if ($is_dev) {
+        $backend_base = dirname(__DIR__) . '/dev/backend';
+    } else {
+        // Production: backend is in separate secure directory
+        $backend_base = '/domains/' . ($_SERVER['HTTP_HOST'] ?? 'gamca-wafid.com') . '/backend';
+        
+        // Alternative paths if the above doesn't work
+        $possible_paths = [
+            '/domains/gamca-wafid.com/backend',
+            dirname(dirname(__DIR__)) . '/backend',
+            '../backend'
+        ];
+        
+        foreach ($possible_paths as $path) {
+            if (is_dir($path)) {
+                $backend_base = $path;
+                break;
+            }
+        }
+    }
+    
+    $results['environment'] = $is_dev ? 'development' : 'production';
+    $results['backend_base_path'] = $backend_base;
+    $results['current_directory'] = $current_path;
+    
+    // Check if backend directory exists
+    if (!is_dir($backend_base)) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Backend directory not found',
+            'backend_base' => $backend_base,
+            'environment' => $results['environment'],
+            'current_directory' => $current_path
+        ]);
+        exit;
+    }
+    
     // Backend directories that need execute permissions
     $backend_dirs = [
-        '../backend',
-        '../backend/public',
-        '../backend/src',
-        '../backend/src/Controllers',
-        '../backend/src/Core', 
-        '../backend/src/Lib',
-        '../backend/src/Middleware',
-        '../backend/src/Models',
-        '../backend/vendor'
+        $backend_base,
+        $backend_base . '/public',
+        $backend_base . '/src',
+        $backend_base . '/src/Controllers',
+        $backend_base . '/src/Core', 
+        $backend_base . '/src/Lib',
+        $backend_base . '/src/Middleware',
+        $backend_base . '/src/Models',
+        $backend_base . '/vendor'
     ];
     
     // PHP files that need execute permissions
     $php_files = [
-        '../backend/public/index.php'
+        $backend_base . '/public/index.php'
     ];
     
     // Find all PHP files in source directories
     $src_dirs = [
-        '../backend/src/Controllers',
-        '../backend/src/Core',
-        '../backend/src/Lib', 
-        '../backend/src/Middleware',
-        '../backend/src/Models'
+        $backend_base . '/src/Controllers',
+        $backend_base . '/src/Core',
+        $backend_base . '/src/Lib', 
+        $backend_base . '/src/Middleware',
+        $backend_base . '/src/Models'
     ];
     
     foreach ($src_dirs as $dir) {
         if (is_dir($dir)) {
             $files = glob($dir . '/*.php');
-            $php_files = array_merge($php_files, $files);
+            if ($files) {
+                $php_files = array_merge($php_files, $files);
+            }
         }
     }
     
@@ -72,7 +116,7 @@ if ($action === 'fix_backend_permissions') {
     }
     
     // Set .env file permissions (read-only)
-    $env_file = '../backend/.env';
+    $env_file = $backend_base . '/.env';
     if (is_file($env_file)) {
         $success = chmod($env_file, 0644);
         $results['env_file'] = $success ? 'success' : 'failed';
@@ -82,8 +126,11 @@ if ($action === 'fix_backend_permissions') {
     
     // Check current permissions
     $results['verification'] = [];
-    $results['verification']['backend_index'] = is_executable('../backend/public/index.php') ? 'executable' : 'not_executable';
-    $results['verification']['backend_dir'] = is_readable('../backend') ? 'readable' : 'not_readable';
+    $main_index = $backend_base . '/public/index.php';
+    $results['verification']['backend_index'] = is_executable($main_index) ? 'executable' : 'not_executable';
+    $results['verification']['backend_dir'] = is_readable($backend_base) ? 'readable' : 'not_readable';
+    $results['verification']['main_index_path'] = $main_index;
+    $results['verification']['main_index_exists'] = file_exists($main_index) ? 'exists' : 'missing';
     
 } else {
     http_response_code(400);
