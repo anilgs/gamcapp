@@ -26,7 +26,7 @@ class Database {
                     PDO::ATTR_EMULATE_PREPARES => false,
                 ]);
                 
-                echo "Connected to MySQL database\n";
+                error_log("Connected to MySQL database");
             } catch (PDOException $e) {
                 error_log("Database connection error: " . $e->getMessage());
                 throw $e;
