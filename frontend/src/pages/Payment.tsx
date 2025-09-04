@@ -73,7 +73,7 @@ export default function Payment() {
 
         // Get user details
         const userResult = await authApi.getProfile();
-        if (!userResult.success) {
+        if (!userResult.success || !userResult.data?.user) {
           throw new Error('Failed to get user details');
         }
 
@@ -90,7 +90,7 @@ export default function Payment() {
         }
 
         setOrderData(orderResult.data || null);
-        setUserDetails(userResult.data || null);
+        setUserDetails(userResult.data.user);
         setAppointmentDetails(appointmentResult.data || null);
       } catch (error: unknown) {
         console.error('Payment initialization error:', error);

@@ -14,7 +14,16 @@ export interface User {
   phone: string;
   email?: string;
   name?: string;
+  passport_number?: string;
+  payment_status?: string;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface AuthVerificationResponse {
+  user?: User;
+  admin?: Admin;
+  type: 'user' | 'admin';
 }
 
 export interface AdminUser extends User {
@@ -225,7 +234,7 @@ export const authApi = {
   sendOTP: (phone: string) => api.post<{ otp?: string }>('/auth/send-otp', { phone }),
   verifyOTP: (phone: string, otp: string) => api.post<{ token: string; user: User }>('/auth/verify-otp', { phone, otp }),
   logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get<{ user?: User; admin?: Admin; type: string }>('/auth/verify-token'),
+  getProfile: () => api.get<AuthVerificationResponse>('/auth/verify-token'),
   updateProfile: (data: Partial<User>) => api.put<User>('/auth/profile', data),
 };
 

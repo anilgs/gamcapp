@@ -30,8 +30,8 @@ export default function PaymentSuccess() {
 
         // Get user details
         const userResult = await authApi.getProfile();
-        if (userResult.success && userResult.data) {
-          setUserDetails(userResult.data);
+        if (userResult.success && userResult.data?.user) {
+          setUserDetails(userResult.data.user);
         }
 
         // Get appointment details
