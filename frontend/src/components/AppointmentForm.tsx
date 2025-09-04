@@ -1,14 +1,35 @@
 import { useState } from 'react';
 
 interface AppointmentFormData {
-  name: string;
+  // Personal Information
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  nationality: string;
+  gender: string;
+  maritalStatus: string;
+  
+  // Passport Information
+  passportNumber: string;
+  confirmPassportNumber: string;
+  passportIssueDate: string;
+  passportIssuePlace: string;
+  passportExpiryDate: string;
+  
+  // Contact Information
   email: string;
   phone: string;
-  passport_number: string;
-  appointment_type: string;
-  preferred_date: string;
-  medical_center: string;
-  additional_notes: string;
+  nationalId: string;
+  
+  // Appointment Details
+  country: string;
+  city: string;
+  countryTravelingTo: string;
+  appointmentType: string;
+  medicalCenter: string;
+  appointmentDate: string;
+  visaType: string;
+  positionAppliedFor: string;
 }
 
 interface AppointmentFormProps {
@@ -21,38 +42,58 @@ interface ValidationErrors {
 }
 
 const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<AppointmentFormData>({
-    name: '',
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    nationality: '',
+    gender: '',
+    maritalStatus: '',
+    passportNumber: '',
+    confirmPassportNumber: '',
+    passportIssueDate: '',
+    passportIssuePlace: '',
+    passportExpiryDate: '',
     email: '',
     phone: userPhone || '',
-    passport_number: '',
-    appointment_type: '',
-    preferred_date: '',
-    medical_center: '',
-    additional_notes: ''
+    nationalId: '',
+    country: '',
+    city: '',
+    countryTravelingTo: '',
+    appointmentType: 'standard',
+    medicalCenter: '',
+    appointmentDate: '',
+    visaType: '',
+    positionAppliedFor: ''
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Appointment types similar to wafid.com
-  const appointmentTypes = [
-    { value: 'employment_visa', label: 'Employment Visa Medical' },
-    { value: 'family_visa', label: 'Family Visa Medical' },
-    { value: 'visit_visa', label: 'Visit Visa Medical' },
-    { value: 'student_visa', label: 'Student Visa Medical' },
-    { value: 'business_visa', label: 'Business Visa Medical' },
-    { value: 'other', label: 'Other' }
+  // Data for dropdowns
+  const countries = [
+    'India', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal', 'Philippines', 'Indonesia', 'Egypt', 'Sudan', 'Jordan'
   ];
 
-  // Medical centers
+  const gccCountries = [
+    'Saudi Arabia', 'UAE', 'Kuwait', 'Qatar', 'Oman', 'Bahrain'
+  ];
+
+  const nationalities = [
+    'Indian', 'Pakistani', 'Bangladeshi', 'Sri Lankan', 'Nepalese', 'Filipino', 'Indonesian', 'Egyptian', 'Sudanese', 'Jordanian'
+  ];
+
+  const visaTypes = [
+    'Work Visa', 'Family Visa', 'Visit Visa', 'Business Visa', 'Student Visa'
+  ];
+
+  const positions = [
+    'Engineer', 'Doctor', 'Nurse', 'Teacher', 'Accountant', 'Manager', 'Technician', 'Driver', 'Labour', 'Other'
+  ];
+
   const medicalCenters = [
-    { value: 'gamca_mumbai', label: 'GAMCA Mumbai' },
-    { value: 'gamca_delhi', label: 'GAMCA Delhi' },
-    { value: 'gamca_chennai', label: 'GAMCA Chennai' },
-    { value: 'gamca_hyderabad', label: 'GAMCA Hyderabad' },
-    { value: 'gamca_kochi', label: 'GAMCA Kochi' },
-    { value: 'gamca_bangalore', label: 'GAMCA Bangalore' }
+    'GAMCA Mumbai', 'GAMCA Delhi', 'GAMCA Chennai', 'GAMCA Hyderabad', 'GAMCA Kochi', 'GAMCA Bangalore'
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -71,92 +112,64 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
     }
   };
 
-  const validateForm = (): boolean => {
+  const validateStep = (step: number): boolean => {
     const newErrors: ValidationErrors = {};
 
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Full name is required';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters long';
-    } else if (!/^[a-zA-Z\s]+$/.test(formData.name.trim())) {
-      newErrors.name = 'Name can only contain letters and spaces';
-    }
-
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Phone validation
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^(\+91|91)?[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Please enter a valid Indian phone number';
-    }
-
-    // Passport number validation
-    if (!formData.passport_number.trim()) {
-      newErrors.passport_number = 'Passport number is required';
-    } else if (formData.passport_number.trim().length < 6) {
-      newErrors.passport_number = 'Passport number must be at least 6 characters';
-    } else if (!/^[A-Z0-9]+$/.test(formData.passport_number.trim().toUpperCase())) {
-      newErrors.passport_number = 'Passport number can only contain letters and numbers';
-    }
-
-    // Appointment type validation
-    if (!formData.appointment_type) {
-      newErrors.appointment_type = 'Please select an appointment type';
-    }
-
-    // Preferred date validation
-    if (!formData.preferred_date) {
-      newErrors.preferred_date = 'Please select a preferred date';
-    } else {
-      const selectedDate = new Date(formData.preferred_date);
-      const today = new Date();
-      const maxDate = new Date();
-      maxDate.setMonth(maxDate.getMonth() + 3); // 3 months from today
-
-      if (selectedDate < today) {
-        newErrors.preferred_date = 'Date cannot be in the past';
-      } else if (selectedDate > maxDate) {
-        newErrors.preferred_date = 'Date cannot be more than 3 months from today';
+    if (step === 1) {
+      // Appointment Location
+      if (!formData.country) newErrors.country = 'Please select country';
+      if (!formData.countryTravelingTo) newErrors.countryTravelingTo = 'Please select destination country';
+      if (!formData.appointmentType) newErrors.appointmentType = 'Please select appointment type';
+    } else if (step === 2) {
+      // Medical Center and Date
+      if (!formData.medicalCenter) newErrors.medicalCenter = 'Please select medical center';
+      if (!formData.appointmentDate) newErrors.appointmentDate = 'Please select appointment date';
+    } else if (step === 3) {
+      // Personal Information
+      if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+      if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+      if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+      if (!formData.nationality) newErrors.nationality = 'Please select nationality';
+      if (!formData.gender) newErrors.gender = 'Please select gender';
+      if (!formData.maritalStatus) newErrors.maritalStatus = 'Please select marital status';
+    } else if (step === 4) {
+      // Passport Information
+      if (!formData.passportNumber.trim()) newErrors.passportNumber = 'Passport number is required';
+      if (!formData.confirmPassportNumber.trim()) newErrors.confirmPassportNumber = 'Please confirm passport number';
+      if (formData.passportNumber !== formData.confirmPassportNumber) {
+        newErrors.confirmPassportNumber = 'Passport numbers do not match';
       }
-    }
-
-    // Medical center validation
-    if (!formData.medical_center) {
-      newErrors.medical_center = 'Please select a medical center';
+      if (!formData.passportIssueDate) newErrors.passportIssueDate = 'Passport issue date is required';
+      if (!formData.passportExpiryDate) newErrors.passportExpiryDate = 'Passport expiry date is required';
+      if (!formData.passportIssuePlace.trim()) newErrors.passportIssuePlace = 'Passport issue place is required';
+      if (!formData.visaType) newErrors.visaType = 'Please select visa type';
+    } else if (step === 5) {
+      // Contact Information
+      if (!formData.email.trim()) newErrors.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
+      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 5));
     }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(5)) return;
 
     setIsSubmitting(true);
-
     try {
-      // Format the data
-      const appointmentData: AppointmentFormData = {
-        ...formData,
-        name: formData.name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
-        passport_number: formData.passport_number.trim().toUpperCase(),
-        additional_notes: formData.additional_notes.trim()
-      };
-
-      await onSubmit(appointmentData);
+      await onSubmit(formData);
     } catch (error) {
       console.error('Form submission error:', error);
       alert('Failed to submit appointment. Please try again.');
@@ -165,242 +178,195 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
     }
   };
 
-  // Get minimum date (today)
-  const getMinDate = (): string => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  // Get maximum date (3 months from today)
-  const getMaxDate = (): string => {
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    return maxDate.toISOString().split('T')[0];
-  };
+  const renderFormField = (
+    name: keyof AppointmentFormData, 
+    label: string, 
+    type: 'text' | 'email' | 'tel' | 'date' | 'select' = 'text', 
+    options?: string[],
+    required: boolean = true
+  ) => (
+    <div className="form-group">
+      <label className="form-label">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {type === 'select' ? (
+        <select
+          name={name}
+          value={formData[name]}
+          onChange={handleInputChange}
+          className={`form-select ${errors[name] ? 'border-red-500' : ''}`}
+          disabled={isSubmitting}
+        >
+          <option value="">Select {label}</option>
+          {options?.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={formData[name]}
+          onChange={handleInputChange}
+          className={`form-input ${errors[name] ? 'border-red-500' : ''}`}
+          disabled={isSubmitting || (name === 'phone' && !!userPhone)}
+        />
+      )}
+      {errors[name] && <span className="form-error">{errors[name]}</span>}
+    </div>
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Personal Information Section */}
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Full Name */}
-          <div>
-            <label htmlFor="name" className="form-label">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className={`form-input ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="Enter your full name as per passport"
-              disabled={isSubmitting}
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="form-label">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className={`form-input ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="Enter your email address"
-              disabled={isSubmitting}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Phone Number */}
-          <div>
-            <label htmlFor="phone" className="form-label">
-              Phone Number *
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              className={`form-input ${errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="+91 9876543210"
-              disabled={isSubmitting || !!userPhone} // Disable if phone is pre-filled from auth
-            />
-            {errors.phone && (
-              <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-            )}
-            {userPhone && (
-              <p className="mt-1 text-sm text-gray-500">Phone number verified via OTP</p>
-            )}
-          </div>
-
-          {/* Passport Number */}
-          <div>
-            <label htmlFor="passport_number" className="form-label">
-              Passport Number *
-            </label>
-            <input
-              type="text"
-              id="passport_number"
-              name="passport_number"
-              value={formData.passport_number}
-              onChange={handleInputChange}
-              className={`form-input ${errors.passport_number ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="Enter passport number"
-              disabled={isSubmitting}
-              style={{ textTransform: 'uppercase' }}
-            />
-            {errors.passport_number && (
-              <p className="mt-1 text-sm text-red-600">{errors.passport_number}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Appointment Details Section */}
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Appointment Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Appointment Type */}
-          <div>
-            <label htmlFor="appointment_type" className="form-label">
-              Appointment Type *
-            </label>
-            <select
-              id="appointment_type"
-              name="appointment_type"
-              value={formData.appointment_type}
-              onChange={handleInputChange}
-              className={`form-input ${errors.appointment_type ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              disabled={isSubmitting}
-            >
-              <option value="">Select appointment type</option>
-              {appointmentTypes.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-            {errors.appointment_type && (
-              <p className="mt-1 text-sm text-red-600">{errors.appointment_type}</p>
-            )}
-          </div>
-
-          {/* Preferred Date */}
-          <div>
-            <label htmlFor="preferred_date" className="form-label">
-              Preferred Date *
-            </label>
-            <input
-              type="date"
-              id="preferred_date"
-              name="preferred_date"
-              value={formData.preferred_date}
-              onChange={handleInputChange}
-              min={getMinDate()}
-              max={getMaxDate()}
-              className={`form-input ${errors.preferred_date ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              disabled={isSubmitting}
-            />
-            {errors.preferred_date && (
-              <p className="mt-1 text-sm text-red-600">{errors.preferred_date}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              Appointments available up to 3 months in advance
-            </p>
-          </div>
-
-          {/* Medical Center */}
-          <div className="md:col-span-2">
-            <label htmlFor="medical_center" className="form-label">
-              Preferred Medical Center *
-            </label>
-            <select
-              id="medical_center"
-              name="medical_center"
-              value={formData.medical_center}
-              onChange={handleInputChange}
-              className={`form-input ${errors.medical_center ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-              disabled={isSubmitting}
-            >
-              <option value="">Select medical center</option>
-              {medicalCenters.map(center => (
-                <option key={center.value} value={center.value}>
-                  {center.label}
-                </option>
-              ))}
-            </select>
-            {errors.medical_center && (
-              <p className="mt-1 text-sm text-red-600">{errors.medical_center}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Notes */}
-      <div>
-        <label htmlFor="additional_notes" className="form-label">
-          Additional Notes (Optional)
-        </label>
-        <textarea
-          id="additional_notes"
-          name="additional_notes"
-          rows={4}
-          value={formData.additional_notes}
-          onChange={handleInputChange}
-          className="form-input"
-          placeholder="Any additional information or special requirements..."
-          disabled={isSubmitting}
-        />
-      </div>
-
-      {/* Terms and Conditions */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium text-gray-900 mb-2">Important Information:</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Please arrive 30 minutes before your scheduled appointment</li>
-          <li>• Bring all required documents including passport and photographs</li>
-          <li>• Fasting for 8-12 hours is required for blood tests</li>
-          <li>• Appointment fees are non-refundable once payment is completed</li>
-          <li>• Results will be available within 2-3 working days</li>
-        </ul>
-      </div>
-
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`btn-primary px-8 py-3 text-lg ${
-            isSubmitting 
-              ? 'opacity-50 cursor-not-allowed' 
-              : 'hover:bg-primary-700'
-          }`}
-        >
-          {isSubmitting ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Processing...
+    <div className="appointment-form-container">
+      {/* Progress Steps */}
+      <div className="steps-indicator">
+        {[1, 2, 3, 4, 5].map(step => (
+          <div key={step} className={`step ${currentStep >= step ? 'active' : ''}`}>
+            <div className="step-number">{step}</div>
+            <div className="step-label">
+              {step === 1 && 'Location'}
+              {step === 2 && 'Center & Date'}
+              {step === 3 && 'Personal Info'}
+              {step === 4 && 'Passport Info'}
+              {step === 5 && 'Contact Info'}
             </div>
-          ) : (
-            'Proceed to Payment'
-          )}
-        </button>
+          </div>
+        ))}
       </div>
-    </form>
+
+      {/* Form Content */}
+      <div className="form-content">
+        {currentStep === 1 && (
+          <div className="form-section">
+            <h2 className="section-title">Appointment Information</h2>
+            <div className="form-grid">
+              {renderFormField('country', 'Country', 'select', countries)}
+              {renderFormField('countryTravelingTo', 'Country Traveling To', 'select', gccCountries)}
+              
+              <div className="form-group col-span-2">
+                <label className="form-label">Appointment Type <span className="text-red-500">*</span></label>
+                <div className="appointment-type-cards">
+                  <div 
+                    className={`appointment-card ${formData.appointmentType === 'standard' ? 'selected' : ''}`}
+                    onClick={() => setFormData(prev => ({...prev, appointmentType: 'standard'}))}
+                  >
+                    <div className="card-icon">🏥</div>
+                    <div className="card-content">
+                      <h3>Standard Appointment</h3>
+                      <p>A basic appointment scheduled based on availability, without additional customization.</p>
+                      <div className="card-price">$10</div>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`appointment-card ${formData.appointmentType === 'premium' ? 'selected' : ''}`}
+                    onClick={() => setFormData(prev => ({...prev, appointmentType: 'premium'}))}
+                  >
+                    <div className="card-icon">⭐</div>
+                    <div className="card-content">
+                      <h3>Premium Appointment</h3>
+                      <p>A flexible booking that gives you full control to choose your preferred medical center and date.</p>
+                      <div className="card-price">$25</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 2 && (
+          <div className="form-section">
+            <h2 className="section-title">Choose Medical Center</h2>
+            <div className="form-grid">
+              {renderFormField('medicalCenter', 'Medical Center', 'select', medicalCenters)}
+              {renderFormField('appointmentDate', 'Appointment Date', 'date')}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 3 && (
+          <div className="form-section">
+            <h2 className="section-title">Candidate Information</h2>
+            <div className="form-grid">
+              {renderFormField('firstName', 'First Name')}
+              {renderFormField('lastName', 'Last Name')}
+              {renderFormField('dateOfBirth', 'Date of Birth', 'date')}
+              {renderFormField('nationality', 'Nationality', 'select', nationalities)}
+              {renderFormField('gender', 'Gender', 'select', ['Male', 'Female'])}
+              {renderFormField('maritalStatus', 'Marital Status', 'select', ['Single', 'Married'])}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && (
+          <div className="form-section">
+            <h2 className="section-title">Passport Information</h2>
+            <div className="form-grid">
+              {renderFormField('passportNumber', 'Passport Number')}
+              {renderFormField('confirmPassportNumber', 'Confirm Passport Number')}
+              {renderFormField('passportIssueDate', 'Passport Issue Date', 'date')}
+              {renderFormField('passportIssuePlace', 'Passport Issue Place')}
+              {renderFormField('passportExpiryDate', 'Passport Expiry Date', 'date')}
+              {renderFormField('visaType', 'Visa Type', 'select', visaTypes)}
+              {renderFormField('positionAppliedFor', 'Position Applied For', 'select', positions, false)}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 5 && (
+          <div className="form-section">
+            <h2 className="section-title">Contact Information</h2>
+            <div className="form-grid">
+              {renderFormField('email', 'Email Address', 'email')}
+              {renderFormField('phone', 'Phone Number', 'tel')}
+              {renderFormField('nationalId', 'National ID', 'text', undefined, false)}
+            </div>
+            
+            <div className="terms-section">
+              <label className="checkbox-label">
+                <input type="checkbox" required />
+                <span>I confirm that the information given in this form is true, complete, and accurate</span>
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="form-navigation">
+        {currentStep > 1 && (
+          <button 
+            type="button" 
+            onClick={prevStep}
+            className="btn-secondary"
+            disabled={isSubmitting}
+          >
+            Previous
+          </button>
+        )}
+        
+        {currentStep < 5 ? (
+          <button 
+            type="button" 
+            onClick={nextStep}
+            className="btn-primary ml-auto"
+            disabled={isSubmitting}
+          >
+            Next
+          </button>
+        ) : (
+          <button 
+            type="button" 
+            onClick={handleSubmit}
+            className="btn-primary ml-auto"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : 'Submit & Continue to Payment'}
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 
