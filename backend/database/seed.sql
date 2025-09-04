@@ -3,9 +3,9 @@
 
 -- Insert default admin user
 -- Password: 'admin123' (change this in production!)
--- Hash generated with: password_hash('admin123', PASSWORD_BCRYPT)
+-- Hash generated with: password_hash('admin123', PASSWORD_ARGON2ID, ['memory_cost' => 1024, 'time_cost' => 2, 'threads' => 2])
 INSERT INTO admins (username, password_hash, email, is_active) VALUES 
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@gamca-wafid.com', TRUE);
+('admin', '$argon2id$v=19$m=1024,t=2,p=2$WTVBQjYwS3FvcHNyY1JzUA$+3vzlfS0Vilea8C2BV/4ugt3VdHjbOUbCfLgj7xSp0M', 'admin@gamca-wafid.com', TRUE);
 
 -- Insert sample OTP cleanup job (this will be managed by the application)
 -- Note: OTP tokens are created dynamically by the application

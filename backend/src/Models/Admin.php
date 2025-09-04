@@ -30,7 +30,11 @@ class Admin {
             throw new \Exception('Username and password are required');
         }
 
-        $password_hash = password_hash($password, PASSWORD_ARGON2ID, ['cost' => 12]);
+        $password_hash = password_hash($password, PASSWORD_ARGON2ID, [
+            'memory_cost' => 1024,
+            'time_cost' => 2, 
+            'threads' => 2
+        ]);
 
         try {
             $stmt = Database::query(
@@ -110,7 +114,11 @@ class Admin {
             throw new \Exception('New password is required');
         }
 
-        $password_hash = password_hash($newPassword, PASSWORD_ARGON2ID, ['cost' => 12]);
+        $password_hash = password_hash($newPassword, PASSWORD_ARGON2ID, [
+            'memory_cost' => 1024,
+            'time_cost' => 2,
+            'threads' => 2
+        ]);
 
         $stmt = Database::query(
             'UPDATE admins SET password_hash = ? WHERE id = ? RETURNING id, username, created_at, updated_at',
