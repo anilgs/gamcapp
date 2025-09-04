@@ -60,6 +60,8 @@ $router->post('/auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
 $router->post('/auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
 $router->post('/auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
 $router->get('/auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
+// Legacy endpoint - redirect to verify-token
+$router->get('/auth/profile', 'Gamcapp\\Controllers\\AuthController@verifyToken');
 $router->post('/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
 
 $router->post('/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
