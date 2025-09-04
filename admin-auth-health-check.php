@@ -19,6 +19,10 @@ try {
     $result['debug_info']['current_dir'] = __DIR__;
     $result['debug_info']['server_name'] = $_SERVER['HTTP_HOST'] ?? 'unknown';
     
+    // Get Hostinger user ID from environment or default
+    $hostingerUserId = $_ENV['HOSTINGER_USER_ID'] ?? getenv('HOSTINGER_USER_ID') ?? '605445218';
+    $result['debug_info']['hostinger_user_id'] = $hostingerUserId;
+    
     // Try to find autoloader
     $autoloaderPaths = [
         __DIR__ . '/backend/vendor/autoload.php',           // Local development (from root)
@@ -27,7 +31,7 @@ try {
         __DIR__ . '/../../backend/vendor/autoload.php',     // From public_html -> backend
         dirname(__DIR__) . '/vendor/autoload.php',          // From backend/public -> backend/vendor
         dirname(dirname(__DIR__)) . '/backend/vendor/autoload.php', // From nested structure
-        '/home/' . ($_SERVER['HTTP_HOST'] ?? '') . '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Hostinger structure
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Hostinger structure
     ];
     
     $autoloaderFound = false;
@@ -77,7 +81,7 @@ try {
         __DIR__ . '/../../backend/.env',                     // From public_html -> backend
         dirname(__DIR__) . '/.env',                          // From backend/public -> backend/.env
         dirname(dirname(__DIR__)) . '/backend/.env',         // From nested structure
-        '/home/' . ($_SERVER['HTTP_HOST'] ?? '') . '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Hostinger
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Hostinger
     ];
     
     $envFound = false;

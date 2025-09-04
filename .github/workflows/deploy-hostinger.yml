@@ -32,6 +32,7 @@ env:
   RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
   RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
   DOMAIN: ${{ vars.DOMAIN }}
+  HOSTINGER_USER_ID: ${{ vars.HOSTINGER_USER_ID }}
 
 jobs:
   test:

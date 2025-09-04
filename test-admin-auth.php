@@ -33,6 +33,9 @@ $results = [];
 
 // Initialize autoloader
 try {
+    // Get Hostinger user ID from environment or default
+    $hostingerUserId = $_ENV['HOSTINGER_USER_ID'] ?? getenv('HOSTINGER_USER_ID') ?? '605445218';
+    
     // Try different autoloader paths for various deployment structures
     $autoloaderPaths = [
         'backend/vendor/autoload.php',           // Local development
@@ -40,7 +43,7 @@ try {
         '../backend/vendor/autoload.php',        // Public HTML -> Backend
         '../../backend/vendor/autoload.php',     // Nested public
         dirname(__DIR__) . '/backend/vendor/autoload.php', // Relative from current
-        '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Production structure
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Hostinger structure
     ];
     
     $autoloaderFound = false;
@@ -80,7 +83,7 @@ try {
         '../backend/.env',                       // Public HTML -> Backend
         '../../backend/.env',                    // Nested public
         dirname(__DIR__) . '/backend/.env',      // Relative from current
-        '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Production structure
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Hostinger structure
     ];
     
     $envFound = false;
