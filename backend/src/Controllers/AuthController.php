@@ -267,21 +267,55 @@ class AuthController {
         try {
             $decoded = Auth::requireAuth();
 
-            if ($decoded['type'] === 'user') {
-                $user = User::findById($decoded['id']);
-                if (!$user) {
-                    http_response_code(401);
-                    echo json_encode(['success' => false, 'error' => 'User not found']);
-                    return;
-                }
+            // Check bypass mode
+            $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
 
-                echo json_encode([
-                    'success' => true,
-                    'data' => [
-                        'user' => $user->toArray(),
-                        'type' => 'user'
-                    ]
-                ]);
+            if ($decoded['type'] === 'user') {
+                if ($bypassPhoneVerification) {
+                    // Create mock user for bypass mode
+                    $user = (object) [
+                        'id' => $decoded['id'],
+                        'name' => 'Test User',
+                        'email' => 'test@example.com',
+                        'phone' => $decoded['phone'],
+                        'passport_number' => 'TEST123456',
+                        'payment_status' => 'pending',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'data' => [
+                            'user' => [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'email' => $user->email,
+                                'phone' => $user->phone,
+                                'passport_number' => $user->passport_number,
+                                'payment_status' => $user->payment_status,
+                                'created_at' => $user->created_at,
+                                'updated_at' => $user->updated_at
+                            ],
+                            'type' => 'user'
+                        ]
+                    ]);
+                } else {
+                    $user = User::findById($decoded['id']);
+                    if (!$user) {
+                        http_response_code(401);
+                        echo json_encode(['success' => false, 'error' => 'User not found']);
+                        return;
+                    }
+
+                    echo json_encode([
+                        'success' => true,
+                        'data' => [
+                            'user' => $user->toArray(),
+                            'type' => 'user'
+                        ]
+                    ]);
+                }
             } elseif ($decoded['type'] === 'admin') {
                 $admin = Admin::findById($decoded['id']);
                 if (!$admin) {

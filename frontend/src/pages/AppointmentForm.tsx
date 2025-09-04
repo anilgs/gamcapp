@@ -28,9 +28,9 @@ export default function AppointmentFormPage() {
       // Verify token and get user info
       authApi.getProfile()
         .then(result => {
-          if (result.success && result.data) {
+          if (result.success && result.data && result.data.type === 'user' && result.data.user) {
             setIsAuthenticated(true);
-            setUserPhone(result.data.phone);
+            setUserPhone(result.data.user.phone);
           } else {
             localStorage.removeItem('token');
             navigate('/auth/login?redirect=/appointment-form');

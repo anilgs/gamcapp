@@ -225,7 +225,7 @@ export const authApi = {
   sendOTP: (phone: string) => api.post<{ otp?: string }>('/auth/send-otp', { phone }),
   verifyOTP: (phone: string, otp: string) => api.post<{ token: string; user: User }>('/auth/verify-otp', { phone, otp }),
   logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get<User>('/auth/profile'),
+  getProfile: () => api.get<{ user?: User; admin?: Admin; type: string }>('/auth/verify-token'),
   updateProfile: (data: Partial<User>) => api.put<User>('/auth/profile', data),
 };
 
