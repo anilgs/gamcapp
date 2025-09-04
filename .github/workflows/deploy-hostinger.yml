@@ -172,6 +172,7 @@ jobs:
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
              cp test-admin-auth.php deployment/frontend/
+             cp admin-auth-health-check.php deployment/frontend/
  
             # Create environment file for development
            echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -401,6 +402,7 @@ jobs:
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
              cp test-admin-auth.php deployment/frontend/
+             cp admin-auth-health-check.php deployment/frontend/
            # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
@@ -906,17 +908,30 @@ jobs:
            # Test admin authentication
            echo "=== Admin Authentication Test ==="
            echo "Testing admin login functionality..."
-           ADMIN_AUTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/test-admin-auth.php?api=1" 2>&1 || echo "curl_failed")
-           if [ "$ADMIN_AUTH_RESPONSE" != "curl_failed" ]; then
-             if echo "$ADMIN_AUTH_RESPONSE" | grep -q '"success":true'; then
-               echo "✅ Admin authentication test passed"
+           
+           # Try the streamlined health check first
+           echo "Testing with streamlined health check..."
+           HEALTH_CHECK_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/admin-auth-health-check.php" 2>&1 || echo "curl_failed")
+           if [ "$HEALTH_CHECK_RESPONSE" != "curl_failed" ]; then
+             if echo "$HEALTH_CHECK_RESPONSE" | grep -q '"success":true'; then
+               echo "✅ Admin authentication health check passed"
                echo "Admin login functionality verified"
              else
-               echo "❌ Admin authentication test failed"
-               echo "Response: ${ADMIN_AUTH_RESPONSE:0:300}"
+               echo "❌ Admin authentication health check failed"
+               echo "Health check response: ${HEALTH_CHECK_RESPONSE:0:500}"
+               
+               # Try the full test as fallback
+               echo "Trying full admin auth test as fallback..."
+               ADMIN_AUTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/test-admin-auth.php?api=1" 2>&1 || echo "curl_failed")
+               if [ "$ADMIN_AUTH_RESPONSE" != "curl_failed" ] && echo "$ADMIN_AUTH_RESPONSE" | grep -q '"success":true'; then
+                 echo "✅ Full admin authentication test passed"
+               else
+                 echo "❌ Both admin authentication tests failed"
+                 echo "Full test response: ${ADMIN_AUTH_RESPONSE:0:300}"
+               fi
              fi
            else
-             echo "❌ Could not reach admin authentication test"
+             echo "❌ Could not reach admin authentication health check"
            fi
            echo ""
            

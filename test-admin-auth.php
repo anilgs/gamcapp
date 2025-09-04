@@ -33,18 +33,34 @@ $results = [];
 
 // Initialize autoloader
 try {
-    if (file_exists('backend/vendor/autoload.php')) {
-        require_once 'backend/vendor/autoload.php';
-    } elseif (file_exists('vendor/autoload.php')) {
-        require_once 'vendor/autoload.php';
-    } else {
-        throw new Exception('Composer autoloader not found');
+    // Try different autoloader paths for various deployment structures
+    $autoloaderPaths = [
+        'backend/vendor/autoload.php',           // Local development
+        'vendor/autoload.php',                   // Root level
+        '../backend/vendor/autoload.php',        // Public HTML -> Backend
+        '../../backend/vendor/autoload.php',     // Nested public
+        dirname(__DIR__) . '/backend/vendor/autoload.php', // Relative from current
+        '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Production structure
+    ];
+    
+    $autoloaderFound = false;
+    foreach ($autoloaderPaths as $path) {
+        if (file_exists($path)) {
+            require_once $path;
+            $autoloaderFound = true;
+            break;
+        }
+    }
+    
+    if (!$autoloaderFound) {
+        throw new Exception('Composer autoloader not found in any expected location');
     }
 } catch (Exception $e) {
     if ($isApiMode) {
         echo json_encode([
             'success' => false,
             'error' => 'Autoloader error: ' . $e->getMessage(),
+            'searched_paths' => $autoloaderPaths ?? [],
             'timestamp' => date('Y-m-d H:i:s')
         ]);
     } else {
@@ -58,14 +74,29 @@ use Gamcapp\Models\Admin;
 try {
 
     // Load environment variables
-    if (file_exists('backend/.env')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/backend');
-    } elseif (file_exists('.env')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-    } else {
-        throw new Exception('Environment file not found');
+    $envPaths = [
+        'backend/.env',                          // Local development
+        '.env',                                  // Root level
+        '../backend/.env',                       // Public HTML -> Backend
+        '../../backend/.env',                    // Nested public
+        dirname(__DIR__) . '/backend/.env',      // Relative from current
+        '/domains/' . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Production structure
+    ];
+    
+    $envFound = false;
+    foreach ($envPaths as $envPath) {
+        if (file_exists($envPath)) {
+            $envDir = dirname($envPath);
+            $dotenv = Dotenv\Dotenv::createImmutable($envDir);
+            $dotenv->load();
+            $envFound = true;
+            break;
+        }
     }
-    $dotenv->load();
+    
+    if (!$envFound) {
+        throw new Exception('Environment file not found in any expected location');
+    }
 
     if (!$isApiMode) {
         echo "Testing Admin Authentication\n";
