@@ -171,6 +171,7 @@ jobs:
             cp fix-permissions.php deployment/frontend/
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
+             cp test-admin-auth.php deployment/frontend/
  
             # Create environment file for development
            echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
@@ -399,6 +400,7 @@ jobs:
             cp fix-permissions.php deployment/frontend/
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
+             cp test-admin-auth.php deployment/frontend/
            # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
@@ -896,17 +898,34 @@ jobs:
             echo "Frontend response (first 200 chars): ${FRONTEND_RESPONSE:0:200}"
           fi
           
-          echo ""
-          echo "=== Health Check Summary ==="
-          echo "✅ All health checks completed (some may have failed - check details above)"
-          echo "🔍 If issues persist, check the detailed responses above for debugging"
-          
-          # Test static asset serving
-          echo "Testing static asset serving..."
-          if curl -f -s "${{ env.FRONTEND_URL }}/assets/" -o /dev/null 2>/dev/null; then
-            echo "✅ Static assets test passed"
-          else
-            echo "⚠️  Static assets test inconclusive"
-          fi
-          
-          echo "Health check summary completed"
+           echo ""
+           echo "=== Health Check Summary ==="
+           echo "✅ All health checks completed (some may have failed - check details above)"
+           echo "🔍 If issues persist, check the detailed responses above for debugging"
+           
+           # Test admin authentication
+           echo "=== Admin Authentication Test ==="
+           echo "Testing admin login functionality..."
+           ADMIN_AUTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/test-admin-auth.php?api=1" 2>&1 || echo "curl_failed")
+           if [ "$ADMIN_AUTH_RESPONSE" != "curl_failed" ]; then
+             if echo "$ADMIN_AUTH_RESPONSE" | grep -q '"success":true'; then
+               echo "✅ Admin authentication test passed"
+               echo "Admin login functionality verified"
+             else
+               echo "❌ Admin authentication test failed"
+               echo "Response: ${ADMIN_AUTH_RESPONSE:0:300}"
+             fi
+           else
+             echo "❌ Could not reach admin authentication test"
+           fi
+           echo ""
+           
+           # Test static asset serving
+           echo "Testing static asset serving..."
+           if curl -f -s "${{ env.FRONTEND_URL }}/assets/" -o /dev/null 2>/dev/null; then
+             echo "✅ Static assets test passed"
+           else
+             echo "⚠️  Static assets test inconclusive"
+           fi
+           
+           echo "Health check summary completed"
