@@ -198,6 +198,8 @@ export const authApi = {
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get<AuthVerificationResponse>('/auth/verify-token'),
   updateProfile: (data: Partial<User>) => api.put<User>('/auth/profile', data),
+  changePassword: (currentPassword: string, newPassword: string) => 
+    api.post<{ message: string }>('/auth/change-password', { currentPassword, newPassword }),
 };
 
 // Admin Auth API methods

@@ -71,6 +71,9 @@ export const Home: React.FC = () => {
                   <Link to="/user/dashboard" className="nav-link">
                     Dashboard
                   </Link>
+                  <Link to="/profile" className="nav-link">
+                    Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200"

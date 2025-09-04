@@ -392,4 +392,90 @@ class AuthController {
             'message' => 'Logged out successfully'
         ]);
     }
+
+    public function changePassword(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $currentPassword = $input['currentPassword'] ?? null;
+            $newPassword = $input['newPassword'] ?? null;
+
+            if (!$currentPassword || !$newPassword) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Current password and new password are required']);
+                return;
+            }
+
+            // Validate new password strength
+            if (strlen($newPassword) < 6) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'New password must be at least 6 characters long']);
+                return;
+            }
+
+            // Get token from Authorization header
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+            if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'No token provided']);
+                return;
+            }
+
+            $token = substr($authHeader, 7);
+            $payload = Auth::verifyToken($token);
+
+            if (!$payload || $payload['type'] !== 'user') {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'Invalid token']);
+                return;
+            }
+
+            // Check if bypass mode is enabled
+            $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            
+            if ($bypassPhoneVerification) {
+                // In bypass mode, accept any current password and update with new password
+                error_log("Password change bypassed for user ID {$payload['id']}");
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Password changed successfully (bypass mode)'
+                ]);
+                return;
+            }
+
+            // In production, verify current password and update to new password
+            $user = User::findById($payload['id']);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'User not found']);
+                return;
+            }
+
+            // Verify current password
+            if (!$user->verifyPassword($currentPassword)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Current password is incorrect']);
+                return;
+            }
+
+            // Update to new password
+            $user->updatePassword($newPassword);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Password changed successfully'
+            ]);
+
+        } catch (\Exception $error) {
+            error_log('Change password error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+        }
+    }
 }

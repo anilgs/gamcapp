@@ -6,6 +6,7 @@ import AppointmentFormPage from '@/pages/AppointmentForm'
 import Payment from '@/pages/Payment'
 import PaymentSuccess from '@/pages/PaymentSuccess'
 import { UserDashboard } from '@/pages/UserDashboard'
+import UserProfile from '@/pages/UserProfile'
 import { AdminLogin } from '@/pages/AdminLogin'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import '@/styles/globals.css'
@@ -21,6 +22,7 @@ function App() {
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>

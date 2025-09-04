@@ -141,6 +141,12 @@ export default function AppointmentFormPage() {
               <span className="text-sm text-gray-600">
                 Logged in as: <span className="font-medium">{userPhone}</span>
               </span>
+              <Link
+                to="/profile"
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Profile
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-sm text-blue-600 hover:text-blue-500 font-medium"

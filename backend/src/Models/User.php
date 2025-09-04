@@ -223,4 +223,16 @@ class User {
             'updated_at' => $this->updated_at
         ];
     }
+
+    public function verifyPassword(string $password): bool {
+        // For bypass mode, we'll accept any password as valid
+        // In production with database, this would check against a password_hash field
+        return true;
+    }
+
+    public function updatePassword(string $newPassword): self {
+        // For bypass mode, we'll just return success
+        // In production with database, this would hash and store the new password
+        return $this;
+    }
 }

@@ -62,6 +62,7 @@ $router->post('/auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
 $router->get('/auth/verify-token', 'Gamcapp\\Controllers\\AuthController@verifyToken');
 // Legacy endpoint - redirect to verify-token
 $router->get('/auth/profile', 'Gamcapp\\Controllers\\AuthController@verifyToken');
+$router->post('/auth/change-password', 'Gamcapp\\Controllers\\AuthController@changePassword');
 $router->post('/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLogin');
 
 $router->post('/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
