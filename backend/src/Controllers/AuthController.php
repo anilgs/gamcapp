@@ -226,6 +226,45 @@ class AuthController {
                 return;
             }
 
+            // Check if admin authentication bypass is enabled
+            $bypassAdminAuth = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            
+            if ($bypassAdminAuth) {
+                // Bypass mode for development - accept admin/admin123
+                if ($username === 'admin' && $password === 'admin123') {
+                    error_log("Admin authentication bypassed for {$username}");
+                    
+                    // Mock admin data for bypass mode
+                    $adminData = [
+                        'id' => 1,
+                        'username' => 'admin',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    // Generate JWT token
+                    $token = Auth::generateToken([
+                        'id' => $adminData['id'],
+                        'username' => $adminData['username'],
+                        'type' => 'admin'
+                    ]);
+
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Login successful (bypass mode)',
+                        'data' => [
+                            'token' => $token,
+                            'admin' => $adminData
+                        ]
+                    ]);
+                    return;
+                } else {
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'error' => 'Invalid credentials (bypass mode)']);
+                    return;
+                }
+            }
+
             $admin = Admin::authenticate($username, $password);
 
             if (!$admin) {
