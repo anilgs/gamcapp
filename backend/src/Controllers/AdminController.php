@@ -17,6 +17,73 @@ class AdminController {
         try {
             Auth::requireAdminAuth();
 
+            // Check if database bypass mode is enabled
+            $bypassDatabase = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            
+            if ($bypassDatabase) {
+                error_log("Admin users endpoint bypassed - returning mock data");
+                
+                // Mock data for bypass mode
+                $mockUsers = [
+                    [
+                        'id' => 1,
+                        'name' => 'John Doe',
+                        'email' => 'john@example.com',
+                        'phone' => '+1234567890',
+                        'passport_number' => 'A12345678',
+                        'payment_status' => 'completed',
+                        'appointment_details' => json_encode([
+                            'appointment_type' => 'standard',
+                            'medical_center' => 'GAMCA Mumbai',
+                            'appointment_date' => '2025-09-15'
+                        ]),
+                        'created_at' => '2025-09-01 10:00:00',
+                        'updated_at' => '2025-09-01 10:00:00'
+                    ],
+                    [
+                        'id' => 2,
+                        'name' => 'Jane Smith',
+                        'email' => 'jane@example.com',
+                        'phone' => '+1234567891',
+                        'passport_number' => 'B87654321',
+                        'payment_status' => 'pending',
+                        'appointment_details' => json_encode([
+                            'appointment_type' => 'premium',
+                            'medical_center' => 'GAMCA Delhi',
+                            'appointment_date' => '2025-09-20'
+                        ]),
+                        'created_at' => '2025-09-02 11:00:00',
+                        'updated_at' => '2025-09-02 11:00:00'
+                    ]
+                ];
+
+                $mockPagination = [
+                    'current_page' => 1,
+                    'total_pages' => 1,
+                    'total_records' => 2,
+                    'per_page' => 20,
+                    'has_prev' => false,
+                    'has_next' => false
+                ];
+
+                $mockStatistics = [
+                    'total_users' => 2,
+                    'paid_users' => 1,
+                    'pending_users' => 1,
+                    'total_revenue' => 1000
+                ];
+
+                echo json_encode([
+                    'success' => true,
+                    'data' => [
+                        'users' => $mockUsers,
+                        'pagination' => $mockPagination,
+                        'statistics' => $mockStatistics
+                    ]
+                ]);
+                return;
+            }
+
             $page = (int)($_GET['page'] ?? 1);
             $limit = (int)($_GET['limit'] ?? 10);
             $filters = [

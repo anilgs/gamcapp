@@ -126,12 +126,13 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    tokenKey: string = 'token'
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    // Get token from localStorage
-    const token = localStorage.getItem('token');
+    // Get token from localStorage using the specified key
+    const token = localStorage.getItem(tokenKey);
     
     const defaultHeaders: HeadersInit = {
       'Content-Type': 'application/json',
@@ -164,65 +165,26 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, tokenKey: string = 'token'): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET' }, tokenKey);
   }
 
-  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: any, tokenKey: string = 'token'): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    });
+    }, tokenKey);
   }
 
-  async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: any, tokenKey: string = 'token'): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
-    });
+    }, tokenKey);
   }
 
-  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
-  }
-
-  // File upload method
-  async uploadFile<T>(endpoint: string, file: File, additionalData?: Record<string, string>): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const token = localStorage.getItem('token');
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    if (additionalData) {
-      Object.entries(additionalData).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
-    }
-
-    const headers: HeadersInit = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('File upload failed:', error);
-      throw error;
-    }
+  async delete<T>(endpoint: string, tokenKey: string = 'token'): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' }, tokenKey);
   }
 }
 
@@ -362,7 +324,7 @@ export const adminApi = {
       users: AdminUser[];
       pagination: Pagination;
       statistics: Statistics;
-    }>(`/admin/users${queryParams}`);
+    }>(`/admin/users${queryParams}`, 'adminToken');
   },
   uploadSlip: (formData: FormData) => {
     const token = localStorage.getItem('adminToken');
