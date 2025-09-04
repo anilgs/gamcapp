@@ -73,10 +73,10 @@ export default function AppointmentFormPage() {
     }
   };
 
-  const handleFormSubmit = async (formData: AppointmentFormData) => {
+  const handleFormSubmit = async (data: AppointmentFormData) => {
     try {
       const result = await appointmentApi.create({
-        appointment_date: formData.appointmentDate,
+        appointment_date: data.appointmentDate,
         appointment_time: '09:00', // Default time, can be enhanced
         wafid_booking_id: undefined // Will be set by external booking if needed
       });

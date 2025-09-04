@@ -5,14 +5,35 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import AppointmentForm from '../components/AppointmentForm';
 
 interface AppointmentFormData {
-  name: string;
+  // Personal Information
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  nationality: string;
+  gender: string;
+  maritalStatus: string;
+  
+  // Passport Information
+  passportNumber: string;
+  confirmPassportNumber: string;
+  passportIssueDate: string;
+  passportIssuePlace: string;
+  passportExpiryDate: string;
+  
+  // Contact Information
   email: string;
   phone: string;
-  passport_number: string;
-  appointment_type: string;
-  preferred_date: string;
-  medical_center: string;
-  additional_notes: string;
+  nationalId: string;
+  
+  // Appointment Details
+  country: string;
+  city: string;
+  countryTravelingTo: string;
+  appointmentType: string;
+  medicalCenter: string;
+  appointmentDate: string;
+  visaType: string;
+  positionAppliedFor: string;
 }
 
 export default function BookAppointment() {
@@ -47,10 +68,10 @@ export default function BookAppointment() {
     }
   }, [navigate]);
 
-  const handleFormSubmit = async (formData: AppointmentFormData) => {
+  const handleFormSubmit = async (data: AppointmentFormData) => {
     try {
       const result = await appointmentApi.create({
-        appointment_date: formData.preferred_date,
+        appointment_date: data.appointmentDate,
         appointment_time: '09:00', // Default time, can be enhanced
         wafid_booking_id: undefined // Will be set by external booking if needed
       });
