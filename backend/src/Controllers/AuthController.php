@@ -121,30 +121,68 @@ class AuthController {
 
             // Check bypass mode
             $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
-            $isValidOtp = $bypassPhoneVerification ? ($otp === '123456') : Auth::verifyOTP($formattedPhone, $otp);
+            
+            error_log("Bypass mode: " . ($bypassPhoneVerification ? 'true' : 'false'));
+            error_log("OTP provided: " . $otp);
+            
+            if ($bypassPhoneVerification) {
+                $isValidOtp = ($otp === '123456');
+                error_log("Bypass OTP validation result: " . ($isValidOtp ? 'valid' : 'invalid'));
+            } else {
+                $isValidOtp = Auth::verifyOTP($formattedPhone, $otp);
+            }
 
             if (!$isValidOtp) {
+                error_log("OTP validation failed. Bypass: " . ($bypassPhoneVerification ? 'true' : 'false') . ", OTP: " . $otp);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Invalid or expired OTP']);
                 return;
             }
 
             // Find or create user
-            $user = User::findByPhone($formattedPhone);
-            
-            if (!$user && $name && $email && $passportNumber) {
-                // Create new user
-                $userData = [
-                    'name' => $name,
-                    'email' => $email,
+            if ($bypassPhoneVerification) {
+                // In bypass mode, create a mock user for testing
+                $user = (object) [
+                    'id' => 1,
+                    'name' => $name ?? 'Test User',
+                    'email' => $email ?? 'test@example.com',
                     'phone' => $formattedPhone,
-                    'passport_number' => $passportNumber
+                    'passport_number' => $passportNumber ?? 'TEST123456',
+                    'payment_status' => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
                 ];
-                $user = User::create($userData);
-            } elseif (!$user) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'User not found. Please provide registration details.']);
-                return;
+                
+                // Add toArray method behavior
+                $user->toArray = function() use ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'passport_number' => $user->passport_number,
+                        'payment_status' => $user->payment_status,
+                        'created_at' => $user->created_at,
+                        'updated_at' => $user->updated_at
+                    ];
+                };
+            } else {
+                $user = User::findByPhone($formattedPhone);
+                
+                if (!$user && $name && $email && $passportNumber) {
+                    // Create new user
+                    $userData = [
+                        'name' => $name,
+                        'email' => $email,
+                        'phone' => $formattedPhone,
+                        'passport_number' => $passportNumber
+                    ];
+                    $user = User::create($userData);
+                } elseif (!$user) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'User not found. Please provide registration details.']);
+                    return;
+                }
             }
 
             // Generate JWT token
@@ -159,7 +197,7 @@ class AuthController {
                 'message' => 'OTP verified successfully',
                 'data' => [
                     'token' => $token,
-                    'user' => $user->toArray()
+                    'user' => $bypassPhoneVerification ? call_user_func($user->toArray) : $user->toArray()
                 ]
             ]);
 
