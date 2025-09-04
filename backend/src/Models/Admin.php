@@ -9,6 +9,9 @@ class Admin {
     public ?int $id = null;
     public string $username;
     public string $password_hash;
+    public ?string $email = null;
+    public bool $is_active = true;
+    public ?string $last_login = null;
     public ?string $created_at = null;
     public ?string $updated_at = null;
 
@@ -17,6 +20,9 @@ class Admin {
             $this->id = $data['id'] ?? null;
             $this->username = $data['username'] ?? '';
             $this->password_hash = $data['password_hash'] ?? '';
+            $this->email = $data['email'] ?? null;
+            $this->is_active = (bool)($data['is_active'] ?? true);
+            $this->last_login = $data['last_login'] ?? null;
             $this->created_at = $data['created_at'] ?? null;
             $this->updated_at = $data['updated_at'] ?? null;
         }
@@ -94,15 +100,33 @@ class Admin {
             return null; // Admin not found
         }
 
+        // Check if admin is active
+        if (!$admin->is_active) {
+            return null; // Admin is disabled
+        }
+
         // Verify password
         if (!password_verify($password, $admin->password_hash)) {
             return null; // Invalid password
+        }
+
+        // Update last login
+        try {
+            Database::query(
+                'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
+                [$admin->id]
+            );
+        } catch (\Exception $e) {
+            error_log('Failed to update last login: ' . $e->getMessage());
         }
 
         // Return admin without password hash
         return new self([
             'id' => $admin->id,
             'username' => $admin->username,
+            'email' => $admin->email,
+            'is_active' => $admin->is_active,
+            'last_login' => date('Y-m-d H:i:s'), // Current timestamp
             'created_at' => $admin->created_at,
             'updated_at' => $admin->updated_at,
             'password_hash' => ''
@@ -197,6 +221,9 @@ class Admin {
         return [
             'id' => $this->id,
             'username' => $this->username,
+            'email' => $this->email,
+            'is_active' => $this->is_active,
+            'last_login' => $this->last_login,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at
         ];

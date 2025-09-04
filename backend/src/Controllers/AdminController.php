@@ -26,10 +26,36 @@ class AdminController {
             ];
 
             $result = User::findAll($page, $limit, array_filter($filters));
+            
+            // Convert User objects to arrays for proper JSON serialization
+            $usersArray = [];
+            foreach ($result['users'] as $user) {
+                $usersArray[] = $user->toArray();
+            }
 
+            // Add mock statistics for now
+            $statistics = [
+                'total_users' => $result['pagination']['totalCount'],
+                'paid_users' => 0, // TODO: Calculate from actual data
+                'pending_users' => 0, // TODO: Calculate from actual data  
+                'total_revenue' => 0 // TODO: Calculate from actual data
+            ];
+
+            // Return in the format expected by frontend
             echo json_encode([
                 'success' => true,
-                'data' => $result
+                'data' => [
+                    'users' => $usersArray,
+                    'pagination' => [
+                        'current_page' => $result['pagination']['page'],
+                        'total_pages' => $result['pagination']['totalPages'],
+                        'total_records' => $result['pagination']['totalCount'],
+                        'per_page' => $result['pagination']['limit'],
+                        'has_prev' => $result['pagination']['hasPrev'],
+                        'has_next' => $result['pagination']['hasNext']
+                    ],
+                    'statistics' => $statistics
+                ]
             ]);
 
         } catch (\Exception $error) {
