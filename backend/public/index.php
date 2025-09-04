@@ -56,6 +56,7 @@ if (empty($apiPath)) {
 // Routes with leading slash to match REQUEST_URI format
 $router->get('/health', 'Gamcapp\\Controllers\\HealthController@check');
 $router->get('/routing-test', 'Gamcapp\\Controllers\\HealthController@routingTest');
+$router->get('/admin-auth-test', 'Gamcapp\\Controllers\\HealthController@adminAuthTest');
 $router->post('/auth/send-otp', 'Gamcapp\\Controllers\\AuthController@sendOtp');
 $router->post('/auth/verify-otp', 'Gamcapp\\Controllers\\AuthController@verifyOtp');
 $router->post('/auth/logout', 'Gamcapp\\Controllers\\AuthController@logout');
