@@ -75,6 +75,7 @@ $router->post('/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadControlle
 
 $router->get('/admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
 $router->post('/admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
+$router->post('/admin/change-password', 'Gamcapp\\Controllers\\AdminController@changePassword');
 
 $router->post('/external/book-wafid', 'Gamcapp\\Controllers\\ExternalController@bookWafid');
 

@@ -344,6 +344,8 @@ export const adminApi = {
       return data;
     });
   },
+  changePassword: (currentPassword: string, newPassword: string) => 
+    api.post<{ message: string }>('/admin/change-password', { currentPassword, newPassword }, 'adminToken'),
 };
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('token');

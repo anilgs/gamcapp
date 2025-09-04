@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { adminApi, AdminUser, Pagination, Statistics } from '@/lib/api'
+import { adminApi, AdminUser, Pagination, Statistics, handleApiError } from '@/lib/api'
 import { AdminUserList } from '@/components/AdminUserList'
+import { ChangePasswordForm } from '@/components/ChangePasswordForm'
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -31,6 +32,9 @@ export const AdminDashboard: React.FC = () => {
 
   const [showUserDetails, setShowUserDetails] = useState(false)
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const fetchUsers = useCallback(async (page = pagination.current_page) => {
     setLoading(true)
@@ -144,6 +148,31 @@ export const AdminDashboard: React.FC = () => {
     navigate('/admin/login')
   }
 
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    setChangePasswordLoading(true)
+    setError('')
+    setSuccessMessage('')
+
+    try {
+      const result = await adminApi.changePassword(currentPassword, newPassword)
+      
+      if (result.success) {
+        setSuccessMessage('Password changed successfully!')
+        setShowChangePassword(false)
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        throw new Error(result.error || 'Failed to change password')
+      }
+    } catch (error: unknown) {
+      const errorMessage = handleApiError(error)
+      setError(errorMessage)
+      throw error // Re-throw to be handled by the form component
+    } finally {
+      setChangePasswordLoading(false)
+    }
+  }
+
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -180,6 +209,12 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-sm text-gray-700">
                 Welcome, <span className="font-medium">{adminUser.username}</span>
               </span>
+              <button
+                onClick={() => setShowChangePassword(true)}
+                className="text-sm text-primary-600 hover:text-primary-700"
+              >
+                Change Password
+              </button>
               <button
                 onClick={handleLogout}
                 className="text-sm text-gray-500 hover:text-gray-700"
@@ -362,6 +397,13 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Success Message */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-6">
+            {successMessage}
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
@@ -529,6 +571,38 @@ export const AdminDashboard: React.FC = () => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Change Password
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowChangePassword(false)
+                    setError('')
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={changePasswordLoading}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <ChangePasswordForm
+                onSubmit={handleChangePassword}
+                loading={changePasswordLoading}
+              />
             </div>
           </div>
         </div>
