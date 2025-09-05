@@ -1,46 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi, appointmentApi } from '../lib/api';
+import { authApi } from '../lib/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import AppointmentForm from '../components/AppointmentForm';
-
-interface AppointmentFormData {
-  // Personal Information
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  nationality: string;
-  gender: string;
-  maritalStatus: string;
-  
-  // Passport Information
-  passportNumber: string;
-  confirmPassportNumber: string;
-  passportIssueDate: string;
-  passportIssuePlace: string;
-  passportExpiryDate: string;
-  
-  // Contact Information
-  email: string;
-  phone: string;
-  nationalId: string;
-  
-  // Appointment Details
-  country: string;
-  city: string;
-  countryTravelingTo: string;
-  appointmentType: string;
-  medicalCenter: string;
-  appointmentDate: string;
-  visaType: string;
-  positionAppliedFor: string;
-}
 
 export default function BookAppointment() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userPhone, setUserPhone] = useState('');
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -50,10 +16,10 @@ export default function BookAppointment() {
       authApi.getProfile()
         .then(result => {
           if (result.success && result.data && result.data.type === 'user' && result.data.user) {
-            setIsAuthenticated(true);
-            setUserPhone(result.data.user.phone);
-            // Redirect authenticated users to the comprehensive appointment form
-            navigate('/appointment-form');
+            // Redirect authenticated users immediately to the comprehensive appointment form
+            setRedirecting(true);
+            navigate('/appointment-form', { replace: true });
+            return;
           } else {
             localStorage.removeItem('token');
           }
@@ -68,34 +34,14 @@ export default function BookAppointment() {
     }
   }, [navigate]);
 
-  const handleFormSubmit = async (data: AppointmentFormData) => {
-    try {
-      const result = await appointmentApi.create({
-        appointment_date: data.appointmentDate,
-        appointment_time: '09:00', // Default time, can be enhanced
-        wafid_booking_id: undefined // Will be set by external booking if needed
-      });
-
-      if (result.success && result.data) {
-        // Redirect to payment page
-        navigate(`/payment?appointmentId=${result.data.id}`);
-      } else {
-        throw new Error(result.error || 'Failed to create appointment');
-      }
-    } catch (error) {
-      console.error('Error submitting appointment:', error);
-      alert('Failed to submit appointment. Please try again.');
-    }
-  };
-
   const handleAuthRequired = () => {
     navigate('/auth/login');
   };
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="min-h-screen bg-clinical-100 flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading..." />
+        <LoadingSpinner size="lg" text={redirecting ? "Redirecting to appointment form..." : "Loading..."} />
       </div>
     );
   }
@@ -212,60 +158,34 @@ export default function BookAppointment() {
           </div>
 
           {/* Authentication Check */}
-          {!isAuthenticated ? (
-            <div className="card-medical max-w-md mx-auto text-center hover-lift">
-              <div className="w-16 h-16 bg-health-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-health-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          <div className="card-medical max-w-md mx-auto text-center hover-lift">
+            <div className="w-16 h-16 bg-health-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-health-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-brand font-bold text-clinical-900 mb-3">Authentication Required</h3>
+            <p className="text-clinical-600 mb-6 font-medical">
+              Please verify your phone number to continue with your secure medical appointment booking.
+            </p>
+            <button
+              onClick={handleAuthRequired}
+              className="btn-medical w-full hover-lift"
+            >
+              <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Verify Phone Number
+            </button>
+            <div className="mt-4 p-3 bg-health-50 rounded-lg">
+              <p className="text-sm text-health-800 font-medical">
+                <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-              </div>
-              <h3 className="text-xl font-brand font-bold text-clinical-900 mb-3">Authentication Required</h3>
-              <p className="text-clinical-600 mb-6 font-medical">
-                Please verify your phone number to continue with your secure medical appointment booking.
+                Secure OTP verification ensures your appointment data is protected
               </p>
-              <button
-                onClick={handleAuthRequired}
-                className="btn-medical w-full hover-lift"
-              >
-                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Verify Phone Number
-              </button>
-              <div className="mt-4 p-3 bg-health-50 rounded-lg">
-                <p className="text-sm text-health-800 font-medical">
-                  <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  Secure OTP verification ensures your appointment data is protected
-                </p>
-              </div>
             </div>
-          ) : (
-            /* Appointment Form */
-            <div className="card-medical hover-lift">
-              <div className="section-header mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-medical-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-xl font-brand font-bold text-clinical-900">
-                    Appointment Information
-                  </h2>
-                </div>
-                <p className="text-clinical-600 font-medical mt-2">
-                  Authenticated as: <span className="font-medium text-medical-600">{userPhone}</span>
-                </p>
-              </div>
-
-              <AppointmentForm 
-                onSubmit={handleFormSubmit}
-                userPhone={userPhone}
-              />
-            </div>
-          )}
+          </div>
 
           {/* Information Section */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
