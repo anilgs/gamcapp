@@ -237,7 +237,7 @@ jobs:
             echo "$PERMISSION_RESPONSE"
             
             # Check if the response indicates success
-            if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
+            if echo "$PERMISSION_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
               echo "✅ File permissions fixed successfully"
             else
               echo "⚠️  Permission fix script completed but may have encountered issues"
@@ -315,7 +315,7 @@ jobs:
             echo "$PASSWORD_RESPONSE"
             
             # Check if the response indicates success or no update needed
-            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'; then
+            if echo "$PASSWORD_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
               echo "✅ Admin password hash is correct"
             else
               echo "❌ Admin password update failed"
@@ -543,7 +543,7 @@ jobs:
             echo "$PERMISSION_RESPONSE"
             
             # Check if the response indicates success
-            if echo "$PERMISSION_RESPONSE" | grep -q '"success":true'; then
+            if echo "$PERMISSION_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
               echo "✅ File permissions fixed successfully"
             else
               echo "⚠️  Permission fix script completed but may have encountered issues"
@@ -631,7 +631,7 @@ jobs:
             echo "$PASSWORD_RESPONSE"
             
             # Check if the response indicates success or no update needed
-            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'; then
+            if echo "$PASSWORD_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
               echo "✅ Admin password hash is correct"
             else
               echo "❌ Admin password update failed"
@@ -958,7 +958,7 @@ jobs:
            echo "Testing with streamlined health check..."
            HEALTH_CHECK_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/admin-auth-health-check.php" 2>&1 || echo "curl_failed")
            if [ "$HEALTH_CHECK_RESPONSE" != "curl_failed" ]; then
-             if echo "$HEALTH_CHECK_RESPONSE" | grep -q '"success":true'; then
+             if echo "$HEALTH_CHECK_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
                echo "✅ Admin authentication health check passed"
                echo "Admin login functionality verified"
              else
@@ -968,7 +968,7 @@ jobs:
                # Try the full test as fallback
                echo "Trying full admin auth test as fallback..."
                ADMIN_AUTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/test-admin-auth.php?api=1" 2>&1 || echo "curl_failed")
-               if [ "$ADMIN_AUTH_RESPONSE" != "curl_failed" ] && echo "$ADMIN_AUTH_RESPONSE" | grep -q '"success":true'; then
+               if [ "$ADMIN_AUTH_RESPONSE" != "curl_failed" ] && echo "$ADMIN_AUTH_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
                  echo "✅ Full admin authentication test passed"
                else
                  echo "❌ Both admin authentication tests failed"
