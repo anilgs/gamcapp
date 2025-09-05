@@ -125,20 +125,20 @@ export default function AppointmentFormPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-medical-blue-600 to-medical-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-medical-500 to-health-500 rounded-xl flex items-center justify-center shadow-medical">
                   <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-1h14v2zm0-5H8v-2h11v2zm0-4H8V8h11v2zm0-4H8V4h11v2z"/>
+                    <path d="M12 2C13.1 2 14 2.9 14 4V8H18C19.1 8 20 8.9 20 10V20C20 21.1 19.1 22 18 22H6C4.9 22 4 21.1 4 20V10C4 8.9 4.9 8 6 8H10V4C10 2.9 10.9 2 12 2M12 4V8H12V4M6 10V20H18V10H6M8 12H16V14H8V12M8 16H13V18H8V16Z"/>
                   </svg>
                 </div>
                 <div>
-                  <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-medical-blue-600 to-health-green-600 bg-clip-text text-transparent">
+                  <Link to="/" className="text-2xl font-bold text-medical-600">
                     GAMCA
                   </Link>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span className="font-medium">Medical Verification</span>
+                  <div className="flex items-center space-x-2 text-xs text-clinical-500">
+                    <span className="font-medium">Medical Verification Platform</span>
                     <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                    <span className="text-health-green-600 font-medium">✓ Secure Portal</span>
+                    <span className="text-health-600 font-medium">✓ Secure Portal</span>
                   </div>
                 </div>
               </div>
