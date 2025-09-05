@@ -307,19 +307,8 @@ jobs:
           
           # Update admin password hash (only runs if password verification fails)
           echo "Updating admin password hash for consistency..."
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            # Production URL
-            PASSWORD_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/update-admin-password.php" 2>&1 || echo "curl_failed")
-          else
-            # Development URL
-            DEV_URL="${{ env.FRONTEND_URL }}"
-            if [[ "$DEV_URL" == *"/dev"* ]]; then
-              DEV_PASSWORD_URL="$DEV_URL"
-            else
-              DEV_PASSWORD_URL="${DEV_URL%/}/dev"
-            fi
-            PASSWORD_RESPONSE=$(curl -s "$DEV_PASSWORD_URL/update-admin-password.php" 2>&1 || echo "curl_failed")
-          fi
+          echo "Calling: ${{ env.FRONTEND_URL }}/update-admin-password.php"
+          PASSWORD_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/update-admin-password.php" 2>&1 || echo "curl_failed")
           
           if [ "$PASSWORD_RESPONSE" != "curl_failed" ]; then
             echo "Admin password update response:"
@@ -437,6 +426,7 @@ jobs:
             cp env-diagnostic.php deployment/frontend/
              cp test-admin-auth.php deployment/frontend/
              cp admin-auth-health-check.php deployment/frontend/
+             cp update-admin-password.php deployment/frontend/
            # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
@@ -633,19 +623,8 @@ jobs:
           
           # Update admin password hash (only runs if password verification fails)
           echo "Updating admin password hash for consistency..."
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            # Production URL
-            PASSWORD_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/update-admin-password.php" 2>&1 || echo "curl_failed")
-          else
-            # Development URL
-            DEV_URL="${{ env.FRONTEND_URL }}"
-            if [[ "$DEV_URL" == *"/dev"* ]]; then
-              DEV_PASSWORD_URL="$DEV_URL"
-            else
-              DEV_PASSWORD_URL="${DEV_URL%/}/dev"
-            fi
-            PASSWORD_RESPONSE=$(curl -s "$DEV_PASSWORD_URL/update-admin-password.php" 2>&1 || echo "curl_failed")
-          fi
+          echo "Calling: ${{ env.FRONTEND_URL }}/update-admin-password.php"
+          PASSWORD_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/update-admin-password.php" 2>&1 || echo "curl_failed")
           
           if [ "$PASSWORD_RESPONSE" != "curl_failed" ]; then
             echo "Admin password update response:"
