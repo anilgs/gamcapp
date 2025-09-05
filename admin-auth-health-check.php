@@ -20,18 +20,29 @@ try {
     $result['debug_info']['server_name'] = $_SERVER['HTTP_HOST'] ?? 'unknown';
     
     // Get Hostinger user ID from environment or default
-    $hostingerUserId = $_ENV['HOSTINGER_USER_ID'] ?? getenv('HOSTINGER_USER_ID') ?? '605445218';
+    $hostingerUserId = $_ENV['HOSTINGER_USER_ID'] ?? getenv('HOSTINGER_USER_ID') ?? null;
+    
+    // If no environment variable, use default
+    if (!$hostingerUserId) {
+        $hostingerUserId = '605445218';
+    }
+    
     $result['debug_info']['hostinger_user_id'] = $hostingerUserId;
+    $result['debug_info']['env_check'] = [
+        'ENV_var' => $_ENV['HOSTINGER_USER_ID'] ?? 'not_set',
+        'getenv_result' => getenv('HOSTINGER_USER_ID') ?: 'not_set'
+    ];
     
     // Try to find autoloader
     $autoloaderPaths = [
         __DIR__ . '/backend/vendor/autoload.php',           // Local development (from root)
         __DIR__ . '/vendor/autoload.php',                   // Root level  
+        __DIR__ . '/../backend/vendor/autoload.php',        // From public_html -> backend/vendor (MOST LIKELY FOR HOSTINGER)
         __DIR__ . '/../vendor/autoload.php',                // From backend/public -> backend/vendor
-        __DIR__ . '/../../backend/vendor/autoload.php',     // From public_html -> backend
+        __DIR__ . '/../../backend/vendor/autoload.php',     // From nested public_html -> backend
         dirname(__DIR__) . '/vendor/autoload.php',          // From backend/public -> backend/vendor
         dirname(dirname(__DIR__)) . '/backend/vendor/autoload.php', // From nested structure
-        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Hostinger structure
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/vendor/autoload.php', // Hostinger structure explicit
     ];
     
     $autoloaderFound = false;
@@ -77,11 +88,12 @@ try {
     $envPaths = [
         __DIR__ . '/backend/.env',                           // From root
         __DIR__ . '/.env',                                   // Current dir
+        __DIR__ . '/../backend/.env',                        // From public_html -> backend/.env (MOST LIKELY FOR HOSTINGER)
         __DIR__ . '/../.env',                                // From backend/public -> backend/.env
-        __DIR__ . '/../../backend/.env',                     // From public_html -> backend
+        __DIR__ . '/../../backend/.env',                     // From nested public_html -> backend
         dirname(__DIR__) . '/.env',                          // From backend/public -> backend/.env
         dirname(dirname(__DIR__)) . '/backend/.env',         // From nested structure
-        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Hostinger
+        "/home/u{$hostingerUserId}/domains/" . ($_SERVER['HTTP_HOST'] ?? '') . '/backend/.env', // Hostinger explicit
     ];
     
     $envFound = false;

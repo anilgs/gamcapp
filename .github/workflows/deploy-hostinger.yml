@@ -193,6 +193,7 @@ jobs:
            echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
             echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
            echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
+           echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
           
       - name: Deploy Backend to Secure Location (Dev)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -427,6 +428,7 @@ jobs:
           echo "FTP_HOST=${{ env.FTP_HOST }}" >> deployment/backend/.env
           echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
           echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
+          echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
 
       - name: Verify Deployment Package
         run: |
