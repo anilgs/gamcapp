@@ -218,55 +218,137 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
 
   return (
     <div className="appointment-form-container">
-      {/* Progress Steps */}
-      <div className="steps-indicator">
-        {[1, 2, 3, 4, 5].map(step => (
-          <div key={step} className={`step ${currentStep >= step ? 'active' : ''}`}>
-            <div className="step-number">{step}</div>
-            <div className="step-label">
-              {step === 1 && 'Location'}
-              {step === 2 && 'Center & Date'}
-              {step === 3 && 'Personal Info'}
-              {step === 4 && 'Passport Info'}
-              {step === 5 && 'Contact Info'}
+      {/* Enhanced Progress Steps */}
+      <div className="mb-8 bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Application Progress</h3>
+          <span className="text-sm text-gray-600 bg-medical-50 px-3 py-1 rounded-full border border-medical-200">
+            Step {currentStep} of 5
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(step => (
+            <div key={step} className={`relative flex flex-col items-center transition-all duration-300 ${currentStep >= step ? 'opacity-100' : 'opacity-50'}`}>
+              {/* Step Circle */}
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                currentStep > step 
+                  ? 'bg-health-green-500 text-white shadow-lg'
+                  : currentStep === step 
+                    ? 'bg-medical-500 text-white shadow-lg transform scale-110'
+                    : 'bg-gray-200 text-gray-500'
+              }`}>
+                {currentStep > step ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  step
+                )}
+              </div>
+              
+              {/* Step Label */}
+              <div className="mt-3 text-center">
+                <div className={`text-sm font-medium transition-colors duration-300 ${
+                  currentStep >= step ? 'text-gray-900' : 'text-gray-500'
+                }`}>
+                  {step === 1 && 'Location & Type'}
+                  {step === 2 && 'Center & Date'}
+                  {step === 3 && 'Personal Info'}
+                  {step === 4 && 'Passport Info'}
+                  {step === 5 && 'Contact & Review'}
+                </div>
+                <div className={`text-xs mt-1 transition-colors duration-300 ${
+                  currentStep >= step ? 'text-gray-600' : 'text-gray-400'
+                }`}>
+                  {step === 1 && 'Select details'}
+                  {step === 2 && 'Schedule appointment'}
+                  {step === 3 && 'Basic information'}
+                  {step === 4 && 'Travel documents'}
+                  {step === 5 && 'Confirm & submit'}
+                </div>
+              </div>
+              
+              {/* Progress Line */}
+              {step < 5 && (
+                <div className={`absolute top-6 left-12 w-full h-0.5 transition-colors duration-300 ${
+                  currentStep > step ? 'bg-health-green-500' : 'bg-gray-200'
+                }`}></div>
+              )}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Form Content */}
-      <div className="form-content">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         {currentStep === 1 && (
-          <div className="form-section">
-            <h2 className="section-title">Appointment Information</h2>
-            <div className="form-grid">
-              {renderFormField('country', 'Country', 'select', countries)}
-              {renderFormField('countryTravelingTo', 'Country Traveling To', 'select', gccCountries)}
+          <div className="p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Location & Appointment Type</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {renderFormField('country', 'Current Country', 'select', countries)}
+                {renderFormField('countryTravelingTo', 'Destination Country (GCC)', 'select', gccCountries)}
+              </div>
               
-              <div className="form-group col-span-2">
-                <label className="form-label">Appointment Type <span className="text-red-500">*</span></label>
-                <div className="appointment-type-cards">
+              <div className="space-y-4">
+                <label className="form-label">
+                  Appointment Type <span className="text-red-500">*</span>
+                </label>
+                <div className="grid md:grid-cols-2 gap-4">
                   <div 
-                    className={`appointment-card ${formData.appointmentType === 'standard' ? 'selected' : ''}`}
+                    className={`medical-card cursor-pointer transition-all duration-300 ${formData.appointmentType === 'standard' ? 'selected ring-2 ring-medical-500' : ''}`}
                     onClick={() => setFormData(prev => ({...prev, appointmentType: 'standard'}))}
                   >
-                    <div className="card-icon">🏥</div>
-                    <div className="card-content">
-                      <h3>Standard Appointment</h3>
-                      <p>A basic appointment scheduled based on availability, without additional customization.</p>
-                      <div className="card-price">$10</div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-health-green-100 to-health-green-200 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl">🏥</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Standard Appointment</h3>
+                        <p className="text-sm text-gray-600 mb-3">Basic medical examination scheduled based on availability. Perfect for most applicants.</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-medical-600">$10</span>
+                          <div className="flex items-center text-sm text-health-green-600">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Most Popular
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
                   <div 
-                    className={`appointment-card ${formData.appointmentType === 'premium' ? 'selected' : ''}`}
+                    className={`medical-card cursor-pointer transition-all duration-300 ${formData.appointmentType === 'premium' ? 'selected ring-2 ring-medical-500' : ''}`}
                     onClick={() => setFormData(prev => ({...prev, appointmentType: 'premium'}))}
                   >
-                    <div className="card-icon">⭐</div>
-                    <div className="card-content">
-                      <h3>Premium Appointment</h3>
-                      <p>A flexible booking that gives you full control to choose your preferred medical center and date.</p>
-                      <div className="card-price">$25</div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl">⭐</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Premium Appointment</h3>
+                        <p className="text-sm text-gray-600 mb-3">Priority booking with flexible scheduling and premium support throughout the process.</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-medical-600">$25</span>
+                          <div className="flex items-center text-sm text-amber-600">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            Premium
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -276,95 +358,220 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
         )}
 
         {currentStep === 2 && (
-          <div className="form-section">
-            <h2 className="section-title">Choose Medical Center</h2>
-            <div className="form-grid">
-              {renderFormField('medicalCenter', 'Medical Center', 'select', medicalCenters)}
-              {renderFormField('appointmentDate', 'Appointment Date', 'date')}
+          <div className="p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Medical Center & Schedule</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-4 bg-health-green-50 border border-health-green-200 rounded-xl">
+                <div className="flex items-center space-x-2 text-health-green-800">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">Choose your preferred center based on location convenience</span>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {renderFormField('medicalCenter', 'Medical Center', 'select', medicalCenters)}
+                {renderFormField('appointmentDate', 'Preferred Date', 'date')}
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Available Time Slots</h4>
+                <p className="text-sm text-gray-600">
+                  Morning slots: 9:00 AM - 12:00 PM | Evening slots: 2:00 PM - 5:00 PM
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {currentStep === 3 && (
-          <div className="form-section">
-            <h2 className="section-title">Candidate Information</h2>
-            <div className="form-grid">
-              {renderFormField('firstName', 'First Name')}
-              {renderFormField('lastName', 'Last Name')}
-              {renderFormField('dateOfBirth', 'Date of Birth', 'date')}
-              {renderFormField('nationality', 'Nationality', 'select', nationalities)}
-              {renderFormField('gender', 'Gender', 'select', ['Male', 'Female'])}
-              {renderFormField('maritalStatus', 'Marital Status', 'select', ['Single', 'Married'])}
+          <div className="p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Personal Information</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-center space-x-2 text-amber-800">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">Ensure all details match your passport exactly</span>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {renderFormField('firstName', 'First Name (as in passport)')}
+                {renderFormField('lastName', 'Last Name (as in passport)')}
+                {renderFormField('dateOfBirth', 'Date of Birth', 'date')}
+                {renderFormField('nationality', 'Nationality', 'select', nationalities)}
+                {renderFormField('gender', 'Gender', 'select', ['Male', 'Female'])}
+                {renderFormField('maritalStatus', 'Marital Status', 'select', ['Single', 'Married', 'Divorced', 'Widowed'])}
+              </div>
             </div>
           </div>
         )}
 
         {currentStep === 4 && (
-          <div className="form-section">
-            <h2 className="section-title">Passport Information</h2>
-            <div className="form-grid">
-              {renderFormField('passportNumber', 'Passport Number')}
-              {renderFormField('confirmPassportNumber', 'Confirm Passport Number')}
-              {renderFormField('passportIssueDate', 'Passport Issue Date', 'date')}
-              {renderFormField('passportIssuePlace', 'Passport Issue Place')}
-              {renderFormField('passportExpiryDate', 'Passport Expiry Date', 'date')}
-              {renderFormField('visaType', 'Visa Type', 'select', visaTypes)}
-              {renderFormField('positionAppliedFor', 'Position Applied For', 'select', positions, false)}
+          <div className="p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/>
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Passport & Travel Information</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div className="flex items-center space-x-2 text-red-800">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">Passport information cannot be changed after submission</span>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {renderFormField('passportNumber', 'Passport Number')}
+                {renderFormField('confirmPassportNumber', 'Confirm Passport Number')}
+                {renderFormField('passportIssueDate', 'Issue Date', 'date')}
+                {renderFormField('passportIssuePlace', 'Issue Place/Country')}
+                {renderFormField('passportExpiryDate', 'Expiry Date', 'date')}
+                {renderFormField('visaType', 'Visa Type', 'select', visaTypes)}
+                {renderFormField('positionAppliedFor', 'Position/Job Title', 'select', positions, false)}
+              </div>
             </div>
           </div>
         )}
 
         {currentStep === 5 && (
-          <div className="form-section">
-            <h2 className="section-title">Contact Information</h2>
-            <div className="form-grid">
-              {renderFormField('email', 'Email Address', 'email')}
-              {renderFormField('phone', 'Phone Number', 'tel')}
-              {renderFormField('nationalId', 'National ID', 'text', undefined, false)}
+          <div className="p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Contact Information & Review</h2>
             </div>
             
-            <div className="terms-section">
-              <label className="checkbox-label">
-                <input type="checkbox" required />
-                <span>I confirm that the information given in this form is true, complete, and accurate</span>
-              </label>
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {renderFormField('email', 'Email Address', 'email')}
+                {renderFormField('phone', 'Phone Number', 'tel')}
+                {renderFormField('nationalId', 'National ID (Optional)', 'text', undefined, false)}
+              </div>
+              
+              <div className="bg-medical-50 border border-medical-200 rounded-xl p-6">
+                <h4 className="font-semibold text-medical-900 mb-4">Application Summary</h4>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Type:</span>
+                    <span className="ml-2 font-medium capitalize">{formData.appointmentType}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Center:</span>
+                    <span className="ml-2 font-medium">{formData.medicalCenter}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Date:</span>
+                    <span className="ml-2 font-medium">{formData.appointmentDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Destination:</span>
+                    <span className="ml-2 font-medium">{formData.countryTravelingTo}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <label className="flex items-start space-x-3">
+                  <input type="checkbox" required className="mt-1 w-4 h-4 text-medical-600 border-gray-300 rounded focus:ring-medical-500" />
+                  <span className="text-sm text-gray-700 leading-relaxed">
+                    I confirm that all information provided is accurate and matches my official documents. 
+                    I understand that providing false information may result in appointment cancellation and understand the terms and conditions.
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Navigation Buttons */}
-      <div className="form-navigation">
-        {currentStep > 1 && (
-          <button 
-            type="button" 
-            onClick={prevStep}
-            className="btn-secondary"
-            disabled={isSubmitting}
-          >
-            Previous
-          </button>
-        )}
-        
-        {currentStep < 5 ? (
-          <button 
-            type="button" 
-            onClick={nextStep}
-            className="btn-primary ml-auto"
-            disabled={isSubmitting}
-          >
-            Next
-          </button>
-        ) : (
-          <button 
-            type="button" 
-            onClick={handleSubmit}
-            className="btn-primary ml-auto"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Processing...' : 'Submit & Continue to Payment'}
-          </button>
-        )}
+        {/* Enhanced Navigation */}
+        <div className="bg-gray-50 border-t border-gray-200 px-8 py-6">
+          <div className="flex items-center justify-between">
+            {currentStep > 1 ? (
+              <button 
+                type="button" 
+                onClick={prevStep}
+                className="flex items-center space-x-2 px-6 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                disabled={isSubmitting}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Previous</span>
+              </button>
+            ) : (
+              <div></div>
+            )}
+            
+            {currentStep < 5 ? (
+              <button 
+                type="button" 
+                onClick={nextStep}
+                className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-medical-600 to-medical-700 text-white rounded-xl hover:from-medical-700 hover:to-medical-800 transition-all duration-200 shadow-lg"
+                disabled={isSubmitting}
+              >
+                <span>Continue</span>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            ) : (
+              <button 
+                type="button" 
+                onClick={handleSubmit}
+                className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-health-green-600 to-health-green-700 text-white rounded-xl hover:from-health-green-700 hover:to-health-green-800 transition-all duration-200 shadow-lg"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit & Continue to Payment</span>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
