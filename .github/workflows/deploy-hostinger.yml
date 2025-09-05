@@ -326,7 +326,7 @@ jobs:
             echo "$PASSWORD_RESPONSE"
             
             # Check if the response indicates success or no update needed
-            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'"; then
+            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'; then
               echo "✅ Admin password hash is correct"
             else
               echo "❌ Admin password update failed"
@@ -652,7 +652,7 @@ jobs:
             echo "$PASSWORD_RESPONSE"
             
             # Check if the response indicates success or no update needed
-            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'"; then
+            if echo "$PASSWORD_RESPONSE" | grep -q '"success":true'; then
               echo "✅ Admin password hash is correct"
             else
               echo "❌ Admin password update failed"
