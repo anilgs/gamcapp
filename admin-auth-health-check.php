@@ -142,7 +142,19 @@ try {
     $authResult = Admin::authenticate('admin', 'admin123');
     
     if (!$authResult) {
-        throw new Exception('Admin authentication failed');
+        // Add more debug info for authentication failure
+        $result['debug_info']['auth_debug'] = [
+            'admin_found' => $admin ? true : false,
+            'admin_id' => $admin ? $admin->id : null,
+            'admin_username' => $admin ? $admin->username : null,
+            'admin_is_active' => $admin ? $admin->is_active : null,
+            'password_provided' => 'admin123',
+            'password_hash_exists' => $admin && !empty($admin->password_hash),
+            'password_verify_test' => $admin ? password_verify('admin123', $admin->password_hash) : null,
+            'auth_result' => $authResult,
+            'auth_result_type' => gettype($authResult)
+        ];
+        throw new Exception('Admin authentication failed - check auth_debug for details');
     }
     
     $result['tests'][] = [
