@@ -239,19 +239,16 @@ class AuthController {
                     $user = User::findByPhone($formattedIdentifier);
                 }
                 
-                if (!$user && $name && $email && $passportNumber) {
-                    // Create new user
+                if (!$user) {
+                    // Create new user with minimal required information
+                    // Additional details will be collected during appointment booking
                     $userData = [
-                        'name' => $name,
-                        'email' => $email,
+                        'name' => $name ?? 'New User', // Temporary name, will be updated in appointment form
+                        'email' => $email ?? $formattedIdentifier, // Use identifier as email if not provided
                         'phone' => $type === 'phone' ? $formattedIdentifier : '+1234567890', // Default phone if email verification
-                        'passport_number' => $passportNumber
+                        'passport_number' => $passportNumber ?? null // Optional, will be collected in appointment form
                     ];
                     $user = User::create($userData);
-                } elseif (!$user) {
-                    http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'User not found. Please provide registration details.']);
-                    return;
                 }
             }
 
