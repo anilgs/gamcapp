@@ -19,6 +19,8 @@ env:
   SMTP_HOST: ${{ vars.SMTP_HOST }}
   SMTP_PORT: ${{ vars.SMTP_PORT }}
   SMTP_SECURE: ${{ vars.SMTP_SECURE }}
+  SMTP_USER: ${{ vars.SMTP_USER }}
+  SMTP_PASS: ${{ secrets.SMTP_PASS }}
   ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
   FROM_EMAIL: ${{ vars.FROM_EMAIL }}
   FROM_NAME: ${{ vars.FROM_NAME }}
@@ -193,7 +195,7 @@ jobs:
            echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
            echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
             echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
-           echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
+           echo "BYPASS_OTP_VERIFICATION=true" >> deployment/backend/.env
            echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
           
       - name: Deploy Backend to Secure Location (Dev)
@@ -331,6 +333,15 @@ jobs:
                    "${{ env.DB_NAME }}" -e "SHOW TABLES;" --skip-column-names --batch 2>/dev/null)
           echo "Database tables found:"
           echo "$TABLES"
+          
+          # Always run migrations on deployment (safe to run multiple times)
+          echo "Running database migrations..."
+          if [ -f "backend/database/migrate_otp_table.sql" ]; then
+            echo "Running OTP table migration..."
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
+            echo "OTP table migration completed"
+          fi
 
   deploy-production:
     name: Deploy to Production
@@ -446,7 +457,7 @@ jobs:
           echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
           echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
           echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
-          echo "BYPASS_PHONE_VERIFICATION=true" >> deployment/backend/.env
+          echo "BYPASS_OTP_VERIFICATION=true" >> deployment/backend/.env
           echo "FTP_HOST=${{ env.FTP_HOST }}" >> deployment/backend/.env
           echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
           echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
@@ -647,6 +658,15 @@ jobs:
                    "${{ env.DB_NAME }}" -e "SHOW TABLES;" --skip-column-names --batch 2>/dev/null)
           echo "Database tables found:"
           echo "$TABLES"
+          
+          # Always run migrations on deployment (safe to run multiple times)
+          echo "Running database migrations..."
+          if [ -f "backend/database/migrate_otp_table.sql" ]; then
+            echo "Running OTP table migration..."
+            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                  "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
+            echo "OTP table migration completed"
+          fi
 
       - name: Setup PHP Environment (Post-Deployment)
         run: |

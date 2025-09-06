@@ -10,7 +10,7 @@ Complete MySQL database schema with all tables, indexes, and constraints.
 **Tables created:**
 - `users` - Main user data with appointment details and payment information
 - `admins` - Admin user credentials for backend access
-- `otp_tokens` - OTP verification tokens for user authentication
+- `otp_tokens` - OTP verification tokens for email/phone authentication
 - `payment_transactions` - Payment processing records with RazorPay integration
 - `audit_logs` - System audit trail for tracking changes
 
@@ -38,6 +38,40 @@ Initial data insertion including:
 - Default admin user (`admin` / `admin123`)
 - System configuration data
 - Initial audit log entries
+
+### `migrate_otp_table.sql`
+Database migration script to update OTP tokens table for email/phone support.
+Adds `identifier` and `type` columns while maintaining backward compatibility.
+
+### `run-migrations.sh`
+Migration runner script that executes all pending database migrations.
+Safe to run multiple times - migrations are idempotent.
+
+**Usage:**
+```bash
+# Run all migrations
+./run-migrations.sh
+
+# Or set environment variables first
+export DB_HOST=localhost DB_NAME=gamcapp DB_USER=admin DB_PASSWORD=password
+./run-migrations.sh
+```
+
+## Database Migrations
+
+Migrations are automatically run during deployment. The system supports both email and phone-based OTP verification:
+
+### Email-based OTP (Default)
+- Users register with email address
+- OTP codes sent via SMTP
+- 6-digit verification codes
+- 15-minute expiration
+
+### Phone-based OTP (Legacy)
+- Users register with phone number  
+- OTP codes sent via SMS
+- 6-digit verification codes
+- 15-minute expiration
 
 ## Environment Variables
 
@@ -69,7 +103,8 @@ Admin user management:
 - Role-based access control
 
 ### OTP Tokens Table
-Phone number verification system:
+Email/phone number verification system:
+- Support for both email and phone verification
 - Time-limited OTP codes
 - Usage tracking and rate limiting
 - Security audit trail
@@ -135,6 +170,7 @@ mysql -u root -p gamcapp -e "DELETE FROM otp_tokens WHERE expires_at < NOW() - I
 1. **Permission Denied**
    ```bash
    chmod +x init.sql
+   chmod +x run-migrations.sh
    ```
 
 2. **MySQL Access Denied**
@@ -154,6 +190,11 @@ mysql -u root -p gamcapp -e "DELETE FROM otp_tokens WHERE expires_at < NOW() - I
    - All tables use `utf8mb4` for full Unicode support
    - Ensure MySQL server supports `utf8mb4`
 
+5. **Migration Issues**
+   - Migrations are idempotent and safe to run multiple times
+   - Check database permissions if migrations fail
+   - Verify all required environment variables are set
+
 ### Logs and Debugging
 
 - MySQL error logs: `/var/log/mysql/error.log`
@@ -167,5 +208,6 @@ mysql -u root -p gamcapp -e "DELETE FROM otp_tokens WHERE expires_at < NOW() - I
 3. **Backups**: Set up automated backups
 4. **Monitoring**: Monitor table sizes and query performance
 5. **Security**: Regular security updates and access audits
+6. **Migrations**: Always test migrations in staging before production
 
 For support, see the main project README or create an issue in the repository.
