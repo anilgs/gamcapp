@@ -340,8 +340,14 @@ jobs:
             echo "Running OTP table migration..."
             mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                   "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
-            echo "OTP table migration completed"
-          fi
+             echo "OTP table migration completed"
+           fi
+           if [ -f "backend/database/migrate_passport_nullable.sql" ]; then
+             echo "Running passport nullable migration..."
+             mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                   "${{ env.DB_NAME }}" < backend/database/migrate_passport_nullable.sql
+             echo "Passport nullable migration completed"
+           fi
 
   deploy-production:
     name: Deploy to Production
@@ -665,8 +671,14 @@ jobs:
             echo "Running OTP table migration..."
             mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                   "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
-            echo "OTP table migration completed"
-          fi
+             echo "OTP table migration completed"
+           fi
+           if [ -f "backend/database/migrate_passport_nullable.sql" ]; then
+             echo "Running passport nullable migration..."
+             mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                   "${{ env.DB_NAME }}" < backend/database/migrate_passport_nullable.sql
+             echo "Passport nullable migration completed"
+           fi
 
       - name: Setup PHP Environment (Post-Deployment)
         run: |

@@ -246,7 +246,7 @@ class AuthController {
                         'name' => $name ?? 'New User', // Temporary name, will be updated in appointment form
                         'email' => $email ?? $formattedIdentifier, // Use identifier as email if not provided
                         'phone' => $type === 'phone' ? $formattedIdentifier : '+1234567890', // Default phone if email verification
-                        'passport_number' => $passportNumber ?? null // Optional, will be collected in appointment form
+                        'passport_number' => $passportNumber ?? 'TEMP-' . uniqid() // Temporary passport number until collected
                     ];
                     $user = User::create($userData);
                 }

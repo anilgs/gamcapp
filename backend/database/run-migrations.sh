@@ -21,6 +21,7 @@ echo "Database: $DB_NAME on $DB_HOST"
 # List of migration files to run (in order)
 MIGRATIONS=(
     "migrate_otp_table.sql"
+    "migrate_passport_nullable.sql"
 )
 
 # Run each migration

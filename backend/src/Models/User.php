@@ -11,7 +11,7 @@ class User {
     public string $name;
     public string $email;
     public string $phone;
-    public string $passport_number;
+    public ?string $passport_number = null;
     public array $appointment_details = [];
     public string $payment_status = 'pending';
     public ?string $payment_id = null;
@@ -25,7 +25,7 @@ class User {
             $this->name = $data['name'] ?? '';
             $this->email = $data['email'] ?? '';
             $this->phone = $data['phone'] ?? '';
-            $this->passport_number = $data['passport_number'] ?? '';
+            $this->passport_number = $data['passport_number'] ?? null;
             $this->appointment_details = isset($data['appointment_details']) 
                 ? (is_string($data['appointment_details']) ? json_decode($data['appointment_details'], true) : $data['appointment_details'])
                 : [];
@@ -41,7 +41,7 @@ class User {
         $name = $userData['name'];
         $email = $userData['email'];
         $phone = $userData['phone'];
-        $passport_number = $userData['passport_number'];
+        $passport_number = $userData['passport_number'] ?? null; // Allow null passport numbers
         $appointment_details = json_encode($userData['appointment_details'] ?? []);
         $payment_status = $userData['payment_status'] ?? 'pending';
 
