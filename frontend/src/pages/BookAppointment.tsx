@@ -166,7 +166,7 @@ export default function BookAppointment() {
             </div>
             <h3 className="text-xl font-brand font-bold text-clinical-900 mb-3">Authentication Required</h3>
             <p className="text-clinical-600 mb-6 font-medical">
-              Please verify your phone number to continue with your secure medical appointment booking.
+              Please verify your email address to continue with your secure medical appointment booking.
             </p>
             <button
               onClick={handleAuthRequired}
@@ -175,7 +175,7 @@ export default function BookAppointment() {
               <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Verify Phone Number
+              Verify Email Address
             </button>
             <div className="mt-4 p-3 bg-health-50 rounded-lg">
               <p className="text-sm text-health-800 font-medical">
