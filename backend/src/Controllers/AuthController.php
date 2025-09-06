@@ -17,33 +17,44 @@ class AuthController {
 
         try {
             $input = json_decode(file_get_contents('php://input'), true);
-            $phone = $input['phone'] ?? null;
+            $identifier = $input['identifier'] ?? null;
+            $type = $input['type'] ?? 'email'; // Default to email
 
-            if (!$phone) {
+            if (!$identifier) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Phone number is required']);
+                echo json_encode(['success' => false, 'error' => ucfirst($type) . ' is required']);
                 return;
             }
 
-            // Format and validate phone number
-            $formattedPhone = Auth::formatPhoneNumber($phone);
-            
-            if (!Auth::isValidPhoneNumber($formattedPhone)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Invalid phone number format']);
-                return;
+            // Validate identifier based on type
+            if ($type === 'email') {
+                $formattedIdentifier = Auth::formatEmail($identifier);
+                if (!Auth::isValidEmail($formattedIdentifier)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Invalid email address format']);
+                    return;
+                }
+            } else {
+                // Format and validate phone number
+                $formattedIdentifier = Auth::formatPhoneNumber($identifier);
+                if (!Auth::isValidPhoneNumber($formattedIdentifier)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Invalid phone number format']);
+                    return;
+                }
             }
 
-            // Check if phone verification bypass is enabled
-            $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            // Check if OTP verification bypass is enabled
+            $bypassOtpVerification = ($_ENV['BYPASS_OTP_VERIFICATION'] ?? 'false') === 'true';
             
-            if ($bypassPhoneVerification) {
-                error_log("Phone verification bypassed for {$formattedPhone} - OTP: 123456");
+            if ($bypassOtpVerification) {
+                error_log("OTP verification bypassed for {$formattedIdentifier} ({$type}) - OTP: 123456");
                 echo json_encode([
                     'success' => true,
                     'message' => 'OTP sent successfully (bypass mode)',
                     'data' => [
-                        'phone' => $formattedPhone,
+                        'identifier' => $formattedIdentifier,
+                        'type' => $type,
                         'otp' => '123456',
                         'expiresIn' => 600
                     ]
@@ -52,7 +63,7 @@ class AuthController {
             }
 
             // Check rate limiting
-            if (!Auth::checkOTPRateLimit($formattedPhone)) {
+            if (!Auth::checkOTPRateLimit($formattedIdentifier)) {
                 http_response_code(429);
                 echo json_encode(['success' => false, 'error' => 'Too many OTP requests. Please try again later.']);
                 return;
@@ -62,32 +73,60 @@ class AuthController {
             $otp = Auth::generateOTP();
 
             // Store OTP in database
-            Auth::storeOTP($formattedPhone, $otp);
+            Auth::storeOTP($formattedIdentifier, $otp, $type);
 
-            // Prepare SMS message
-            $message = "Your GAMCA verification code is: {$otp}. This code will expire in 10 minutes. Do not share this code with anyone.";
+            if ($type === 'email') {
+                // Send email OTP
+                $emailResult = Auth::sendEmail(
+                    $formattedIdentifier,
+                    'GAMCA Medical Verification Code',
+                    $otp
+                );
+                
+                if (!$emailResult['success']) {
+                    error_log('Email sending failed: ' . json_encode($emailResult));
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'error' => 'Failed to send verification code. Please try again.']);
+                    return;
+                }
 
-            // Send SMS
-            $smsResult = Auth::sendSMS($formattedPhone, $message);
-            
-            if (!$smsResult['success']) {
-                error_log('SMS sending failed: ' . json_encode($smsResult));
-                http_response_code(500);
-                echo json_encode(['success' => false, 'error' => 'Failed to send OTP. Please try again.']);
-                return;
+                error_log("OTP sent successfully to {$formattedIdentifier} via email. Message ID: {$emailResult['messageId']}");
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Verification code sent to your email',
+                    'data' => [
+                        'identifier' => $formattedIdentifier,
+                        'type' => $type,
+                        'messageId' => $emailResult['messageId'],
+                        'expiresIn' => 600
+                    ]
+                ]);
+            } else {
+                // Send SMS OTP
+                $message = "Your GAMCA verification code is: {$otp}. This code will expire in 10 minutes. Do not share this code with anyone.";
+                $smsResult = Auth::sendSMS($formattedIdentifier, $message);
+                
+                if (!$smsResult['success']) {
+                    error_log('SMS sending failed: ' . json_encode($smsResult));
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'error' => 'Failed to send verification code. Please try again.']);
+                    return;
+                }
+
+                error_log("OTP sent successfully to {$formattedIdentifier} via SMS. Message ID: {$smsResult['messageId']}");
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Verification code sent to your phone',
+                    'data' => [
+                        'identifier' => $formattedIdentifier,
+                        'type' => $type,
+                        'messageId' => $smsResult['messageId'],
+                        'expiresIn' => 600
+                    ]
+                ]);
             }
-
-            error_log("OTP sent successfully to {$formattedPhone}. Message ID: {$smsResult['messageId']}");
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'OTP sent successfully',
-                'data' => [
-                    'phone' => $formattedPhone,
-                    'messageId' => $smsResult['messageId'],
-                    'expiresIn' => 600
-                ]
-            ]);
 
         } catch (\Exception $error) {
             error_log('Send OTP error: ' . $error->getMessage());
@@ -268,16 +307,16 @@ class AuthController {
             $decoded = Auth::requireAuth();
 
             // Check bypass mode
-            $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            $bypassOtpVerification = ($_ENV['BYPASS_OTP_VERIFICATION'] ?? 'false') === 'true';
 
             if ($decoded['type'] === 'user') {
-                if ($bypassPhoneVerification) {
+                if ($bypassOtpVerification) {
                     // Create mock user for bypass mode
                     $user = (object) [
                         'id' => $decoded['id'],
                         'name' => 'Test User',
-                        'email' => 'test@example.com',
-                        'phone' => $decoded['phone'],
+                        'email' => $decoded['email'] ?? 'test@example.com',
+                        'phone' => $decoded['phone'] ?? '+919876543210',
                         'passport_number' => 'TEST123456',
                         'payment_status' => 'pending',
                         'created_at' => date('Y-m-d H:i:s'),
@@ -397,9 +436,9 @@ class AuthController {
             }
 
             // Check if bypass mode is enabled
-            $bypassPhoneVerification = ($_ENV['BYPASS_PHONE_VERIFICATION'] ?? 'false') === 'true';
+            $bypassOtpVerification = ($_ENV['BYPASS_OTP_VERIFICATION'] ?? 'false') === 'true';
             
-            if ($bypassPhoneVerification) {
+            if ($bypassOtpVerification) {
                 // In bypass mode, accept any current password and update with new password
                 error_log("Password change bypassed for user ID {$payload['id']}");
                 

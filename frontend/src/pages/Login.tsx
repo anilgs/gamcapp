@@ -1,17 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi, handleApiError } from '../lib/api';
+
+// Email validation regex
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Phone validation regex for Indian numbers
+const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
 
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<'identifier' | 'otp'>('identifier');
+  const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [lastOtpSentTime, setLastOtpSentTime] = useState<number | null>(null);
+  const [verificationType, setVerificationType] = useState<'email' | 'phone'>('email');
+
+  // Determine verification type from environment or default to email
+  useEffect(() => {
+    // In a real app, this would come from an API call to get config
+    // For now, we'll default to email but allow phone as fallback
+    const urlParams = new URLSearchParams(window.location.search);
+    const forcePhone = urlParams.get('method') === 'phone';
+    if (forcePhone) {
+      setVerificationType('phone');
+    }
+  }, []);
+
+  const validateIdentifier = (value: string): boolean => {
+    if (verificationType === 'email') {
+      return emailRegex.test(value);
+    } else {
+      // Remove non-digits and validate phone
+      const cleaned = value.replace(/\D/g, '');
+      return phoneRegex.test(cleaned);
+    }
+  };
+
+  const formatIdentifier = (value: string): string => {
+    if (verificationType === 'phone') {
+      // Format phone number
+      const cleaned = value.replace(/\D/g, '');
+      if (cleaned.length === 10) {
+        return `+91${cleaned}`;
+      } else if (cleaned.length === 12 && cleaned.startsWith('91')) {
+        return `+${cleaned}`;
+      }
+      return value;
+    }
+    return value.trim().toLowerCase();
+  };
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +61,16 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Validate identifier
+      if (!validateIdentifier(identifier)) {
+        setError(verificationType === 'email' 
+          ? 'Please enter a valid email address' 
+          : 'Please enter a valid phone number with country code (+91)'
+        );
+        setLoading(false);
+        return;
+      }
+
       // Prevent rapid successive requests
       const now = Date.now();
       if (lastOtpSentTime && (now - lastOtpSentTime) < 3000) {
@@ -27,7 +79,8 @@ export default function Login() {
         return;
       }
 
-      const result = await authApi.sendOTP(phone);
+      const formattedIdentifier = formatIdentifier(identifier);
+      const result = await authApi.sendOTP(formattedIdentifier, verificationType);
 
       if (result.success) {
         // Clear any existing errors first
@@ -36,6 +89,7 @@ export default function Login() {
         // Update success states
         setLastOtpSentTime(now);
         setRetryCount(0);
+        setIdentifier(formattedIdentifier);
         
         // In development mode, show the OTP
         if (result.data?.otp) {
@@ -48,7 +102,7 @@ export default function Login() {
         }, 50);
       } else {
         // Handle specific error cases with better messaging
-        const errorMessage = result.error || 'Failed to send OTP';
+        const errorMessage = result.error || 'Failed to send verification code';
         setError(errorMessage);
         setRetryCount(prev => prev + 1);
       }
@@ -75,7 +129,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await authApi.verifyOTP(phone, otp);
+      const result = await authApi.verifyOTP(identifier, otp, verificationType);
 
       if (result.success && result.data) {
         // Store token
@@ -85,11 +139,11 @@ export default function Login() {
         const redirectTo = searchParams.get('redirect') || '/appointment-form';
         navigate(redirectTo);
       } else {
-        setError(result.error || 'Invalid OTP');
+        setError(result.error || 'Invalid verification code');
       }
     } catch (error) {
       console.error('Verify OTP error:', error);
-      setError('Failed to verify OTP. Please try again.');
+      setError('Failed to verify code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -109,7 +163,7 @@ export default function Login() {
         return;
       }
 
-      const result = await authApi.sendOTP(phone);
+      const result = await authApi.sendOTP(identifier, verificationType);
 
       if (result.success) {
         setError('');
@@ -126,11 +180,11 @@ export default function Login() {
         setTimeout(() => setError(''), 3000);
       } else {
         // Handle specific resend error cases
-        setError(result.error || 'Failed to resend OTP');
+        setError(result.error || 'Failed to resend verification code');
       }
     } catch (error) {
       console.error('Resend OTP error:', error);
-      setError('Failed to resend OTP. Please try again.');
+      setError('Failed to resend verification code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -185,12 +239,12 @@ export default function Login() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-clinical-900 mb-3">
-              {step === 'phone' ? 'Secure Phone Verification' : 'Enter Verification Code'}
+              {step === 'identifier' ? `Secure ${verificationType === 'email' ? 'Email' : 'Phone'} Verification` : 'Enter Verification Code'}
             </h2>
             <p className="text-clinical-600 text-lg">
-              {step === 'phone' 
-                ? 'Secure SMS verification for your medical appointment booking'
-                : `We sent a 6-digit verification code to ${phone}`
+              {step === 'identifier' 
+                ? `Secure ${verificationType === 'email' ? 'email' : 'SMS'} verification for your medical appointment booking`
+                : `We sent a 6-digit verification code to ${identifier}`
               }
             </p>
           </div>
@@ -260,27 +314,33 @@ export default function Login() {
               </div>
             )}
 
-            {step === 'phone' ? (
+            {step === 'identifier' ? (
               <form onSubmit={handleSendOTP} className="space-y-8">
                 <div className="form-group">
-                  <label htmlFor="phone" className="form-label text-clinical-800 font-semibold">
-                    Phone Number
+                  <label htmlFor="identifier" className="form-label text-clinical-800 font-semibold">
+                    {verificationType === 'email' ? 'Email Address' : 'Phone Number'}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <svg className="w-5 h-5 text-clinical-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
+                      {verificationType === 'email' ? (
+                        <svg className="w-5 h-5 text-clinical-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-clinical-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      )}
                     </div>
                     <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
+                      id="identifier"
+                      name="identifier"
+                      type={verificationType === 'email' ? 'email' : 'tel'}
                       required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
                       className="form-input pl-12 text-lg"
-                      placeholder="+91 9876543210"
+                      placeholder={verificationType === 'email' ? 'your.email@example.com' : '+91 9876543210'}
                       disabled={loading}
                     />
                   </div>
@@ -288,13 +348,16 @@ export default function Login() {
                     <svg className="w-4 h-4 mr-2 text-clinical-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
-                    Enter your Indian mobile number with country code for secure verification
+                    {verificationType === 'email' 
+                      ? 'Enter your email address for secure verification'
+                      : 'Enter your Indian mobile number with country code for secure verification'
+                    }
                   </p>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading || !phone}
+                  disabled={loading || !identifier}
                   className="btn-primary w-full py-4 text-lg font-semibold shadow-medical-lg hover:shadow-medical"
                 >
                   {loading ? (
@@ -304,9 +367,15 @@ export default function Login() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                      {verificationType === 'email' ? (
+                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.05a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      )}
                       Send Verification Code
                     </div>
                   )}
@@ -322,9 +391,19 @@ export default function Login() {
                       <div>
                         <p className="font-medium">Verification Assistance</p>
                         <p className="text-sm mt-1">
-                          {retryCount === 1 && 'Ensure your phone number is correct and includes country code (+91)'}
-                          {retryCount === 2 && 'Check your internet connection and try again'}
-                          {retryCount >= 3 && 'Multiple attempts detected. Please wait a moment before trying again'}
+                          {verificationType === 'email' ? (
+                            <>
+                              {retryCount === 1 && 'Ensure your email address is correct and properly formatted'}
+                              {retryCount === 2 && 'Check your internet connection and try again'}
+                              {retryCount >= 3 && 'Multiple attempts detected. Please wait a moment before trying again'}
+                            </>
+                          ) : (
+                            <>
+                              {retryCount === 1 && 'Ensure your phone number is correct and includes country code (+91)'}
+                              {retryCount === 2 && 'Check your internet connection and try again'}
+                              {retryCount >= 3 && 'Multiple attempts detected. Please wait a moment before trying again'}
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -357,11 +436,17 @@ export default function Login() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-clinical-500 text-center flex items-center justify-center">
-                    <svg className="w-4 h-4 mr-2 text-clinical-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
-                    Enter the 6-digit code sent to your mobile device
+                    {verificationType === 'email' ? (
+                      <svg className="w-4 h-4 mr-2 text-clinical-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 mr-2 text-clinical-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                      </svg>
+                    )}
+                    Enter the 6-digit code sent to your {verificationType === 'email' ? 'email address' : 'mobile device'}
                   </p>
                 </div>
 
@@ -389,7 +474,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => {
-                      setStep('phone');
+                      setStep('identifier');
                       setOtp('');
                       setError('');
                       setRetryCount(0);
@@ -399,7 +484,7 @@ export default function Login() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                    <span>Change phone number</span>
+                    <span>Change {verificationType === 'email' ? 'email address' : 'phone number'}</span>
                   </button>
                   <button
                     type="button"

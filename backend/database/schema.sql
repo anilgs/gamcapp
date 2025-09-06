@@ -47,10 +47,11 @@ CREATE TABLE admins (
     INDEX idx_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- OTP tokens table - OTP verification tokens
+-- OTP tokens table - OTP verification tokens for both email and phone
 CREATE TABLE otp_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    phone VARCHAR(20) NOT NULL,
+    identifier VARCHAR(255) NOT NULL COMMENT 'Email address or phone number',
+    type ENUM('email', 'phone') NOT NULL DEFAULT 'email' COMMENT 'Type of verification: email or phone',
     otp VARCHAR(10) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     used BOOLEAN DEFAULT FALSE,
@@ -58,9 +59,11 @@ CREATE TABLE otp_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     -- Indexes
-    INDEX idx_phone (phone),
+    INDEX idx_identifier (identifier),
+    INDEX idx_type (type),
+    INDEX idx_identifier_type (identifier, type),
     INDEX idx_expires_at (expires_at),
-    INDEX idx_phone_otp (phone, otp)
+    INDEX idx_identifier_otp_type (identifier, otp, type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Payment transactions table - Payment processing records

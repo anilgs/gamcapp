@@ -193,8 +193,10 @@ export const api = new ApiClient();
 
 // Auth API methods
 export const authApi = {
-  sendOTP: (phone: string) => api.post<{ otp?: string }>('/auth/send-otp', { phone }),
-  verifyOTP: (phone: string, otp: string) => api.post<{ token: string; user: User }>('/auth/verify-otp', { phone, otp }),
+  sendOTP: (identifier: string, type: 'email' | 'phone' = 'email') => 
+    api.post<{ otp?: string }>('/auth/send-otp', { identifier, type }),
+  verifyOTP: (identifier: string, otp: string, type: 'email' | 'phone' = 'email') => 
+    api.post<{ token: string; user: User }>('/auth/verify-otp', { identifier, otp, type }),
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get<AuthVerificationResponse>('/auth/verify-token'),
   updateProfile: (data: Partial<User>) => api.put<User>('/auth/profile', data),
