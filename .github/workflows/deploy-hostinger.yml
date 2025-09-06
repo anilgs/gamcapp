@@ -453,7 +453,7 @@ jobs:
           echo "SMTP_PORT=${{ env.SMTP_PORT }}" >> deployment/backend/.env
           echo "SMTP_SECURE=${{ env.SMTP_SECURE }}" >> deployment/backend/.env
           echo "SMTP_USER=${{ env.SMTP_USER }}" >> deployment/backend/.env
-          echo "SMTP_PASS=${{ env.SMTP_PASS }}" >> deployment/backend/.env
+          echo "SMTP_PASS=\"${{ env.SMTP_PASS }}\"" >> deployment/backend/.env
           echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
           echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
           echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
