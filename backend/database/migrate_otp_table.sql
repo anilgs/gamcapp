@@ -57,4 +57,14 @@ PREPARE drop_stmt FROM @drop_sql;
 EXECUTE drop_stmt;
 DEALLOCATE PREPARE drop_stmt;
 
+-- Ensure identifier column is NOT NULL (required for new records)
+SET @fix_sql = IF(@column_exists = 0,
+    'ALTER TABLE otp_tokens MODIFY COLUMN identifier VARCHAR(255) NOT NULL',
+    'SELECT "Identifier column already configured" as message'
+);
+
+PREPARE fix_stmt FROM @fix_sql;
+EXECUTE fix_stmt;
+DEALLOCATE PREPARE fix_stmt;
+
 SELECT 'OTP table migration completed successfully' as result;

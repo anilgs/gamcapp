@@ -457,7 +457,7 @@ jobs:
           echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
           echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
           echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
-          echo "BYPASS_OTP_VERIFICATION=true" >> deployment/backend/.env
+          echo "BYPASS_OTP_VERIFICATION=false" >> deployment/backend/.env
           echo "FTP_HOST=${{ env.FTP_HOST }}" >> deployment/backend/.env
           echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
           echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
