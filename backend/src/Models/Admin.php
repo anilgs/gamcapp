@@ -43,18 +43,22 @@ class Admin {
         ]);
 
         try {
-            $stmt = Database::query(
-                "INSERT INTO admins (username, password_hash)
-                 VALUES (?, ?) RETURNING id, username, created_at, updated_at",
+            // MySQL doesn't support RETURNING, so we insert then select
+            Database::query(
+                "INSERT INTO admins (username, password_hash) VALUES (?, ?)",
                 [$username, $password_hash]
             );
 
+            // Get the inserted admin record
+            $stmt = Database::query('SELECT * FROM admins WHERE username = ? ORDER BY id DESC LIMIT 1', [$username]);
             $data = $stmt->fetch();
-            $data['password_hash'] = $password_hash;
+            if (!$data) {
+                throw new \Exception('Failed to create admin');
+            }
 
             return new self($data);
         } catch (\PDOException $e) {
-            if ($e->getCode() === '23505') { // Unique constraint violation
+            if ($e->getCode() === '23000') { // MySQL unique constraint violation
                 throw new \Exception('Username already exists');
             }
             throw $e;
@@ -144,17 +148,22 @@ class Admin {
             'threads' => 2
         ]);
 
-        $stmt = Database::query(
-            'UPDATE admins SET password_hash = ? WHERE id = ? RETURNING id, username, created_at, updated_at',
+        // MySQL doesn't support RETURNING, so we do update then select
+        Database::query(
+            'UPDATE admins SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
             [$password_hash, $this->id]
         );
 
+        // Get the updated admin record
+        $stmt = Database::query('SELECT * FROM admins WHERE id = ?', [$this->id]);
         $data = $stmt->fetch();
         if (!$data) {
             throw new \Exception('Admin not found');
         }
 
-        $this->__construct(array_merge($data, ['password_hash' => '']));
+        // Don't expose password hash in the instance
+        $data['password_hash'] = '';
+        $this->__construct($data);
         return $this;
     }
 
@@ -164,20 +173,25 @@ class Admin {
         }
 
         try {
-            $stmt = Database::query(
-                'UPDATE admins SET username = ? WHERE id = ? RETURNING id, username, created_at, updated_at',
+            // MySQL doesn't support RETURNING, so we do update then select
+            Database::query(
+                'UPDATE admins SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 [$newUsername, $this->id]
             );
 
+            // Get the updated admin record
+            $stmt = Database::query('SELECT * FROM admins WHERE id = ?', [$this->id]);
             $data = $stmt->fetch();
             if (!$data) {
                 throw new \Exception('Admin not found');
             }
 
+            // Don't expose password hash in the instance
+            $data['password_hash'] = '';
             $this->__construct($data);
             return $this;
         } catch (\PDOException $e) {
-            if ($e->getCode() === '23505') { // Unique constraint violation
+            if ($e->getCode() === '23000') { // MySQL unique constraint violation
                 throw new \Exception('Username already exists');
             }
             throw $e;
