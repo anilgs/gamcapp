@@ -75,9 +75,6 @@ export default function AppointmentFormPage() {
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
     try {
-      // Debug: Log the form data being submitted
-      console.log('Form data being submitted:', data);
-      
       // Pass all form data to the backend - the backend expects all fields
       const appointmentPayload = {
         // Personal Information
@@ -115,15 +112,13 @@ export default function AppointmentFormPage() {
         appointment_time: '09:00', // Default time, can be enhanced
         wafid_booking_id: undefined // Will be set by external booking if needed
       };
-
-      // Debug: Log the payload being sent to API
-      console.log('API payload being sent:', appointmentPayload);
       
       const result = await appointmentApi.create(appointmentPayload);
 
       if (result.success && result.data) {
-        // Redirect to payment page
-        navigate(`/payment?appointmentId=${result.data.id}`);
+        // Use appointmentId from the response (backend returns appointmentId, not id)
+        const appointmentId = result.data.appointmentId;
+        navigate(`/payment?appointmentId=${appointmentId}`);
       } else {
         throw new Error(result.error || 'Failed to create appointment');
       }

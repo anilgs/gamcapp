@@ -99,20 +99,10 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    // Debug: Log input changes
-    console.log('AppointmentForm - Input change:', { name, value });
-    
-    setFormData(prev => {
-      const newFormData = {
-        ...prev,
-        [name]: value
-      };
-      
-      // Debug: Log updated form data
-      console.log('AppointmentForm - Updated formData:', newFormData);
-      
-      return newFormData;
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -210,10 +200,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
 
   const handleSubmit = async () => {
     if (!validateStep(5) || !validateAllFields()) return;
-
-    // Debug: Log the form data state before submission
-    console.log('AppointmentForm - formData state before submission:', formData);
-    console.log('AppointmentForm - formData keys with values:', Object.entries(formData).filter(([, value]) => value));
 
     setIsSubmitting(true);
     try {
