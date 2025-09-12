@@ -213,7 +213,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
 
     // Debug: Log the form data state before submission
     console.log('AppointmentForm - formData state before submission:', formData);
-    console.log('AppointmentForm - formData keys with values:', Object.entries(formData).filter(([key, value]) => value));
+    console.log('AppointmentForm - formData keys with values:', Object.entries(formData).filter(([, value]) => value));
 
     setIsSubmitting(true);
     try {
