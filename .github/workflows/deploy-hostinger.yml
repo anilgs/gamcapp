@@ -938,19 +938,41 @@ jobs:
           else
             echo "❌ No debug response"
           fi
-          echo ""
-          
-          # Test API health endpoint
-          echo "Testing API health endpoint..."
-          HEALTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health" 2>&1 || echo "curl_failed")
-          if [ "$HEALTH_RESPONSE" != "curl_failed" ] && echo "$HEALTH_RESPONSE" | grep -q "success\|healthy"; then
-            echo "✅ API health check passed"
-            echo "$HEALTH_RESPONSE"
-          else
-            echo "❌ API health check failed"
-            echo "Actual response from /api/health (first 500 chars): ${HEALTH_RESPONSE:0:500}"
-          fi
-          echo ""
+           echo ""
+           
+           # Test API health endpoint
+           echo "Testing API health endpoint..."
+           HEALTH_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/health" 2>&1 || echo "curl_failed")
+           if [ "$HEALTH_RESPONSE" != "curl_failed" ] && echo "$HEALTH_RESPONSE" | grep -q "success\|healthy"; then
+             echo "✅ API health check passed"
+             echo "$HEALTH_RESPONSE"
+           else
+             echo "❌ API health check failed"
+             echo "Actual response from /api/health (first 500 chars): ${HEALTH_RESPONSE:0:500}"
+           fi
+           echo ""
+           
+           # Test payment endpoint routing (expect authentication error, not route not found)
+           echo "Testing payment/create-order endpoint routing..."
+           PAYMENT_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/api/payment/create-order" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer invalid-token" \
+                -d '{"appointmentId": "1"}' 2>&1 || echo "curl_failed")
+           if [ "$PAYMENT_RESPONSE" != "curl_failed" ]; then
+             if echo "$PAYMENT_RESPONSE" | grep -q "Invalid or expired token\|No token provided"; then
+               echo "✅ Payment endpoint routing works (authentication error as expected)"
+               echo "This confirms the route is found and authentication layer is active"
+             elif echo "$PAYMENT_RESPONSE" | grep -q "route not found\|404"; then
+               echo "❌ Payment endpoint routing failed - route not found"
+               echo "Response: ${PAYMENT_RESPONSE:0:300}"
+             else
+               echo "⚠️  Payment endpoint gave unexpected response"
+               echo "Response: ${PAYMENT_RESPONSE:0:300}"
+             fi
+           else
+             echo "❌ Could not reach payment endpoint"
+           fi
+           echo ""
           
           # Test database connectivity through API
           echo "=== Database Test ==="
