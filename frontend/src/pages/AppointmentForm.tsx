@@ -75,7 +75,39 @@ export default function AppointmentFormPage() {
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
     try {
+      // Pass all form data to the backend - the backend expects all fields
       const result = await appointmentApi.create({
+        // Personal Information
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dateOfBirth: data.dateOfBirth,
+        nationality: data.nationality,
+        gender: data.gender,
+        maritalStatus: data.maritalStatus,
+        
+        // Passport Information
+        passportNumber: data.passportNumber,
+        confirmPassportNumber: data.confirmPassportNumber,
+        passportIssueDate: data.passportIssueDate,
+        passportIssuePlace: data.passportIssuePlace,
+        passportExpiryDate: data.passportExpiryDate,
+        visaType: data.visaType,
+        
+        // Contact Information
+        email: data.email,
+        phone: data.phone,
+        nationalId: data.nationalId,
+        
+        // Appointment Details
+        country: data.country,
+        city: data.city,
+        countryTravelingTo: data.countryTravelingTo,
+        appointmentType: data.appointmentType,
+        medicalCenter: data.medicalCenter,
+        appointmentDate: data.appointmentDate,
+        positionAppliedFor: data.positionAppliedFor,
+        
+        // Legacy fields for backward compatibility
         appointment_date: data.appointmentDate,
         appointment_time: '09:00', // Default time, can be enhanced
         wafid_booking_id: undefined // Will be set by external booking if needed
@@ -89,7 +121,7 @@ export default function AppointmentFormPage() {
       }
     } catch (error) {
       console.error('Error submitting appointment:', error);
-      alert('Failed to submit appointment. Please try again.');
+      throw error; // Re-throw so the form can handle it
     }
   };
 
