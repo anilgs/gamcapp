@@ -32,7 +32,7 @@ interface AppointmentFormData {
 export default function AppointmentFormPage() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userPhone, setUserPhone] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function AppointmentFormPage() {
         .then(result => {
           if (result.success && result.data && result.data.type === 'user' && result.data.user) {
             setIsAuthenticated(true);
-            setUserPhone(result.data.user.phone);
+            setUserEmail(result.data.user.email || '');
           } else {
             localStorage.removeItem('token');
             navigate('/auth/login?redirect=/appointment-form');
@@ -181,7 +181,7 @@ export default function AppointmentFormPage() {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2 text-sm text-gray-700">
                 <div className="w-2 h-2 bg-health-green-500 rounded-full animate-pulse"></div>
-                <span>Logged in as: <span className="font-semibold text-medical-blue-700">{userPhone}</span></span>
+                <span>Logged in as: <span className="font-semibold text-medical-blue-700">{userEmail}</span></span>
               </div>
               <Link
                 to="/profile"
@@ -212,7 +212,7 @@ export default function AppointmentFormPage() {
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           <AppointmentForm 
             onSubmit={handleFormSubmit}
-            userPhone={userPhone}
+            userEmail={userEmail}
           />
         </div>
 

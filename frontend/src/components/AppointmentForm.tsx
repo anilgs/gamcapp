@@ -34,14 +34,14 @@ interface AppointmentFormData {
 
 interface AppointmentFormProps {
   onSubmit: (data: AppointmentFormData) => Promise<void>;
-  userPhone?: string;
+  userEmail?: string;
 }
 
 interface ValidationErrors {
   [key: string]: string;
 }
 
-const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }) => {
+const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<AppointmentFormData>({
     firstName: '',
@@ -55,8 +55,8 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
     passportIssueDate: '',
     passportIssuePlace: '',
     passportExpiryDate: '',
-    email: '',
-    phone: userPhone || '',
+    email: userEmail || '',
+    phone: '',
     nationalId: '',
     country: '',
     city: '',
@@ -259,7 +259,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
           value={formData[name]}
           onChange={handleInputChange}
           className={`form-input ${errors[name] ? 'border-red-500' : ''}`}
-          disabled={isSubmitting || (name === 'phone' && !!userPhone)}
+          disabled={isSubmitting || (name === 'email' && !!userEmail)}
         />
       )}
       {errors[name] && <span className="form-error">{errors[name]}</span>}
