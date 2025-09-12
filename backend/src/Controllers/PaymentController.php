@@ -23,6 +23,16 @@ class PaymentController {
             $appointmentId = $input['appointmentId'] ?? null;
             $userId = $decoded['id'];
 
+            // Check Razorpay configuration first
+            if (empty($_ENV['RAZORPAY_KEY_ID']) || empty($_ENV['RAZORPAY_KEY_SECRET']) ||
+                $_ENV['RAZORPAY_KEY_ID'] === 'your_razorpay_key_id' ||
+                $_ENV['RAZORPAY_KEY_SECRET'] === 'your_razorpay_key_secret') {
+                error_log('Payment creation failed: Razorpay credentials not configured');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Payment system not configured. Please contact administrator.']);
+                return;
+            }
+
             // Validate input
             if (!$appointmentId) {
                 http_response_code(400);
