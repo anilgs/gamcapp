@@ -281,7 +281,7 @@ export const paymentApi = {
       amount: number; 
       currency: string; 
       key: string; 
-    }>('/payment/create-order', { appointment_id: appointmentId, amount }),
+    }>('/payment/create-order', { appointmentId: appointmentId, amount }),
   
   verifyPayment: (paymentData: {
     razorpay_order_id: string;

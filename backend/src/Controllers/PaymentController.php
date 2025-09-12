@@ -116,23 +116,10 @@ class PaymentController {
                 'success' => true,
                 'message' => 'Payment order created successfully',
                 'data' => [
-                    'order' => [
-                        'id' => $order['id'],
-                        'amount' => $order['amount'],
-                        'currency' => $order['currency'],
-                        'receipt' => $order['receipt']
-                    ],
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'phone' => $user->phone
-                    ],
-                    'appointment' => [
-                        'type' => $appointmentType,
-                        'details' => $user->appointment_details
-                    ],
-                    'razorpay_key_id' => $_ENV['RAZORPAY_KEY_ID']
+                    'order_id' => $order['id'],
+                    'amount' => $order['amount'],
+                    'currency' => $order['currency'],
+                    'key' => $_ENV['RAZORPAY_KEY_ID']
                 ]
             ]);
 
