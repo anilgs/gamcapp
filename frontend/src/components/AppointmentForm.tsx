@@ -199,8 +199,24 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(5) || !validateAllFields()) return;
+    console.log('Submit button clicked, current step:', currentStep);
+    console.log('Form data at submission:', formData);
+    
+    const step5Valid = validateStep(5);
+    const allFieldsValid = validateAllFields();
+    
+    console.log('Step 5 validation:', step5Valid);
+    console.log('All fields validation:', allFieldsValid);
+    console.log('Validation errors:', errors);
+    
+    if (!step5Valid || !allFieldsValid) {
+      console.log('Validation failed, aborting submission');
+      // Scroll to top to show errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
+    console.log('Validation passed, proceeding with submission');
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
@@ -565,8 +581,13 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
           </div>
         )}
 
-        {/* Enhanced Navigation */}
+         {/* Enhanced Navigation */}
         <div className="bg-gray-50 border-t border-gray-200 px-8 py-6">
+          {/* Debug Info */}
+          <div className="text-xs text-gray-500 mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded">
+            Debug: Current Step = {currentStep}, Submit Button Should Show = {currentStep === 5 ? 'YES' : 'NO'}
+          </div>
+          
           <div className="flex items-center justify-between">
             {currentStep > 1 ? (
               <button 
@@ -597,12 +618,13 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
                 </svg>
               </button>
             ) : (
-               <button 
-                 type="button" 
-                 onClick={handleSubmit}
-                 className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg font-medium"
-                 disabled={isSubmitting}
-               >
+                <button 
+                  type="button" 
+                  onClick={handleSubmit}
+                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg font-medium"
+                  disabled={isSubmitting}
+                  style={{ visibility: 'visible', opacity: 1, display: 'flex' }}
+                >
                 {isSubmitting ? (
                   <>
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
