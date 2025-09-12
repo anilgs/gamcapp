@@ -151,8 +151,12 @@ class ApiClient {
     };
 
     try {
+      console.log(`Making ${config.method} request to ${url} with body:`, config.body);
+      
       const response = await fetch(url, config);
       const data = await response.json();
+
+      console.log(`Response from ${url}:`, { status: response.status, data });
 
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
@@ -170,6 +174,9 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: unknown, tokenKey: string = 'token'): Promise<ApiResponse<T>> {
+    // Debug: Log the data being sent
+    console.log(`API POST to ${endpoint}:`, data);
+    
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
