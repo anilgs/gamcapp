@@ -161,4 +161,72 @@ class AppointmentController {
             echo json_encode(['success' => false, 'error' => 'Internal server error']);
         }
     }
+
+    public function getById(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $decoded = Auth::requireAuth();
+            $userId = $decoded['id'];
+            $appointmentId = $params['id'] ?? null;
+
+            if (!$appointmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Appointment ID is required']);
+                return;
+            }
+
+            // In this system, appointmentId is actually the user ID
+            if ((int)$userId !== (int)$appointmentId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Unauthorized access to appointment']);
+                return;
+            }
+
+            $user = User::findById($userId);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'User not found']);
+                return;
+            }
+
+            if (empty($user->appointment_details)) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'No appointment found']);
+                return;
+            }
+
+            // Create appointment response with user data
+            $appointmentData = [
+                'id' => (string)$user->id,
+                'appointment_date' => $user->appointment_details['appointmentDate'] ?? '',
+                'appointment_time' => $user->appointment_details['appointmentTime'] ?? '',
+                'status' => 'confirmed', // Default status
+                'payment_status' => $user->payment_status,
+                'appointment_type' => $user->appointment_details['appointmentType'] ?? '',
+                'medical_center' => $user->appointment_details['medicalCenter'] ?? '',
+                'user_details' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'passport_number' => $user->passport_number
+                ],
+                'full_details' => $user->appointment_details
+            ];
+
+            echo json_encode([
+                'success' => true,
+                'data' => $appointmentData
+            ]);
+
+        } catch (\Exception $error) {
+            error_log('Get appointment by ID error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+        }
+    }
 }

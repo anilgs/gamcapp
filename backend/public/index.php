@@ -68,6 +68,7 @@ $router->post('/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLo
 
 $router->post('/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
 $router->get('/appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
+$router->get('/appointments/{id}', 'Gamcapp\\Controllers\\AppointmentController@getById');
 
 $router->post('/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
 $router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');

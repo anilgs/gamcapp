@@ -39,7 +39,8 @@ class PaymentController {
             }
 
             // Validate that the appointment belongs to the user
-            if ($user->id != $appointmentId) {
+            // In this system, appointmentId is actually the user ID
+            if ((int)$userId !== (int)$appointmentId) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Unauthorized access to appointment']);
                 return;
@@ -53,7 +54,7 @@ class PaymentController {
             }
 
             // Check if payment is already completed
-            if ($user->payment_status === 'completed') {
+            if ($user->payment_status === 'paid') {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Payment already completed for this appointment']);
                 return;
@@ -195,13 +196,13 @@ class PaymentController {
                 return;
             }
 
-            $user->updatePaymentStatus('completed', $razorpayPaymentId);
+            $user->updatePaymentStatus('paid', $razorpayPaymentId);
 
             // Update payment transaction
             try {
                 Database::query(
                     "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ?, payment_details = ? WHERE razorpay_order_id = ?",
-                    [$razorpayPaymentId, 'completed', json_encode($paymentDetails), $razorpayOrderId]
+                    [$razorpayPaymentId, 'paid', json_encode($paymentDetails), $razorpayOrderId]
                 );
             } catch (\Exception $dbError) {
                 error_log('Failed to update payment transaction: ' . $dbError->getMessage());

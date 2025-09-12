@@ -186,7 +186,7 @@ jobs:
             echo "DB_PASSWORD=\"${{ env.DB_PASSWORD }}\"" >> deployment/backend/.env
             echo "JWT_SECRET=\"${{ env.JWT_SECRET }}\"" >> deployment/backend/.env
            echo "APP_ENV=development" >> deployment/backend/.env
-           echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+           echo "RAZORPAY_KEY_ID=\"${{ env.RAZORPAY_KEY_ID }}\"" >> deployment/backend/.env
             echo "RAZORPAY_KEY_SECRET=\"${{ env.RAZORPAY_KEY_SECRET }}\"" >> deployment/backend/.env
            echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
            echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
@@ -452,7 +452,7 @@ jobs:
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> deployment/backend/.env
           echo "JWT_SECRET=\"${{ env.JWT_SECRET }}\"" >> deployment/backend/.env
           echo "APP_ENV=production" >> deployment/backend/.env
-          echo "RAZORPAY_KEY_ID=${{ env.RAZORPAY_KEY_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_KEY_ID=\"${{ env.RAZORPAY_KEY_ID }}\"" >> deployment/backend/.env
           echo "RAZORPAY_KEY_SECRET=\"${{ env.RAZORPAY_KEY_SECRET }}\"" >> deployment/backend/.env
           echo "FRONTEND_URL=${{ env.FRONTEND_URL }}" >> deployment/backend/.env
           echo "SMTP_HOST=${{ env.SMTP_HOST }}" >> deployment/backend/.env
