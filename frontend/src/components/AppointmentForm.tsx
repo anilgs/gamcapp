@@ -164,8 +164,41 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  const validateAllFields = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    
+    // All required fields based on backend validation
+    const requiredFields = [
+      'firstName', 'lastName', 'dateOfBirth', 'nationality', 'gender', 'maritalStatus',
+      'passportNumber', 'passportIssueDate', 'passportIssuePlace', 'passportExpiryDate',
+      'visaType', 'email', 'phone', 'country', 'countryTravelingTo', 'appointmentType',
+      'medicalCenter', 'appointmentDate'
+    ];
+
+    // Check all required fields
+    requiredFields.forEach(field => {
+      if (!formData[field as keyof AppointmentFormData] || 
+          String(formData[field as keyof AppointmentFormData]).trim() === '') {
+        newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+      }
+    });
+
+    // Validate passport number confirmation
+    if (formData.passportNumber !== formData.confirmPassportNumber) {
+      newErrors.confirmPassportNumber = 'Passport numbers do not match';
+    }
+
+    // Validate email format
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep(5)) return;
+    if (!validateStep(5) || !validateAllFields()) return;
 
     setIsSubmitting(true);
     try {
@@ -473,6 +506,23 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
             </div>
             
             <div className="space-y-6">
+              {/* Show validation errors if any */}
+              {Object.keys(errors).length > 0 && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <div className="flex items-center space-x-2 text-red-800 mb-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-medium">Please fix the following errors:</span>
+                  </div>
+                  <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                    {Object.entries(errors).map(([field, message]) => (
+                      <li key={field}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
               <div className="grid md:grid-cols-2 gap-6">
                 {renderFormField('email', 'Email Address', 'email')}
                 {renderFormField('phone', 'Phone Number', 'tel')}
@@ -546,12 +596,12 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userPhone }
                 </svg>
               </button>
             ) : (
-              <button 
-                type="button" 
-                onClick={handleSubmit}
-                className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-health-green-600 to-health-green-700 text-white rounded-xl hover:from-health-green-700 hover:to-health-green-800 transition-all duration-200 shadow-lg"
-                disabled={isSubmitting}
-              >
+               <button 
+                 type="button" 
+                 onClick={handleSubmit}
+                 className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg font-medium"
+                 disabled={isSubmitting}
+               >
                 {isSubmitting ? (
                   <>
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
