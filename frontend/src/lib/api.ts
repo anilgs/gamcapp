@@ -214,6 +214,37 @@ export const adminAuthApi = {
 // Appointment API methods
 export const appointmentApi = {
   create: (appointmentData: {
+    // Personal Information
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    nationality: string;
+    gender: string;
+    maritalStatus: string;
+    
+    // Passport Information
+    passportNumber: string;
+    confirmPassportNumber: string;
+    passportIssueDate: string;
+    passportIssuePlace: string;
+    passportExpiryDate: string;
+    visaType: string;
+    
+    // Contact Information
+    email: string;
+    phone: string;
+    nationalId?: string;
+    
+    // Appointment Details
+    country: string;
+    city?: string;
+    countryTravelingTo: string;
+    appointmentType: string;
+    medicalCenter: string;
+    appointmentDate: string;
+    positionAppliedFor?: string;
+    
+    // Legacy fields for backward compatibility
     appointment_date: string;
     appointment_time: string;
     wafid_booking_id?: string;
