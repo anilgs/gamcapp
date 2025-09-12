@@ -116,6 +116,18 @@ export interface Appointment {
   updated_at: string;
 }
 
+export interface AppointmentCreationResponse {
+  appointmentId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    appointment_details: Record<string, unknown>;
+    payment_status: string;
+  };
+}
+
 // Generic API client
 class ApiClient {
   private baseUrl: string;
@@ -248,7 +260,7 @@ export const appointmentApi = {
     appointment_date: string;
     appointment_time: string;
     wafid_booking_id?: string;
-  }) => api.post<Appointment>('/appointments/create', appointmentData),
+  }) => api.post<AppointmentCreationResponse>('/appointments/create', appointmentData),
   
   getUserAppointments: () => api.get<Appointment[]>('/appointments/user'),
   getById: (id: string) => api.get<Appointment>(`/appointments/${id}`),
