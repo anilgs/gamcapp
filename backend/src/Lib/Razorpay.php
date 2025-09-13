@@ -22,11 +22,27 @@ class Razorpay {
             $keyId = $_ENV['RAZORPAY_KEY_ID'] ?? '';
             $keySecret = $_ENV['RAZORPAY_KEY_SECRET'] ?? '';
             
+            // Log initialization attempt
+            error_log('Initializing RazorPay API - Key ID length: ' . strlen($keyId) . 
+                     ', Key Secret length: ' . strlen($keySecret));
+            
             if (empty($keyId) || empty($keySecret)) {
+                error_log('RazorPay configuration error - Missing credentials in environment variables');
                 throw new \Exception('RazorPay configuration missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.');
             }
             
-            self::$api = new Api($keyId, $keySecret);
+            // Validate key format (Razorpay key IDs start with 'rzp_')
+            if (!str_starts_with($keyId, 'rzp_')) {
+                error_log('RazorPay configuration warning - Key ID does not start with "rzp_": ' . substr($keyId, 0, 10) . '...');
+            }
+            
+            try {
+                self::$api = new Api($keyId, $keySecret);
+                error_log('RazorPay API initialized successfully');
+            } catch (\Exception $error) {
+                error_log('Failed to initialize RazorPay API: ' . $error->getMessage());
+                throw $error;
+            }
         }
         
         return self::$api;
@@ -38,6 +54,9 @@ class Razorpay {
 
     public static function createOrder(array $orderData): array {
         try {
+            // Log input data for debugging
+            error_log('RazorPay createOrder called with data: ' . json_encode($orderData, JSON_PRETTY_PRINT));
+            
             $amount = $orderData['amount'];
             $currency = $orderData['currency'] ?? 'INR';
             $receipt = $orderData['receipt'];
@@ -51,17 +70,53 @@ class Razorpay {
                 'payment_capture' => 1 // Auto capture payment
             ];
 
+            // Log the options being sent to Razorpay API
+            error_log('RazorPay API options: ' . json_encode($options, JSON_PRETTY_PRINT));
+            
+            // Log API credentials status (without exposing secrets)
+            $keyId = $_ENV['RAZORPAY_KEY_ID'] ?? '';
+            $keySecret = $_ENV['RAZORPAY_KEY_SECRET'] ?? '';
+            error_log('RazorPay credentials check - Key ID present: ' . (!empty($keyId) ? 'YES' : 'NO') . 
+                     ', Key Secret present: ' . (!empty($keySecret) ? 'YES' : 'NO'));
+
             $api = self::getApi();
+            
+            // Log before API call
+            error_log('Making RazorPay API call to create order...');
+            $startTime = microtime(true);
+            
             $order = $api->order->create($options);
             
-            error_log('RazorPay order created: ' . $order['id']);
+            $endTime = microtime(true);
+            $duration = round(($endTime - $startTime) * 1000, 2); // Convert to milliseconds
+            
+            // Log successful order creation with timing
+            error_log('RazorPay order created successfully - Order ID: ' . $order['id'] . 
+                     ', Duration: ' . $duration . 'ms');
+            error_log('RazorPay order response: ' . json_encode($order->toArray(), JSON_PRETTY_PRINT));
             
             return [
                 'success' => true,
                 'order' => $order->toArray()
             ];
         } catch (\Exception $error) {
-            error_log('Error creating RazorPay order: ' . $error->getMessage());
+            // Enhanced error logging with more context
+            $errorDetails = [
+                'message' => $error->getMessage(),
+                'code' => $error->getCode(),
+                'file' => $error->getFile(),
+                'line' => $error->getLine(),
+                'trace' => $error->getTraceAsString()
+            ];
+            
+            error_log('RazorPay createOrder FAILED - Error details: ' . json_encode($errorDetails, JSON_PRETTY_PRINT));
+            error_log('RazorPay createOrder FAILED - Input data was: ' . json_encode($orderData, JSON_PRETTY_PRINT));
+            
+            // Check if it's a specific Razorpay API error
+            if (method_exists($error, 'getField') && method_exists($error, 'getDescription')) {
+                error_log('RazorPay API Error - Field: ' . $error->getField() . ', Description: ' . $error->getDescription());
+            }
+            
             return [
                 'success' => false,
                 'error' => $error->getMessage() ?: 'Failed to create payment order'
