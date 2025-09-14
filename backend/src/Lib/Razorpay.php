@@ -37,23 +37,41 @@ class Razorpay {
             }
             
             // SSL Certificate Path Resolution for Production Environment
+            // Note: Some hosting providers (like Hostinger) may have additional .sha256 checksum files
             $currentDir = getcwd();
             $backendDir = dirname(__DIR__, 2); // Go up two levels from src/Lib to backend root
-            $certPath = $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem';
             
-            error_log('RazorPay SSL - Backend dir: ' . $backendDir . ', Cert exists: ' . (file_exists($certPath) ? 'YES' : 'NO'));
+            // Try certificate filenames in order of preference
+            $certPaths = [
+                $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem',         // Standard certificate bundle
+                $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem.sha256'  // Potential certificate file (not checksum)
+            ];
+            
+            $certPath = null;
+            foreach ($certPaths as $path) {
+                if (file_exists($path) && filesize($path) > 10000) { // Ensure it's a proper certificate bundle (>10KB)
+                    $certPath = $path;
+                    break;
+                }
+            }
+            
+            error_log('RazorPay SSL - Backend dir: ' . $backendDir . ', Using cert: ' . ($certPath ? basename($certPath) : 'NOT_FOUND'));
             
             // Configure Requests library with absolute certificate path to avoid path resolution issues
-            try {
-                if (class_exists('\Requests')) {
-                    \Requests::set_certificate_path($certPath);
-                    error_log('RazorPay SSL - Set absolute certificate path in Requests library');
-                } elseif (class_exists('\WpOrg\Requests\Requests')) {
-                    \WpOrg\Requests\Requests::set_certificate_path($certPath);
-                    error_log('RazorPay SSL - Set absolute certificate path in WpOrg\Requests library');
+            if ($certPath) {
+                try {
+                    if (class_exists('\Requests')) {
+                        \Requests::set_certificate_path($certPath);
+                        error_log('RazorPay SSL - Set certificate path in Requests library: ' . basename($certPath));
+                    } elseif (class_exists('\WpOrg\Requests\Requests')) {
+                        \WpOrg\Requests\Requests::set_certificate_path($certPath);
+                        error_log('RazorPay SSL - Set certificate path in WpOrg\Requests library: ' . basename($certPath));
+                    }
+                } catch (\Exception $certError) {
+                    error_log('RazorPay SSL - Failed to set certificate path: ' . $certError->getMessage());
                 }
-            } catch (\Exception $certError) {
-                error_log('RazorPay SSL - Failed to set certificate path: ' . $certError->getMessage());
+            } else {
+                error_log('RazorPay SSL - Warning: No certificate file found in expected locations');
             }
             
             // Set working directory to backend root for proper path resolution
