@@ -7,8 +7,15 @@ use Gamcapp\Lib\Auth;
 use Gamcapp\Lib\Razorpay;
 use Gamcapp\Models\User;
 use Gamcapp\Core\Database;
+use Lib\Logger;
 
 class PaymentController {
+    private Logger $logger;
+    
+    public function __construct() {
+        $this->logger = Logger::getInstance();
+    }
+    
     public function createOrder(array $params = []): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
@@ -23,10 +30,19 @@ class PaymentController {
             $appointmentId = $input['appointmentId'] ?? null;
             $userId = $decoded['id'];
 
+            $this->logger->info('Payment order creation started', [
+                'user_id' => $userId,
+                'appointment_id' => $appointmentId,
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
+
             // Check Razorpay configuration first
             if (empty($_ENV['RAZORPAY_KEY_ID']) || empty($_ENV['RAZORPAY_KEY_SECRET']) ||
                 $_ENV['RAZORPAY_KEY_ID'] === 'your_razorpay_key_id' ||
                 $_ENV['RAZORPAY_KEY_SECRET'] === 'your_razorpay_key_secret') {
+                $this->logger->error('Payment order creation failed: Razorpay credentials not configured', [
+                    'user_id' => $userId
+                ]);
                 error_log('Payment creation failed: Razorpay credentials not configured');
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Payment system not configured. Please contact administrator.']);
@@ -35,6 +51,9 @@ class PaymentController {
 
             // Validate input
             if (!$appointmentId) {
+                $this->logger->warning('Payment order creation failed: Missing appointment ID', [
+                    'user_id' => $userId
+                ]);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Appointment ID is required']);
                 return;
@@ -97,6 +116,12 @@ class PaymentController {
             ]);
 
             if (!$orderResult['success']) {
+                $this->logger->error('Failed to create RazorPay order', [
+                    'user_id' => $userId,
+                    'appointment_type' => $appointmentType,
+                    'amount' => $amount,
+                    'error' => $orderResult['error']
+                ]);
                 error_log('Failed to create RazorPay order: ' . $orderResult['error']);
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Failed to create payment order']);
@@ -120,6 +145,16 @@ class PaymentController {
             // Update user payment status to pending
             $user->updatePaymentStatus('pending');
 
+            $this->logger->info('Payment order created successfully', [
+                'user_id' => $userId,
+                'user_email' => $user->email,
+                'appointment_type' => $appointmentType,
+                'order_id' => $order['id'],
+                'amount' => $amount,
+                'currency' => 'INR',
+                'receipt' => $receipt
+            ]);
+
             error_log("Payment order created for user {$userId}: " . $order['id']);
 
             echo json_encode([
@@ -134,6 +169,11 @@ class PaymentController {
             ]);
 
         } catch (\Exception $error) {
+            $this->logger->error('Create payment order error', [
+                'user_id' => $userId ?? 'unknown',
+                'error' => $error->getMessage(),
+                'trace' => $error->getTraceAsString()
+            ]);
             error_log('Create payment order error: ' . $error->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internal server error']);
@@ -156,6 +196,13 @@ class PaymentController {
             $razorpayPaymentId = $input['razorpay_payment_id'] ?? null;
             $razorpaySignature = $input['razorpay_signature'] ?? null;
 
+            $this->logger->info('Payment verification started', [
+                'user_id' => $userId,
+                'order_id' => $razorpayOrderId,
+                'payment_id' => $razorpayPaymentId,
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
+
             if (!$razorpayOrderId || !$razorpayPaymentId || !$razorpaySignature) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Missing payment verification data']);
@@ -170,6 +217,12 @@ class PaymentController {
             ]);
 
             if (!$verificationResult['success']) {
+                $this->logger->warning('Payment verification failed', [
+                    'user_id' => $userId,
+                    'order_id' => $razorpayOrderId,
+                    'payment_id' => $razorpayPaymentId,
+                    'error' => $verificationResult['error']
+                ]);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => $verificationResult['error']]);
                 return;
@@ -205,6 +258,15 @@ class PaymentController {
                 error_log('Failed to update payment transaction: ' . $dbError->getMessage());
             }
 
+            $this->logger->info('Payment verified successfully', [
+                'user_id' => $userId,
+                'user_email' => $user->email,
+                'order_id' => $razorpayOrderId,
+                'payment_id' => $razorpayPaymentId,
+                'amount' => $paymentDetails['amount'] ?? 'unknown',
+                'method' => $paymentDetails['method'] ?? 'unknown'
+            ]);
+
             error_log("Payment verified successfully for user {$userId}: {$razorpayPaymentId}");
 
             echo json_encode([
@@ -218,6 +280,13 @@ class PaymentController {
             ]);
 
         } catch (\Exception $error) {
+            $this->logger->error('Verify payment error', [
+                'user_id' => $userId ?? 'unknown',
+                'order_id' => $razorpayOrderId ?? 'unknown',
+                'payment_id' => $razorpayPaymentId ?? 'unknown',
+                'error' => $error->getMessage(),
+                'trace' => $error->getTraceAsString()
+            ]);
             error_log('Verify payment error: ' . $error->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internal server error']);

@@ -267,6 +267,12 @@ export const appointmentApi = {
   update: (id: string, data: Partial<Appointment>) => api.put<Appointment>(`/appointments/${id}`, data),
   cancel: (id: string) => api.delete<{ message: string }>(`/appointments/${id}`),
   
+  // New draft functionality
+  saveDraft: (formData: Record<string, unknown>) => 
+    api.post<{ appointmentId: string; appointment: Appointment }>('/appointments/save-draft', formData),
+  getLatestDraft: () => 
+    api.get<{ hasDraft: boolean; appointment: Appointment | null; formData: Record<string, unknown> | null }>('/appointments/latest-draft'),
+  
   // Admin endpoints
   getAll: () => api.get<Appointment[]>('/admin/appointments'),
   updateStatus: (id: string, status: Appointment['status']) => 
