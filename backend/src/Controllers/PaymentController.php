@@ -6,6 +6,7 @@ namespace Gamcapp\Controllers;
 use Gamcapp\Lib\Auth;
 use Gamcapp\Lib\Razorpay;
 use Gamcapp\Models\User;
+use Gamcapp\Models\Appointment;
 use Gamcapp\Core\Database;
 use Gamcapp\Lib\Logger;
 
@@ -68,29 +69,64 @@ class PaymentController {
             }
 
             // Validate that the appointment belongs to the user
-            // In this system, appointmentId is actually the user ID
-            if ((int)$userId !== (int)$appointmentId) {
+            $appointment = Appointment::findById($appointmentId);
+            if (!$appointment) {
+                $this->logger->warning('Payment order creation failed: Appointment not found', [
+                    'user_id' => $userId,
+                    'appointment_id' => $appointmentId
+                ]);
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Appointment not found']);
+                return;
+            }
+
+            if ($appointment->user_id !== $userId) {
+                $this->logger->warning('Payment order creation failed: Unauthorized access to appointment', [
+                    'user_id' => $userId,
+                    'appointment_id' => $appointmentId,
+                    'appointment_user_id' => $appointment->user_id
+                ]);
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Unauthorized access to appointment']);
                 return;
             }
 
-            // Check if user has appointment details
-            if (empty($user->appointment_details)) {
+            // Check if appointment has required details
+            if (empty($appointment->appointment_type)) {
+                $this->logger->warning('Payment order creation failed: Incomplete appointment details', [
+                    'user_id' => $userId,
+                    'appointment_id' => $appointmentId
+                ]);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Please complete appointment details first']);
                 return;
             }
 
-            // Check if payment is already completed
-            if ($user->payment_status === 'paid') {
+            // Check if appointment status allows payment
+            if (!in_array($appointment->status, ['payment_pending', 'draft'])) {
+                $this->logger->warning('Payment order creation failed: Invalid appointment status', [
+                    'user_id' => $userId,
+                    'appointment_id' => $appointmentId,
+                    'status' => $appointment->status
+                ]);
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'This appointment is not eligible for payment']);
+                return;
+            }
+
+            // Check if payment is already completed for this appointment
+            if ($appointment->payment_status === 'paid') {
+                $this->logger->warning('Payment order creation failed: Payment already completed', [
+                    'user_id' => $userId,
+                    'appointment_id' => $appointmentId
+                ]);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Payment already completed for this appointment']);
                 return;
             }
 
             // Get appointment type and calculate amount
-            $appointmentType = $user->appointment_details['appointmentType'] ?? null;
+            $appointmentType = $appointment->appointment_type;
             if (!$appointmentType) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Appointment type not specified']);
@@ -111,7 +147,9 @@ class PaymentController {
                     'appointment_type' => $appointmentType,
                     'user_name' => $user->name,
                     'user_email' => $user->email,
-                    'user_phone' => $user->phone
+                    'user_phone' => $user->phone,
+                    'appointment_date' => $appointment->appointment_date,
+                    'medical_center' => $appointment->medical_center
                 ]
             ]);
 
@@ -132,11 +170,21 @@ class PaymentController {
 
             // Store payment transaction in database
             try {
-                Database::query(
-                    "INSERT INTO payment_transactions (user_id, razorpay_order_id, amount, currency, status)
-                     VALUES (?, ?, ?, ?, ?)",
-                    [$userId, $order['id'], $amount, 'INR', 'created']
-                );
+                // Try to insert with appointment_id if column exists, fallback without it
+                try {
+                    Database::query(
+                        "INSERT INTO payment_transactions (user_id, appointment_id, razorpay_order_id, amount, currency, status)
+                         VALUES (?, ?, ?, ?, ?, ?)",
+                        [$userId, $appointmentId, $order['id'], $amount, 'INR', 'created']
+                    );
+                } catch (\Exception $e) {
+                    // Fallback: column might not exist, try without appointment_id
+                    Database::query(
+                        "INSERT INTO payment_transactions (user_id, razorpay_order_id, amount, currency, status)
+                         VALUES (?, ?, ?, ?, ?)",
+                        [$userId, $order['id'], $amount, 'INR', 'created']
+                    );
+                }
             } catch (\Exception $dbError) {
                 error_log('Failed to store payment transaction: ' . $dbError->getMessage());
                 // Continue anyway, as the order was created successfully
@@ -144,6 +192,12 @@ class PaymentController {
 
             // Update user payment status to pending
             $user->updatePaymentStatus('pending');
+
+            // Update appointment with payment order ID
+            $appointment->update([
+                'payment_order_id' => $order['id'],
+                'payment_status' => 'pending'
+            ]);
 
             $this->logger->info('Payment order created successfully', [
                 'user_id' => $userId,
