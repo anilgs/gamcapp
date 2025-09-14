@@ -331,25 +331,37 @@ jobs:
           echo "Verifying database setup..."
           TABLES=$(mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                    "${{ env.DB_NAME }}" -e "SHOW TABLES;" --skip-column-names --batch 2>/dev/null)
-          echo "Database tables found:"
-          echo "$TABLES"
-          
-          # Always run migrations on deployment (safe to run multiple times)
-          echo "Running database migrations..."
-          if [ -f "backend/database/migrate_otp_table.sql" ]; then
-            echo "Running OTP table migration..."
-            mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
-                  "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
-             echo "OTP table migration completed"
-           fi
-           if [ -f "backend/database/migrate_passport_nullable.sql" ]; then
-             echo "Running passport nullable migration..."
+           echo "Database tables found:"
+           echo "$TABLES"
+           
+           # Always run migrations on deployment (safe to run multiple times)
+           echo "Running database migrations..."
+           if [ -f "backend/database/migrate_otp_table.sql" ]; then
+             echo "Running OTP table migration..."
              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
-                   "${{ env.DB_NAME }}" < backend/database/migrate_passport_nullable.sql
-             echo "Passport nullable migration completed"
-           fi
+                   "${{ env.DB_NAME }}" < backend/database/migrate_otp_table.sql
+              echo "OTP table migration completed"
+            fi
+            if [ -f "backend/database/migrate_passport_nullable.sql" ]; then
+              echo "Running passport nullable migration..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/migrate_passport_nullable.sql
+              echo "Passport nullable migration completed"
+            fi
+            if [ -f "backend/database/migrate_appointments_table.sql" ]; then
+              echo "Running appointments table migration..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/migrate_appointments_table.sql
+              echo "Appointments table migration completed"
+            fi
+            if [ -f "backend/database/migrate_appointments_table.sql" ]; then
+              echo "Running appointments table migration..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/migrate_appointments_table.sql
+              echo "Appointments table migration completed"
+            fi
 
-  deploy-production:
+   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: test
