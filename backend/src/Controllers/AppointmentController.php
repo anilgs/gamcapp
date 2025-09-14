@@ -102,7 +102,7 @@ class AppointmentController {
             ];
 
             // Check if user has a draft appointment to update instead of creating new
-            $existingDraft = Appointment::findLatestDraftByUserId($userId);
+            $existingDraft = Appointment::findLatestEditableByUserId($userId);
             
             $appointment = null;
             if ($existingDraft) {
@@ -304,8 +304,8 @@ class AppointmentController {
                 'payment_status' => 'pending'
             ];
 
-            // Check if user has an existing draft
-            $existingDraft = Appointment::findLatestDraftByUserId($userId);
+            // Check if user has an existing draft or payment_pending appointment
+            $existingDraft = Appointment::findLatestEditableByUserId($userId);
             
             $appointment = null;
             if ($existingDraft) {
@@ -384,7 +384,22 @@ class AppointmentController {
             $decoded = Auth::requireAuth();
             $userId = $decoded['id'];
 
-            $draft = Appointment::findLatestDraftByUserId($userId);
+            // Check if appointment ID is provided in query parameters
+            $appointmentId = $_GET['appointmentId'] ?? null;
+            
+            $draft = null;
+            if ($appointmentId) {
+                // Get specific appointment by ID, but verify it belongs to the user
+                $draft = Appointment::getLatestDraft($appointmentId);
+                if ($draft && $draft->user_id !== $userId) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Access denied']);
+                    return;
+                }
+            } else {
+                // Get latest editable appointment by user ID (includes drafts and payment_pending)
+                $draft = Appointment::findLatestEditableByUserId($userId);
+            }
             
             if ($draft) {
                 echo json_encode([

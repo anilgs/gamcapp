@@ -153,13 +153,27 @@ class Appointment {
         return $appointments;
     }
 
-    public static function findLatestDraftByUserId(int $userId): ?self {
+    public static function getLatestDraft(string $appointmentId): ?self {
         $db = Database::getInstance();
-        $stmt = $db->prepare("SELECT * FROM appointments WHERE user_id = :user_id AND status = 'draft' ORDER BY updated_at DESC LIMIT 1");
+        $stmt = $db->prepare("SELECT * FROM appointments WHERE id = :id");
+        $stmt->execute([':id' => $appointmentId]);
+        
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data ? new self($data) : null;
+    }
+
+    public static function findLatestEditableByUserId(int $userId): ?self {
+        $db = Database::getInstance();
+        $stmt = $db->prepare("SELECT * FROM appointments WHERE user_id = :user_id AND status IN ('draft', 'payment_pending') ORDER BY updated_at DESC LIMIT 1");
         $stmt->execute([':user_id' => $userId]);
         
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         return $data ? new self($data) : null;
+    }
+
+    public static function findLatestDraftByUserId(int $userId): ?self {
+        // Deprecated: Use findLatestEditableByUserId instead
+        return self::findLatestEditableByUserId($userId);
     }
 
     public function update(array $data): bool {
