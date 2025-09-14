@@ -10,6 +10,11 @@ use Gamcapp\Middleware\CorsMiddleware;
 
 header('Content-Type: application/json');
 
+// Configure error handling to prevent HTML output
+ini_set('display_errors', '0');
+ini_set('html_errors', '0');
+error_reporting(E_ALL);
+
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
@@ -68,9 +73,9 @@ $router->post('/auth/admin-login', 'Gamcapp\\Controllers\\AuthController@adminLo
 
 $router->post('/appointments/create', 'Gamcapp\\Controllers\\AppointmentController@create');
 $router->get('/appointments/user', 'Gamcapp\\Controllers\\AppointmentController@getUserAppointments');
-$router->get('/appointments/{id}', 'Gamcapp\\Controllers\\AppointmentController@getById');
 $router->post('/appointments/save-draft', 'Gamcapp\\Controllers\\AppointmentController@saveDraft');
 $router->get('/appointments/latest-draft', 'Gamcapp\\Controllers\\AppointmentController@getLatestDraft');
+$router->get('/appointments/{id}', 'Gamcapp\\Controllers\\AppointmentController@getById');
 
 $router->post('/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
 $router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');

@@ -281,14 +281,14 @@ class AppointmentController {
                 'user_id' => $userId,
                 'first_name' => $input['firstName'] ?? '',
                 'last_name' => $input['lastName'] ?? '',
-                'date_of_birth' => $input['dateOfBirth'] ?? '',
+                'date_of_birth' => $input['dateOfBirth'] ?? '1900-01-01',
                 'nationality' => $input['nationality'] ?? '',
-                'gender' => $input['gender'] ?? '',
-                'marital_status' => $input['maritalStatus'] ?? '',
+                'gender' => $input['gender'] ?? 'Male',
+                'marital_status' => $input['maritalStatus'] ?? 'Single',
                 'passport_number' => $input['passportNumber'] ?? '',
-                'passport_issue_date' => $input['passportIssueDate'] ?? '',
+                'passport_issue_date' => $input['passportIssueDate'] ?? '1900-01-01',
                 'passport_issue_place' => $input['passportIssuePlace'] ?? '',
-                'passport_expiry_date' => $input['passportExpiryDate'] ?? '',
+                'passport_expiry_date' => $input['passportExpiryDate'] ?? '2100-01-01',
                 'visa_type' => $input['visaType'] ?? '',
                 'position_applied_for' => $input['positionAppliedFor'] ?? null,
                 'email' => $input['email'] ?? '',
@@ -297,23 +297,45 @@ class AppointmentController {
                 'country' => $input['country'] ?? '',
                 'city' => $input['city'] ?? null,
                 'country_traveling_to' => $input['countryTravelingTo'] ?? '',
-                'appointment_type' => $input['appointmentType'] ?? '',
+                'appointment_type' => $input['appointmentType'] ?? 'standard',
                 'medical_center' => $input['medicalCenter'] ?? '',
-                'appointment_date' => $input['appointmentDate'] ?? '',
+                'appointment_date' => $input['appointmentDate'] ?? '2025-01-01',
                 'status' => 'draft',
                 'payment_status' => 'pending'
             ];
-
-            // Remove empty fields to avoid database constraint issues
-            $appointmentData = array_filter($appointmentData, fn($value) => $value !== '');
 
             // Check if user has an existing draft
             $existingDraft = Appointment::findLatestDraftByUserId($userId);
             
             $appointment = null;
             if ($existingDraft) {
-                // Update existing draft
-                if ($existingDraft->update($appointmentData)) {
+                // For updates, only include non-empty fields from user input
+                $updateData = array_filter([
+                    'first_name' => $input['firstName'] ?? null,
+                    'last_name' => $input['lastName'] ?? null,
+                    'date_of_birth' => $input['dateOfBirth'] ?? null,
+                    'nationality' => $input['nationality'] ?? null,
+                    'gender' => $input['gender'] ?? null,
+                    'marital_status' => $input['maritalStatus'] ?? null,
+                    'passport_number' => $input['passportNumber'] ?? null,
+                    'passport_issue_date' => $input['passportIssueDate'] ?? null,
+                    'passport_issue_place' => $input['passportIssuePlace'] ?? null,
+                    'passport_expiry_date' => $input['passportExpiryDate'] ?? null,
+                    'visa_type' => $input['visaType'] ?? null,
+                    'position_applied_for' => $input['positionAppliedFor'] ?? null,
+                    'email' => $input['email'] ?? null,
+                    'phone' => $input['phone'] ?? null,
+                    'national_id' => $input['nationalId'] ?? null,
+                    'country' => $input['country'] ?? null,
+                    'city' => $input['city'] ?? null,
+                    'country_traveling_to' => $input['countryTravelingTo'] ?? null,
+                    'appointment_type' => $input['appointmentType'] ?? null,
+                    'medical_center' => $input['medicalCenter'] ?? null,
+                    'appointment_date' => $input['appointmentDate'] ?? null,
+                    'status' => 'draft'
+                ], fn($value) => $value !== null && $value !== '');
+                
+                if ($existingDraft->update($updateData)) {
                     $appointment = $existingDraft;
                 }
             } else {
