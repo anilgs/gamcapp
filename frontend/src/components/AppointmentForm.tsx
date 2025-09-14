@@ -31,6 +31,7 @@ interface AppointmentFormData {
   appointmentDate: string;
   visaType: string;
   positionAppliedFor: string;
+  [key: string]: string; // Add index signature
 }
 
 interface AppointmentFormProps {
@@ -83,7 +84,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
     try {
       const response = await appointmentApi.getLatestDraft();
       if (response.success && response.data?.hasDraft && response.data.formData) {
-        setSavedDraftData(response.data.formData as AppointmentFormData);
+        setSavedDraftData(response.data.formData as unknown as AppointmentFormData);
         setShowRestorationPrompt(true);
       }
     } catch (error) {
@@ -106,6 +107,18 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
     setShowRestorationPrompt(false);
     setSavedDraftData(null);
   };
+
+  const saveDraft = useCallback(async () => {
+    // Only save if there's meaningful data to save
+    const hasData = formData.firstName || formData.email || formData.passportNumber || formData.appointmentType;
+    if (!hasData) return;
+
+    try {
+      await appointmentApi.saveDraft(formData as Record<string, unknown>);
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+    }
+  }, [formData]);
 
   // Auto-save draft when form data changes (debounced)
   useEffect(() => {
@@ -140,18 +153,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
   const medicalCenters = [
     'GAMCA Mumbai', 'GAMCA Delhi', 'GAMCA Chennai', 'GAMCA Hyderabad', 'GAMCA Kochi', 'GAMCA Bangalore'
   ];
-
-  const saveDraft = useCallback(async () => {
-    // Only save if there's meaningful data to save
-    const hasData = formData.firstName || formData.email || formData.passportNumber || formData.appointmentType;
-    if (!hasData) return;
-
-    try {
-      await appointmentApi.saveDraft(formData);
-    } catch (error) {
-      console.error('Failed to save draft:', error);
-    }
-  }, [formData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -298,7 +299,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
       </label>
       {type === 'select' ? (
         <select
-          name={name}
+          name={String(name)}
           value={formData[name]}
           onChange={handleInputChange}
           className={`form-select ${errors[name] ? 'border-red-500' : ''}`}
@@ -312,7 +313,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
       ) : (
         <input
           type={type}
-          name={name}
+          name={String(name)}
           value={formData[name]}
           onChange={handleInputChange}
           className={`form-input ${errors[name] ? 'border-red-500' : ''}`}
