@@ -36,12 +36,23 @@ class Razorpay {
                 error_log('RazorPay configuration warning - Key ID does not start with "rzp_": ' . substr($keyId, 0, 10) . '...');
             }
             
+            // Ensure we have the correct working directory for certificate resolution
+            $currentDir = getcwd();
+            $backendDir = dirname(__DIR__, 2); // Go up two levels from src/Lib to backend root
+            error_log('RazorPay init - Current dir: ' . $currentDir . ', Backend dir: ' . $backendDir);
+            
+            // Set working directory to backend root before initializing Razorpay
+            chdir($backendDir);
+            
             try {
                 self::$api = new Api($keyId, $keySecret);
                 error_log('RazorPay API initialized successfully');
             } catch (\Exception $error) {
                 error_log('Failed to initialize RazorPay API: ' . $error->getMessage());
                 throw $error;
+            } finally {
+                // Restore original working directory
+                chdir($currentDir);
             }
         }
         
