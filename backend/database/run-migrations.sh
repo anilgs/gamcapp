@@ -22,6 +22,7 @@ echo "Database: $DB_NAME on $DB_HOST"
 MIGRATIONS=(
     "migrate_otp_table.sql"
     "migrate_passport_nullable.sql"
+    "migrate_appointments_table.sql"
 )
 
 # Run each migration

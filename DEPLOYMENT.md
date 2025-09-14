@@ -46,8 +46,34 @@ The GAMCAPP project now includes comprehensive automated deployment with databas
 
 1. **Database Existence Check**: Verifies if target database exists
 2. **Schema Validation**: Counts existing tables (minimum 4 required)
-3. **Conditional Setup**: Only initializes if database is empty or missing
-4. **Verification**: Lists created tables and confirms success
+3. **Migration Execution**: Runs database migrations to update schema if needed
+4. **Conditional Setup**: Only initializes if database is empty or missing
+5. **Verification**: Lists created tables and confirms success
+
+#### Database Migrations
+
+The system automatically runs database migrations during deployment using `backend/database/run-migrations.sh`:
+
+**Migration Order:**
+1. `migrate_otp_table.sql` - Updates OTP tokens for email/phone support
+2. `migrate_passport_nullable.sql` - Makes passport fields nullable where needed  
+3. `migrate_appointments_table.sql` - Creates dedicated appointments table
+
+**Migration Features:**
+- **Idempotent**: Safe to run multiple times without issues
+- **Backwards Compatible**: Preserves existing data during schema updates
+- **Environment Validation**: Requires proper database credentials
+- **Error Handling**: Stops on first failure with clear error messages
+
+**Manual Migration Execution:**
+```bash
+cd backend/database
+export DB_HOST="your-db-host"
+export DB_NAME="gamcapp" 
+export DB_USER="your-db-user"
+export DB_PASSWORD="your-password"
+./run-migrations.sh
+```
 
 ### Required GitHub Secrets
 
