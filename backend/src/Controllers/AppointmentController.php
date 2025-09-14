@@ -6,7 +6,7 @@ namespace Gamcapp\Controllers;
 use Gamcapp\Lib\Auth;
 use Gamcapp\Models\User;
 use Gamcapp\Models\Appointment;
-use Lib\Logger;
+use Gamcapp\Lib\Logger;
 
 class AppointmentController {
     private Logger $logger;

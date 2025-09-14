@@ -7,7 +7,7 @@ use Gamcapp\Lib\Auth;
 use Gamcapp\Lib\Razorpay;
 use Gamcapp\Models\User;
 use Gamcapp\Core\Database;
-use Lib\Logger;
+use Gamcapp\Lib\Logger;
 
 class PaymentController {
     private Logger $logger;
