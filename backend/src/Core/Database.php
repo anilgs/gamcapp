@@ -9,6 +9,10 @@ use PDOException;
 class Database {
     private static ?PDO $connection = null;
     
+    public static function getInstance(): PDO {
+        return self::getConnection();
+    }
+    
     public static function getConnection(): PDO {
         if (self::$connection === null) {
             try {
