@@ -36,12 +36,27 @@ class Razorpay {
                 error_log('RazorPay configuration warning - Key ID does not start with "rzp_": ' . substr($keyId, 0, 10) . '...');
             }
             
-            // Ensure we have the correct working directory for certificate resolution
+            // SSL Certificate Path Resolution for Production Environment
             $currentDir = getcwd();
             $backendDir = dirname(__DIR__, 2); // Go up two levels from src/Lib to backend root
-            error_log('RazorPay init - Current dir: ' . $currentDir . ', Backend dir: ' . $backendDir);
+            $certPath = $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem';
             
-            // Set working directory to backend root before initializing Razorpay
+            error_log('RazorPay SSL - Backend dir: ' . $backendDir . ', Cert exists: ' . (file_exists($certPath) ? 'YES' : 'NO'));
+            
+            // Configure Requests library with absolute certificate path to avoid path resolution issues
+            try {
+                if (class_exists('\Requests')) {
+                    \Requests::set_certificate_path($certPath);
+                    error_log('RazorPay SSL - Set absolute certificate path in Requests library');
+                } elseif (class_exists('\WpOrg\Requests\Requests')) {
+                    \WpOrg\Requests\Requests::set_certificate_path($certPath);
+                    error_log('RazorPay SSL - Set absolute certificate path in WpOrg\Requests library');
+                }
+            } catch (\Exception $certError) {
+                error_log('RazorPay SSL - Failed to set certificate path: ' . $certError->getMessage());
+            }
+            
+            // Set working directory to backend root for proper path resolution
             chdir($backendDir);
             
             try {
