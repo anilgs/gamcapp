@@ -40,17 +40,35 @@ class Razorpay {
             $currentDir = getcwd();
             $backendDir = dirname(__DIR__, 2); // Go up two levels from src/Lib to backend root
             
-            // Try certificate filenames in order of preference (exclude checksum files)
-            $certPaths = [
-                $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem',         // Standard certificate bundle
-                $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem.sha256'  // Potential certificate file (not checksum)
-            ];
+            // Build certificate paths - prioritize environment-specific paths for production
+            $certPaths = [];
+            
+            // Production environment path (Hostinger-specific)
+            if (!empty($_ENV['HOSTINGER_USER_ID']) && !empty($_ENV['DOMAIN'])) {
+                $userId = $_ENV['HOSTINGER_USER_ID'];
+                $domain = $_ENV['DOMAIN'];
+                $certPaths[] = "/home/{$userId}/domains/{$domain}/backend/vendor/rmccue/requests/certificates/cacert.pem";
+                $certPaths[] = "/home/{$userId}/domains/{$domain}/backend/vendor/razorpay/razorpay/libs/Requests-2.0.4/certificates/cacert.pem";
+                error_log("RazorPay SSL - Checking production paths for user: {$userId}, domain: {$domain}");
+            }
+            
+            // Fallback to relative paths (development/other hosting)
+            $certPaths[] = $backendDir . '/vendor/rmccue/requests/certificates/cacert.pem';
+            $certPaths[] = $backendDir . '/vendor/razorpay/razorpay/libs/Requests-2.0.4/certificates/cacert.pem';
             
             $certPath = null;
             foreach ($certPaths as $path) {
-                if (file_exists($path) && filesize($path) > 10000) { // Ensure it's a proper certificate bundle (>10KB)
+                error_log("RazorPay SSL - Checking certificate path: {$path}");
+                if (file_exists($path) && is_readable($path) && filesize($path) > 10000) {
                     $certPath = $path;
+                    error_log("RazorPay SSL - Found valid certificate at: {$path} (size: " . filesize($path) . " bytes)");
                     break;
+                } else {
+                    $status = [];
+                    if (!file_exists($path)) $status[] = "not found";
+                    if (file_exists($path) && !is_readable($path)) $status[] = "not readable";
+                    if (file_exists($path) && filesize($path) <= 10000) $status[] = "too small (" . filesize($path) . " bytes)";
+                    error_log("RazorPay SSL - Certificate check failed: {$path} (" . implode(", ", $status) . ")");
                 }
             }
             
@@ -82,7 +100,53 @@ class Razorpay {
                 
                 error_log('RazorPay SSL - Configured certificate: ' . basename($certPath));
             } else {
-                error_log('RazorPay SSL - Warning: No valid certificate file found');
+                // Fallback SSL configuration for environments where certificate files aren't accessible
+                error_log('RazorPay SSL - Warning: No valid certificate file found, using fallback SSL configuration');
+                
+                // Try to use system's default CA bundle
+                $systemCerts = [
+                    '/etc/ssl/certs/ca-certificates.crt',    // Debian/Ubuntu
+                    '/etc/ssl/certs/ca-bundle.crt',          // CentOS/RHEL
+                    '/etc/pki/tls/certs/ca-bundle.crt',      // CentOS/RHEL alternative
+                    '/usr/share/ssl/certs/ca-bundle.crt',    // FreeBSD
+                    '/usr/local/share/certs/ca-root-nss.crt' // FreeBSD alternative
+                ];
+                
+                $systemCertPath = null;
+                foreach ($systemCerts as $systemCert) {
+                    if (file_exists($systemCert) && is_readable($systemCert)) {
+                        $systemCertPath = $systemCert;
+                        break;
+                    }
+                }
+                
+                if ($systemCertPath) {
+                    error_log("RazorPay SSL - Using system certificate bundle: {$systemCertPath}");
+                    putenv('CURL_CA_BUNDLE=' . $systemCertPath);
+                    
+                    try {
+                        if (class_exists('\WpOrg\Requests\Requests')) {
+                            \WpOrg\Requests\Requests::set_certificate_path($systemCertPath);
+                        } elseif (class_exists('\Requests')) {
+                            \Requests::set_certificate_path($systemCertPath);
+                        }
+                    } catch (\Exception $certError) {
+                        error_log('RazorPay SSL - System cert configuration failed: ' . $certError->getMessage());
+                    }
+                } else {
+                    // Last resort: disable SSL verification (not recommended for production)
+                    error_log('RazorPay SSL - CRITICAL: No certificate bundles found, SSL verification may fail');
+                    
+                    // Set minimal SSL context that might work in shared hosting
+                    stream_context_set_default([
+                        'ssl' => [
+                            'verify_peer' => true,
+                            'verify_peer_name' => true,
+                            'allow_self_signed' => false,
+                            'ciphers' => 'HIGH:!SSLv2:!SSLv3'
+                        ]
+                    ]);
+                }
             }
             
             // Set working directory to backend root for proper path resolution
