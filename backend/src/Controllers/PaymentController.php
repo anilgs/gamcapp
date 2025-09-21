@@ -249,6 +249,7 @@ class PaymentController {
             $razorpayOrderId = $input['razorpay_order_id'] ?? null;
             $razorpayPaymentId = $input['razorpay_payment_id'] ?? null;
             $razorpaySignature = $input['razorpay_signature'] ?? null;
+            $appointmentId = $input['appointment_id'] ?? null;
 
             $this->logger->info('Payment verification started', [
                 'user_id' => $userId,
@@ -305,11 +306,32 @@ class PaymentController {
             // Update payment transaction
             try {
                 Database::query(
-                    "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ?, payment_details = ? WHERE razorpay_order_id = ?",
-                    [$razorpayPaymentId, 'paid', json_encode($paymentDetails), $razorpayOrderId]
+                    "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE razorpay_order_id = ?",
+                    [$razorpayPaymentId, 'paid', $razorpayOrderId]
                 );
             } catch (\Exception $dbError) {
                 error_log('Failed to update payment transaction: ' . $dbError->getMessage());
+            }
+
+            // Update appointment status if appointment_id is provided
+            if ($appointmentId) {
+                try {
+                    $appointment = Appointment::findById($appointmentId);
+                    if ($appointment && $appointment->user_id === $userId) {
+                        $appointment->update([
+                            'payment_status' => 'completed',
+                            'status' => 'confirmed'
+                        ]);
+                        $this->logger->info('Appointment status updated after payment', [
+                            'user_id' => $userId,
+                            'appointment_id' => $appointmentId,
+                            'payment_id' => $razorpayPaymentId
+                        ]);
+                    }
+                } catch (\Exception $appointmentError) {
+                    error_log('Failed to update appointment status: ' . $appointmentError->getMessage());
+                    // Continue anyway, payment verification was successful
+                }
             }
 
             $this->logger->info('Payment verified successfully', [
