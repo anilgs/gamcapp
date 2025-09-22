@@ -150,4 +150,159 @@ class AdminController {
             echo json_encode(['success' => false, 'error' => 'Internal server error']);
         }
     }
+
+    public function getAppointments(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            Auth::requireAdminAuth();
+
+            $page = (int)($_GET['page'] ?? 1);
+            $limit = (int)($_GET['limit'] ?? 20);
+            $search = $_GET['search'] ?? '';
+            $paymentStatus = $_GET['payment_status'] ?? '';
+            $appointmentType = $_GET['appointment_type'] ?? '';
+            $sortBy = $_GET['sort_by'] ?? 'created_at';
+            $sortOrder = $_GET['sort_order'] ?? 'desc';
+
+            $offset = ($page - 1) * $limit;
+
+            // Build WHERE clause
+            $whereConditions = [];
+            $params = [];
+
+            if (!empty($search)) {
+                $whereConditions[] = "(a.first_name LIKE :search OR a.last_name LIKE :search OR a.email LIKE :search OR a.phone LIKE :search OR a.passport_number LIKE :search)";
+                $params[':search'] = "%{$search}%";
+            }
+
+            if (!empty($paymentStatus)) {
+                $whereConditions[] = "a.payment_status = :payment_status";
+                $params[':payment_status'] = $paymentStatus;
+            }
+
+            if (!empty($appointmentType)) {
+                $whereConditions[] = "a.appointment_type = :appointment_type";
+                $params[':appointment_type'] = $appointmentType;
+            }
+
+            $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+            // Build ORDER BY clause
+            $allowedSortFields = ['created_at', 'first_name', 'payment_status', 'appointment_date', 'status'];
+            $sortField = in_array($sortBy, $allowedSortFields) ? $sortBy : 'created_at';
+            if ($sortField === 'first_name') {
+                $sortField = 'a.first_name';
+            } else {
+                $sortField = 'a.' . $sortField;
+            }
+            $sortDirection = ($sortOrder === 'asc') ? 'ASC' : 'DESC';
+
+            $db = \Gamcapp\Core\Database::getInstance();
+
+            // Get total count for pagination
+            $countSql = "SELECT COUNT(*) as total FROM appointments a {$whereClause}";
+            $countStmt = $db->prepare($countSql);
+            $countStmt->execute($params);
+            $totalRecords = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+
+            // Get appointments data
+            $sql = "SELECT 
+                        a.*,
+                        u.name as user_name,
+                        u.email as user_email,
+                        u.phone as user_phone
+                    FROM appointments a 
+                    LEFT JOIN users u ON a.user_id = u.id 
+                    {$whereClause}
+                    ORDER BY {$sortField} {$sortDirection}
+                    LIMIT :limit OFFSET :offset";
+
+            $stmt = $db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+
+            $appointments = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                // Format the appointment data for the frontend
+                $appointments[] = [
+                    'id' => $row['id'],
+                    'user_id' => $row['user_id'],
+                    'name' => trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')),
+                    'email' => $row['email'] ?? $row['user_email'] ?? '',
+                    'phone' => $row['phone'] ?? $row['user_phone'] ?? '',
+                    'passport_number' => $row['passport_number'],
+                    'appointment_type' => $row['appointment_type'],
+                    'appointment_date' => $row['appointment_date'],
+                    'appointment_time' => $row['appointment_time'],
+                    'medical_center' => $row['medical_center'],
+                    'payment_status' => $row['payment_status'],
+                    'status' => $row['status'],
+                    'country_traveling_to' => $row['country_traveling_to'],
+                    'created_at' => $row['created_at'],
+                    'updated_at' => $row['updated_at'],
+                    'appointment_details' => [
+                        'nationality' => $row['nationality'],
+                        'gender' => $row['gender'],
+                        'date_of_birth' => $row['date_of_birth'],
+                        'visa_type' => $row['visa_type'],
+                        'position_applied_for' => $row['position_applied_for']
+                    ]
+                ];
+            }
+
+            // Calculate pagination
+            $totalPages = ceil($totalRecords / $limit);
+            $hasPrev = $page > 1;
+            $hasNext = $page < $totalPages;
+
+            // Calculate statistics
+            $statsCountSql = "SELECT 
+                COUNT(*) as total_appointments,
+                SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_appointments,
+                SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_appointments,
+                COUNT(DISTINCT user_id) as total_users
+                FROM appointments";
+            $statsStmt = $db->prepare($statsCountSql);
+            $statsStmt->execute();
+            $statsData = $statsStmt->fetch(\PDO::FETCH_ASSOC);
+
+            $statistics = [
+                'total_users' => (int)$statsData['total_users'],
+                'total_appointments' => (int)$statsData['total_appointments'],
+                'paid_users' => (int)$statsData['paid_appointments'], // Using appointments as proxy
+                'pending_users' => (int)$statsData['pending_appointments'],
+                'total_revenue' => 0 // TODO: Calculate from actual payment data
+            ];
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'appointments' => $appointments,
+                    'pagination' => [
+                        'current_page' => $page,
+                        'total_pages' => $totalPages,
+                        'total_records' => $totalRecords,
+                        'per_page' => $limit,
+                        'has_prev' => $hasPrev,
+                        'has_next' => $hasNext
+                    ],
+                    'statistics' => $statistics
+                ]
+            ]);
+
+        } catch (\Exception $error) {
+            error_log('Get appointments error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+        }
+    }
 }

@@ -83,6 +83,7 @@ $router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verify
 $router->post('/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
 
 $router->get('/admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
+$router->get('/admin/appointments', 'Gamcapp\\Controllers\\AdminController@getAppointments');
 $router->post('/admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
 $router->post('/admin/change-password', 'Gamcapp\\Controllers\\AdminController@changePassword');
 

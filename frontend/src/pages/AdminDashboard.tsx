@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { adminApi, AdminUser, Pagination, Statistics, handleApiError } from '@/lib/api'
-import { AdminUserList } from '@/components/AdminUserList'
+import { adminApi, AdminAppointment, Pagination, Statistics, handleApiError } from '@/lib/api'
+import { AdminAppointmentList } from '@/components/AdminUserList'
 import { ChangePasswordForm } from '@/components/ChangePasswordForm'
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
   const [adminUser, setAdminUser] = useState<{ username: string } | null>(null)
-  const [users, setUsers] = useState<AdminUser[]>([])
+  const [appointments, setAppointments] = useState<AdminAppointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [statistics, setStatistics] = useState<Statistics | null>(null)
@@ -30,13 +30,11 @@ export const AdminDashboard: React.FC = () => {
     sort_order: 'desc'
   })
 
-  const [showUserDetails, setShowUserDetails] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
-  const fetchUsers = useCallback(async (page = pagination.current_page) => {
+  const fetchAppointments = useCallback(async (page = pagination.current_page) => {
     setLoading(true)
     setError('')
 
@@ -47,17 +45,17 @@ export const AdminDashboard: React.FC = () => {
         ...filters
       }
 
-      const result = await adminApi.getUsers(queryParams)
+      const result = await adminApi.getAppointments(queryParams)
 
       if (result.success && result.data) {
-        setUsers(result.data.users)
+        setAppointments(result.data.appointments)
         setPagination(result.data.pagination)
         setStatistics(result.data.statistics)
       } else {
-        setError(result.error || 'Failed to fetch users')
+        setError(result.error || 'Failed to fetch appointments')
       }
     } catch (error: unknown) {
-      console.error('Error fetching users:', error)
+      console.error('Error fetching appointments:', error)
       if (error && typeof error === 'object' && 'message' in error && 
           typeof error.message === 'string' && 
           (error.message.includes('401') || error.message.includes('Unauthorized'))) {
@@ -92,15 +90,15 @@ export const AdminDashboard: React.FC = () => {
     }
 
     // Load initial data
-    fetchUsers()
-  }, [navigate, fetchUsers])
+    fetchAppointments()
+  }, [navigate, fetchAppointments])
 
   useEffect(() => {
-    // Fetch users when filters change
+    // Fetch appointments when filters change
     if (adminUser) {
-      fetchUsers()
+      fetchAppointments()
     }
-  }, [filters, pagination.current_page, adminUser, fetchUsers])
+  }, [filters, pagination.current_page, adminUser, fetchAppointments])
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({
@@ -125,8 +123,8 @@ export const AdminDashboard: React.FC = () => {
       const result = await adminApi.uploadSlip(formData)
 
       if (result.success) {
-        // Refresh users list
-        await fetchUsers()
+        // Refresh appointments list
+        await fetchAppointments()
         alert('Appointment slip uploaded successfully!')
       } else {
         alert(result.error || 'Failed to upload appointment slip')
@@ -137,9 +135,9 @@ export const AdminDashboard: React.FC = () => {
     }
   }
 
-  const handleViewDetails = (user: AdminUser) => {
-    setSelectedUser(user)
-    setShowUserDetails(true)
+  const handleViewDetails = (appointment: AdminAppointment) => {
+    setSelectedAppointment(appointment)
+    setShowAppointmentDetails(true)
   }
 
   const handleLogout = () => {
@@ -365,9 +363,12 @@ export const AdminDashboard: React.FC = () => {
                 >
                   <option value="created_at_desc">Newest First</option>
                   <option value="created_at_asc">Oldest First</option>
-                  <option value="name_asc">Name A-Z</option>
-                  <option value="name_desc">Name Z-A</option>
+                  <option value="appointment_date_desc">Appointment Date (Latest)</option>
+                  <option value="appointment_date_asc">Appointment Date (Earliest)</option>
+                  <option value="first_name_asc">Name A-Z</option>
+                  <option value="first_name_desc">Name Z-A</option>
                   <option value="payment_status_asc">Payment Status</option>
+                  <option value="status_asc">Appointment Status</option>
                 </select>
               </div>
             </div>
@@ -388,7 +389,7 @@ export const AdminDashboard: React.FC = () => {
                 Clear Filters
               </button>
               <button
-                onClick={() => fetchUsers(1)}
+                onClick={() => fetchAppointments(1)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 Refresh
@@ -411,14 +412,14 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Users List */}
+        {/* Appointments List */}
         <div className="mb-6">
-          <AdminUserList
-            users={users}
+          <AdminAppointmentList
+            appointments={appointments}
             loading={loading}
             onUploadSlip={handleUploadSlip}
             onViewDetails={handleViewDetails}
-            onRefresh={() => fetchUsers()}
+            onRefresh={() => fetchAppointments()}
           />
         </div>
 

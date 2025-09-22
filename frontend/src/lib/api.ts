@@ -38,6 +38,31 @@ export interface AdminUser extends User {
   slip_uploaded_at?: string;
 }
 
+export interface AdminAppointment {
+  id: string;
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  passport_number?: string;
+  appointment_type: string;
+  appointment_date: string;
+  appointment_time?: string;
+  medical_center: string;
+  payment_status: 'pending' | 'paid' | 'failed';
+  status: 'draft' | 'payment_pending' | 'confirmed' | 'completed' | 'cancelled';
+  country_traveling_to: string;
+  created_at: string;
+  updated_at: string;
+  appointment_details?: {
+    nationality?: string;
+    gender?: string;
+    date_of_birth?: string;
+    visa_type?: string;
+    position_applied_for?: string;
+  };
+}
+
 export interface Pagination {
   current_page: number;
   total_pages: number;
@@ -378,6 +403,14 @@ export const adminApi = {
       pagination: Pagination;
       statistics: Statistics;
     }>(`/admin/users${queryParams}`, 'adminToken');
+  },
+  getAppointments: (params?: Record<string, string>) => {
+    const queryParams = params ? `?${new URLSearchParams(params)}` : '';
+    return api.get<{
+      appointments: AdminAppointment[];
+      pagination: Pagination;
+      statistics: Statistics;
+    }>(`/admin/appointments${queryParams}`, 'adminToken');
   },
   uploadSlip: (formData: FormData) => {
     const token = localStorage.getItem('adminToken');
