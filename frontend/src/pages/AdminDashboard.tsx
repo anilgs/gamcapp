@@ -30,6 +30,8 @@ export const AdminDashboard: React.FC = () => {
     sort_order: 'desc'
   })
 
+  const [showAppointmentDetails, setShowAppointmentDetails] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<AdminAppointment | null>(null)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -502,17 +504,17 @@ export const AdminDashboard: React.FC = () => {
         )}
       </main>
 
-      {/* User Details Modal */}
-      {showUserDetails && selectedUser && (
+      {/* Appointment Details Modal */}
+      {showAppointmentDetails && selectedAppointment && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  User Details
+                  Appointment Details
                 </h3>
                 <button
-                  onClick={() => setShowUserDetails(false)}
+                  onClick={() => setShowAppointmentDetails(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -525,48 +527,38 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedUser.name}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.name}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Email</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedUser.email}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.email}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Phone</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedUser.phone}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.phone}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Passport Number</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedUser.passport_number || 'N/A'}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.passport_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Appointment Date</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.appointment_date}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Status</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.status}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Payment Status</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedAppointment.payment_status}</p>
                   </div>
                 </div>
-
-                {selectedUser.appointment_details && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Appointment Details</label>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <pre className="text-sm text-gray-900 whitespace-pre-wrap">
-                        {JSON.stringify(selectedUser.appointment_details, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {selectedUser.payment_info && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Payment Information</label>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <pre className="text-sm text-gray-900 whitespace-pre-wrap">
-                        {JSON.stringify(selectedUser.payment_info, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="mt-6 flex justify-end">
                 <button
-                  onClick={() => setShowUserDetails(false)}
+                  onClick={() => setShowAppointmentDetails(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                 >
                   Close
