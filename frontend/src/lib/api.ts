@@ -49,7 +49,7 @@ export interface AdminAppointment {
   appointment_date: string;
   appointment_time?: string;
   medical_center: string;
-  payment_status: 'pending' | 'paid' | 'failed';
+  payment_status: 'pending' | 'paid' | 'completed' | 'failed';
   status: 'draft' | 'payment_pending' | 'confirmed' | 'completed' | 'cancelled';
   country_traveling_to: string;
   created_at: string;

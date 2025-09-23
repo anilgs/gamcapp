@@ -36,6 +36,7 @@ export const AdminAppointmentList: React.FC<AdminAppointmentListProps> = ({
   const getPaymentStatusBadge = (status: string) => {
     const statusConfig = {
       paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
+      completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
       failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' }
     }
