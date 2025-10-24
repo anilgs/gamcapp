@@ -13,11 +13,13 @@ export function PaymentMethodSelector({
   availableMethods,
   disabled = false 
 }: PaymentMethodSelectorProps) {
+  // Defensive check to ensure availableMethods is an array
+  const safeMethods = Array.isArray(availableMethods) ? availableMethods : [];
   return (
     <div className="mb-6">
       <h3 className="text-lg font-medium text-gray-900 mb-4">Choose Payment Method</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {availableMethods.includes('razorpay') && (
+        {safeMethods.includes('razorpay') && (
           <div
             className={`relative rounded-lg border p-4 cursor-pointer transition-all ${
               selectedMethod === 'razorpay'
@@ -53,7 +55,7 @@ export function PaymentMethodSelector({
           </div>
         )}
         
-        {availableMethods.includes('upi') && (
+        {safeMethods.includes('upi') && (
           <div
             className={`relative rounded-lg border p-4 cursor-pointer transition-all ${
               selectedMethod === 'upi'

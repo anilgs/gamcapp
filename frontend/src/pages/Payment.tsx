@@ -396,7 +396,7 @@ export default function Payment() {
               </div>
 
               {/* Payment Method Selection */}
-              {paymentMethods && (
+              {paymentMethods && Array.isArray(paymentMethods.available) && (
                 <PaymentMethodSelector
                   selectedMethod={selectedPaymentMethod}
                   onMethodChange={handlePaymentMethodChange}

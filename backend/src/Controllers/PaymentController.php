@@ -105,8 +105,10 @@ class PaymentController {
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'available_methods' => $availableMethods,
-                    'default_method' => $defaultMethod,
+                    'available' => $availableMethods,
+                    'default' => $defaultMethod,
+                    'razorpay_enabled' => $this->isRazorpayEnabled(),
+                    'upi_enabled' => $this->isUpiEnabled(),
                     'methods_info' => [
                         'razorpay' => [
                             'name' => 'Razorpay',
