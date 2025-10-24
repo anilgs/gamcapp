@@ -606,30 +606,4 @@ class PaymentController {
             'order_id' => $orderId
         ]);
     }
-    
-    public function verifyUpiPayment(array $params = []): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-            return;
-        }
-
-        try {
-            $decoded = Auth::requireAuth();
-            $input = json_decode(file_get_contents('php://input'), true);
-            $userId = $decoded['user_id'];
-            $appointmentId = $input['appointmentId'] ?? null;
-
-            $result = $this->verifyUpiPayment($userId, $input, $appointmentId);
-            
-            echo json_encode([
-                'success' => true,
-                'data' => $result
-            ]);
-        } catch (\Exception $error) {
-            error_log('UPI payment verification error: ' . $error->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
-        }
-    }
 }
