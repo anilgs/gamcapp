@@ -47,6 +47,7 @@ export default function Payment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const appointmentId = searchParams.get('appointmentId');
+  const selectedMethod = searchParams.get('method') as PaymentMethod || 'upi';
   
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -55,7 +56,10 @@ export default function Payment() {
   const [userDetails, setUserDetails] = useState<User | null>(null);
   const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethods | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('upi');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(selectedMethod);
+  const [paymentAmount, setPaymentAmount] = useState<number>(15000); // Default ₹150.00 in paise
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const [tempAmount, setTempAmount] = useState<string>('150.00');
 
   const handleLogout = async () => {
     try {
@@ -66,6 +70,37 @@ export default function Payment() {
       localStorage.removeItem('token');
       navigate('/');
     }
+  };
+
+  const handleAmountEdit = () => {
+    setTempAmount((paymentAmount / 100).toFixed(2));
+    setIsEditingAmount(true);
+  };
+
+  const handleAmountSave = () => {
+    const newAmount = parseFloat(tempAmount);
+    if (isNaN(newAmount) || newAmount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    if (newAmount < 10) {
+      setError('Minimum amount is ₹10.00');
+      return;
+    }
+    if (newAmount > 10000) {
+      setError('Maximum amount is ₹10,000.00');
+      return;
+    }
+    
+    setPaymentAmount(Math.round(newAmount * 100)); // Convert to paise
+    setIsEditingAmount(false);
+    setError('');
+  };
+
+  const handleAmountCancel = () => {
+    setTempAmount((paymentAmount / 100).toFixed(2));
+    setIsEditingAmount(false);
+    setError('');
   };
 
   useEffect(() => {
@@ -100,13 +135,26 @@ export default function Payment() {
           throw new Error('Failed to get appointment details');
         }
 
+        const appointment = appointmentResult.data;
+        setAppointmentDetails(appointment || null);
+        
+        // Set payment amount from appointment or default
+        if (appointment?.amount) {
+          setPaymentAmount(appointment.amount);
+          setTempAmount((appointment.amount / 100).toFixed(2));
+        }
+
         const methods = methodsResult.data!;
         setPaymentMethods(methods);
-        setSelectedPaymentMethod(methods.default);
+        
+        // Only set default method if no method was specified in URL
+        if (!selectedMethod) {
+          setSelectedPaymentMethod(methods.default);
+        }
 
-        // Create payment order for Razorpay if it's the default method
-        if (methods.default === 'razorpay' && methods.razorpay_enabled) {
-          const orderResult = await paymentApi.createOrder(appointmentId, 150); // Default amount
+        // Create payment order for Razorpay if it's the selected method
+        if (selectedPaymentMethod === 'razorpay' && methods.razorpay_enabled) {
+          const orderResult = await paymentApi.createOrder(appointmentId, paymentAmount / 100); // Convert paise to rupees
           if (!orderResult.success) {
             throw new Error('Failed to create payment order');
           }
@@ -114,7 +162,6 @@ export default function Payment() {
         }
 
         setUserDetails(userResult.data.user);
-        setAppointmentDetails(appointmentResult.data || null);
       } catch (error: unknown) {
         console.error('Payment initialization error:', error);
         setError(error instanceof Error ? error.message : 'Failed to initialize payment. Please try again.');
@@ -124,7 +171,7 @@ export default function Payment() {
     };
 
     initializePayment();
-  }, [appointmentId, navigate]);
+  }, [appointmentId, selectedMethod, navigate, paymentAmount, selectedPaymentMethod]);
 
   function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -147,7 +194,7 @@ export default function Payment() {
     if (method === 'razorpay' && !orderData && appointmentDetails) {
       setLoading(true);
       try {
-        const orderResult = await paymentApi.createOrder(appointmentId!, 150);
+        const orderResult = await paymentApi.createOrder(appointmentId!, paymentAmount / 100);
         if (orderResult.success) {
           setOrderData(orderResult.data || null);
         } else {
@@ -338,17 +385,17 @@ export default function Payment() {
               </div>
               <div className="w-16 h-1 bg-accent-green-300"></div>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-medical-500 text-white rounded-full flex items-center justify-center text-sm font-medium shadow-medical">
-                  2
+                <div className="w-8 h-8 bg-accent-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                  ✓
                 </div>
-                <span className="ml-2 text-sm font-medium text-medical-600 font-medical">Payment</span>
+                <span className="ml-2 text-sm font-medium text-accent-green-600 font-medical">Payment Method</span>
               </div>
-              <div className="w-16 h-1 bg-clinical-300"></div>
+              <div className="w-16 h-1 bg-medical-300"></div>
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-clinical-300 text-clinical-600 rounded-full flex items-center justify-center text-sm font-medium">
+                <div className="w-8 h-8 bg-medical-500 text-white rounded-full flex items-center justify-center text-sm font-medium shadow-medical">
                   3
                 </div>
-                <span className="ml-2 text-sm font-medium text-clinical-500 font-medical">Confirmation</span>
+                <span className="ml-2 text-sm font-medium text-medical-600 font-medical">Payment</span>
               </div>
             </div>
           </div>
@@ -384,15 +431,66 @@ export default function Payment() {
             <div className="border-t border-gray-200 pt-4">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-lg font-medium text-gray-900">Total Amount</span>
-                <span className="text-2xl font-bold text-medical-600">
-                  ₹{appointmentDetails?.amount ? (appointmentDetails.amount / 100).toFixed(2) : (orderData ? (orderData.amount / 100).toFixed(2) : '150.00')}
-                </span>
+                <div className="flex items-center space-x-3">
+                  {isEditingAmount ? (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-medium">₹</span>
+                      <input
+                        type="number"
+                        value={tempAmount}
+                        onChange={(e) => setTempAmount(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAmountSave();
+                          if (e.key === 'Escape') handleAmountCancel();
+                        }}
+                        className="w-24 px-2 py-1 text-xl font-bold text-medical-600 border border-medical-300 rounded-md focus:ring-2 focus:ring-medical-500 focus:border-medical-500"
+                        min="10"
+                        max="10000"
+                        step="0.01"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleAmountSave}
+                        className="px-2 py-1 bg-health-green-600 text-white text-sm rounded hover:bg-health-green-700"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={handleAmountCancel}
+                        className="px-2 py-1 bg-gray-400 text-white text-sm rounded hover:bg-gray-500"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold text-medical-600">
+                        ₹{(paymentAmount / 100).toFixed(2)}
+                      </span>
+                      <button
+                        onClick={handleAmountEdit}
+                        disabled={paymentLoading}
+                        className="p-1 text-gray-400 hover:text-medical-600 transition-colors"
+                        title="Edit amount"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="text-sm text-gray-600 mb-6">
                 <p>• GAMCA Medical Examination Fee</p>
                 <p>• All required medical tests included</p>
                 <p>• Digital certificate upon completion</p>
+                {isEditingAmount && (
+                  <p className="text-amber-600 mt-2">
+                    • Amount range: ₹10.00 - ₹10,000.00
+                  </p>
+                )}
               </div>
 
               {/* Payment Method Selection */}
@@ -430,7 +528,7 @@ export default function Payment() {
               {selectedPaymentMethod === 'upi' && appointmentId && (
                 <UPIPayment
                   appointmentId={appointmentId}
-                  amount={appointmentDetails?.amount || orderData?.amount || 15000} // Default to ₹150
+                  amount={paymentAmount} // Use the editable payment amount
                   onPaymentComplete={handleUPIPaymentComplete}
                   onPaymentError={handleUPIPaymentError}
                 />

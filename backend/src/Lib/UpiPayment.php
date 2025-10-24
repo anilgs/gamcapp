@@ -49,19 +49,24 @@ class UpiPayment {
             // Generate QR code data
             $qrData = self::generateQrCodeData($upiUrl);
             
+            // Generate app links in the format expected by frontend
+            $appLinks = self::generateAppLinks($upiUrl);
+            
             error_log('UPI payment request created successfully - Transaction ID: ' . $transactionId);
             
             return [
                 'success' => true,
                 'data' => [
                     'transaction_id' => $transactionId,
+                    'reference_id' => $transactionId, // Frontend expects reference_id
                     'amount' => $amount,
                     'amount_display' => self::formatAmount($amount),
                     'merchant_vpa' => $merchantVPA,
                     'merchant_name' => $merchantName,
                     'upi_url' => $upiUrl,
-                    'qr_code_data' => $qrData,
-                    'payment_apps' => self::getPopularUpiApps($upiUrl)
+                    'qr_code' => $qrData, // Frontend expects qr_code
+                    'app_links' => $appLinks, // Frontend expects app_links as key-value pairs
+                    'payment_apps' => self::getPopularUpiApps($upiUrl) // Keep for backwards compatibility
                 ]
             ];
         } catch (\Exception $error) {
@@ -145,9 +150,13 @@ class UpiPayment {
     }
 
     private static function generateQrCodeData(string $upiUrl): string {
-        // Return the UPI URL as QR code data
-        // Frontend will use this to generate the actual QR code
-        return $upiUrl;
+        // Generate QR code data URL using a simple method
+        // For production, you might want to use a proper QR code library like endroid/qr-code
+        
+        // For now, we'll use a QR code service (this is a simple approach)
+        // In production, consider using a local QR code generator for security
+        $encodedUrl = urlencode($upiUrl);
+        return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . $encodedUrl;
     }
 
     private static function getPopularUpiApps(string $upiUrl): array {
@@ -183,6 +192,19 @@ class UpiPayment {
                 'deep_link' => $upiUrl,
                 'icon' => 'amazon'
             ]
+        ];
+    }
+
+    private static function generateAppLinks(string $upiUrl): array {
+        // Generate app links in key-value format expected by frontend
+        $queryString = parse_url($upiUrl, PHP_URL_QUERY);
+        
+        return [
+            'googlepay' => 'tez://upi/pay?' . $queryString,
+            'phonepe' => 'phonepe://pay?' . $queryString,
+            'paytm' => 'paytmmp://pay?' . $queryString,
+            'bhim' => $upiUrl,
+            'amazonpay' => $upiUrl
         ];
     }
 

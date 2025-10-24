@@ -259,7 +259,7 @@ class PaymentController {
             if ($paymentMethod === 'razorpay') {
                 $orderResult = $this->createRazorpayOrder($userId, $appointmentId, $appointmentType, $user, $appointment);
             } elseif ($paymentMethod === 'upi') {
-                $orderResult = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment);
+                $orderResult = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $input['amount'] ?? null);
             } else {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Unsupported payment method']);
@@ -362,8 +362,9 @@ class PaymentController {
         ];
     }
     
-    public function createUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, Appointment $appointment): array {
-        $amount = UpiPayment::getPaymentAmount($appointmentType);
+    public function createUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, ?Appointment $appointment, ?int $customAmount = null): array {
+        // Use custom amount if provided, otherwise use default amount for appointment type
+        $amount = $customAmount ?? UpiPayment::getPaymentAmount($appointmentType);
         $transactionId = UpiPayment::generateTransactionId($userId, $appointmentType);
 
         // Create UPI payment request
@@ -617,8 +618,9 @@ class PaymentController {
         try {
             $decoded = Auth::requireAuth();
             $input = json_decode(file_get_contents('php://input'), true);
-            $userId = $decoded['user_id'];
+            $userId = $decoded['id']; // JWT payload uses 'id', not 'user_id'
             $appointmentId = $input['appointmentId'] ?? null;
+            $customAmount = $input['amount'] ?? null; // Allow custom amount from frontend
 
             $user = User::findById($userId);
             if (!$user) {
@@ -636,11 +638,11 @@ class PaymentController {
                 }
                 
                 $appointmentType = $appointment->appointment_type;
-                $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment);
+                $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $customAmount);
             } else {
                 // For user profile payments without specific appointment
                 $appointmentType = 'medical_examination';
-                $result = $this->createUpiPayment($userId, '', $appointmentType, $user, null);
+                $result = $this->createUpiPayment($userId, '', $appointmentType, $user, null, $customAmount);
             }
 
             echo json_encode([
@@ -663,7 +665,7 @@ class PaymentController {
 
         try {
             $decoded = Auth::requireAuth();
-            $userId = $decoded['user_id'];
+            $userId = $decoded['id']; // JWT payload uses 'id', not 'user_id'
             $referenceId = $params['reference_id'] ?? null;
 
             if (!$referenceId) {
