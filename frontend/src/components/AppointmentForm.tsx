@@ -182,12 +182,52 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
     } else if (step === 2) {
       // Medical Center and Date
       if (!formData.medicalCenter) newErrors.medicalCenter = 'Please select medical center';
-      if (!formData.appointmentDate) newErrors.appointmentDate = 'Please select appointment date';
+      if (!formData.appointmentDate) {
+        newErrors.appointmentDate = 'Please select appointment date';
+      } else {
+        // Validate appointment date format and range
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(formData.appointmentDate)) {
+          newErrors.appointmentDate = 'Invalid date format';
+        } else {
+          const parsedDate = new Date(formData.appointmentDate);
+          if (isNaN(parsedDate.getTime()) || formData.appointmentDate === '0000-00-00') {
+            newErrors.appointmentDate = 'Invalid date';
+          } else {
+            const today = new Date();
+            const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+            const maxDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
+            if (parsedDate < minDate || parsedDate > maxDate) {
+              newErrors.appointmentDate = 'Appointment date must be between tomorrow and 6 months from now';
+            }
+          }
+        }
+      }
     } else if (step === 3) {
       // Personal Information
       if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
       if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-      if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+      if (!formData.dateOfBirth) {
+        newErrors.dateOfBirth = 'Date of birth is required';
+      } else {
+        // Validate date of birth
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(formData.dateOfBirth)) {
+          newErrors.dateOfBirth = 'Invalid date format';
+        } else {
+          const parsedDate = new Date(formData.dateOfBirth);
+          if (isNaN(parsedDate.getTime()) || formData.dateOfBirth === '0000-00-00') {
+            newErrors.dateOfBirth = 'Invalid date';
+          } else {
+            const today = new Date();
+            const minAge = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
+            const maxAge = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+            if (parsedDate < minAge || parsedDate > maxAge) {
+              newErrors.dateOfBirth = 'Date of birth must be between 16 and 100 years ago';
+            }
+          }
+        }
+      }
       if (!formData.nationality) newErrors.nationality = 'Please select nationality';
       if (!formData.gender) newErrors.gender = 'Please select gender';
       if (!formData.maritalStatus) newErrors.maritalStatus = 'Please select marital status';
@@ -198,8 +238,40 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
       if (formData.passportNumber !== formData.confirmPassportNumber) {
         newErrors.confirmPassportNumber = 'Passport numbers do not match';
       }
-      if (!formData.passportIssueDate) newErrors.passportIssueDate = 'Passport issue date is required';
-      if (!formData.passportExpiryDate) newErrors.passportExpiryDate = 'Passport expiry date is required';
+      if (!formData.passportIssueDate) {
+        newErrors.passportIssueDate = 'Passport issue date is required';
+      } else {
+        // Validate passport issue date
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(formData.passportIssueDate)) {
+          newErrors.passportIssueDate = 'Invalid date format';
+        } else {
+          const parsedDate = new Date(formData.passportIssueDate);
+          if (isNaN(parsedDate.getTime()) || formData.passportIssueDate === '0000-00-00') {
+            newErrors.passportIssueDate = 'Invalid date';
+          }
+        }
+      }
+      if (!formData.passportExpiryDate) {
+        newErrors.passportExpiryDate = 'Passport expiry date is required';
+      } else {
+        // Validate passport expiry date
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(formData.passportExpiryDate)) {
+          newErrors.passportExpiryDate = 'Invalid date format';
+        } else {
+          const parsedDate = new Date(formData.passportExpiryDate);
+          if (isNaN(parsedDate.getTime()) || formData.passportExpiryDate === '0000-00-00') {
+            newErrors.passportExpiryDate = 'Invalid date';
+          } else {
+            const today = new Date();
+            const minExpiry = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
+            if (parsedDate < minExpiry) {
+              newErrors.passportExpiryDate = 'Passport must be valid for at least 6 months from today';
+            }
+          }
+        }
+      }
       if (!formData.passportIssuePlace.trim()) newErrors.passportIssuePlace = 'Passport issue place is required';
       if (!formData.visaType) newErrors.visaType = 'Please select visa type';
     } else if (step === 5) {
@@ -239,6 +311,52 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
       if (!formData[field as keyof AppointmentFormData] || 
           String(formData[field as keyof AppointmentFormData]).trim() === '') {
         newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+      }
+    });
+
+    // Validate date fields specifically
+    const dateFields = ['dateOfBirth', 'passportIssueDate', 'passportExpiryDate', 'appointmentDate'];
+    dateFields.forEach(field => {
+      const dateValue = formData[field as keyof AppointmentFormData];
+      if (dateValue) {
+        // Check if date is in proper format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(dateValue)) {
+          newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} must be in valid date format`;
+        } else {
+          // Check if it's a valid date
+          const parsedDate = new Date(dateValue);
+          if (isNaN(parsedDate.getTime()) || dateValue === '0000-00-00') {
+            newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is not a valid date`;
+          }
+          
+          // Additional validations for specific date fields
+          if (field === 'dateOfBirth') {
+            const today = new Date();
+            const minAge = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
+            const maxAge = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+            if (parsedDate < minAge || parsedDate > maxAge) {
+              newErrors[field] = 'Date of birth must be between 16 and 100 years ago';
+            }
+          }
+          
+          if (field === 'appointmentDate') {
+            const today = new Date();
+            const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1); // Tomorrow
+            const maxDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate()); // 6 months ahead
+            if (parsedDate < minDate || parsedDate > maxDate) {
+              newErrors[field] = 'Appointment date must be between tomorrow and 6 months from now';
+            }
+          }
+          
+          if (field === 'passportExpiryDate') {
+            const today = new Date();
+            const minExpiry = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate()); // 6 months from now
+            if (parsedDate < minExpiry) {
+              newErrors[field] = 'Passport must be valid for at least 6 months from today';
+            }
+          }
+        }
       }
     });
 
@@ -292,37 +410,85 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit, userEmail }
     type: 'text' | 'email' | 'tel' | 'date' | 'select' = 'text', 
     options?: string[],
     required: boolean = true
-  ) => (
-    <div className="form-group">
-      <label className="form-label">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {type === 'select' ? (
-        <select
-          name={String(name)}
-          value={formData[name]}
-          onChange={handleInputChange}
-          className={`form-select ${errors[name] ? 'border-red-500' : ''}`}
-          disabled={isSubmitting}
-        >
-          <option value="">Select {label}</option>
-          {options?.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type={type}
-          name={String(name)}
-          value={formData[name]}
-          onChange={handleInputChange}
-          className={`form-input ${errors[name] ? 'border-red-500' : ''}`}
-          disabled={isSubmitting || (name === 'email' && !!userEmail)}
-        />
-      )}
-      {errors[name] && <span className="form-error">{errors[name]}</span>}
-    </div>
-  );
+  ) => {
+    // Get min/max attributes for date fields
+    const getDateAttributes = () => {
+      if (type !== 'date') return {};
+      
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      if (name === 'dateOfBirth') {
+        const minDate = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
+        const maxDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+        return {
+          min: minDate.toISOString().split('T')[0],
+          max: maxDate.toISOString().split('T')[0]
+        };
+      }
+      
+      if (name === 'appointmentDate') {
+        const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        const maxDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
+        return {
+          min: minDate.toISOString().split('T')[0],
+          max: maxDate.toISOString().split('T')[0]
+        };
+      }
+      
+      if (name === 'passportExpiryDate') {
+        const minDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
+        const maxDate = new Date(today.getFullYear() + 20, today.getMonth(), today.getDate());
+        return {
+          min: minDate.toISOString().split('T')[0],
+          max: maxDate.toISOString().split('T')[0]
+        };
+      }
+      
+      if (name === 'passportIssueDate') {
+        const minDate = new Date(today.getFullYear() - 50, today.getMonth(), today.getDate());
+        return {
+          min: minDate.toISOString().split('T')[0],
+          max: todayStr
+        };
+      }
+      
+      return {};
+    };
+
+    return (
+      <div className="form-group">
+        <label className="form-label">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {type === 'select' ? (
+          <select
+            name={String(name)}
+            value={formData[name]}
+            onChange={handleInputChange}
+            className={`form-select ${errors[name] ? 'border-red-500' : ''}`}
+            disabled={isSubmitting}
+          >
+            <option value="">Select {label}</option>
+            {options?.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type}
+            name={String(name)}
+            value={formData[name]}
+            onChange={handleInputChange}
+            className={`form-input ${errors[name] ? 'border-red-500' : ''}`}
+            disabled={isSubmitting || (name === 'email' && !!userEmail)}
+            {...getDateAttributes()}
+          />
+        )}
+        {errors[name] && <span className="form-error">{errors[name]}</span>}
+      </div>
+    );
+  };
 
   return (
     <div className="appointment-form-container">
