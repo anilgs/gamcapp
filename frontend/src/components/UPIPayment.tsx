@@ -69,7 +69,9 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'checking' | 'completed' | 'failed'>('pending');
-  const [showQR, setShowQR] = useState(false);
+  const [showQR, setShowQR] = useState(true); // Show QR code by default
+  const [qrImageError, setQrImageError] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<number | null>(null);
 
   useEffect(() => {
@@ -162,12 +164,35 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
     }
   };
 
-  const copyUPIId = () => {
+  const copyUPIId = async () => {
     if (upiData && upiData.upi_url) {
       const upiId = getUpiId(upiData.upi_url);
       if (upiId && upiId !== 'N/A') {
-        navigator.clipboard.writeText(upiId);
-        // You could show a toast notification here
+        try {
+          // Try using the modern clipboard API first
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(upiId);
+          } else {
+            // Fallback for older browsers or non-HTTPS
+            const textArea = document.createElement('textarea');
+            textArea.value = upiId;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            textArea.remove();
+          }
+          
+          // Show success feedback
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        } catch (error) {
+          console.error('Failed to copy UPI ID:', error);
+          // Could show error toast here if needed
+        }
       }
     }
   };
@@ -255,7 +280,7 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
                 </svg>
               </div>
               <div className="text-left">
-                <div className="font-medium text-gray-900">Scan QR Code</div>
+                <div className="font-medium text-gray-900">{showQR ? 'Hide' : 'Show'} QR Code</div>
                 <div className="text-sm text-gray-500">Use any UPI app to scan</div>
               </div>
             </div>
@@ -266,38 +291,128 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
 
           {showQR && (
             <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <img 
-                src={upiData.qr_code} 
-                alt="UPI QR Code" 
-                className="w-48 h-48 mx-auto mb-4 border rounded-lg"
-              />
-              <p className="text-sm text-gray-600 mb-4">
+              {qrImageError ? (
+                <div className="w-48 h-48 mx-auto mb-4 border rounded-lg bg-gray-200 flex items-center justify-center">
+                  <div className="text-center">
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <p className="text-sm text-gray-500">QR Code unavailable</p>
+                    <button
+                      onClick={() => setQrImageError(false)}
+                      className="mt-2 text-xs text-medical-600 hover:text-medical-700"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <img 
+                  src={upiData.qr_code} 
+                  alt="UPI QR Code" 
+                  className="w-48 h-48 mx-auto mb-4 border rounded-lg"
+                  onError={() => setQrImageError(true)}
+                  onLoad={() => setQrImageError(false)}
+                />
+              )}
+              <p className="text-sm text-gray-600 mb-2">
                 Scan this QR code with any UPI app to pay ₹{(amount / 100).toFixed(2)}
+              </p>
+              <div className="bg-white p-3 rounded border mb-3">
+                <div className="text-sm text-gray-600 mb-1">UPI ID</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-gray-900 break-all">
+                    {upiData.upi_url ? getUpiId(upiData.upi_url) : 'Loading...'}
+                  </div>
+                  <button
+                    onClick={copyUPIId}
+                    className={`ml-2 px-2 py-1 text-xs rounded transition-colors flex items-center flex-shrink-0 ${
+                      copySuccess 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {copySuccess ? (
+                      <>
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Or copy the UPI ID above to pay manually
               </p>
               <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
                 <span>Reference ID: {upiData.reference_id}</span>
+              </div>
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowQR(false)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Hide QR Code
+                </button>
               </div>
             </div>
           )}
 
           {/* Manual UPI ID */}
           <div className="p-4 border rounded-lg bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">Pay using UPI ID</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  UPI ID: {upiData.upi_url ? getUpiId(upiData.upi_url) : 'Loading...'}
-                </div>
-                <div className="text-sm text-gray-600">
-                  Amount: ₹{(amount / 100).toFixed(2)}
+            <div className="space-y-3">
+              <div className="font-medium text-gray-900">Pay using UPI ID</div>
+              
+              {/* UPI ID Display with Copy Button */}
+              <div className="bg-white p-3 rounded border">
+                <div className="text-sm text-gray-600 mb-1">UPI ID</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-lg text-gray-900 break-all">
+                    {upiData.upi_url ? getUpiId(upiData.upi_url) : 'Loading...'}
+                  </div>
+                  <button
+                    onClick={copyUPIId}
+                    className={`ml-3 px-3 py-2 text-sm rounded transition-colors flex items-center flex-shrink-0 ${
+                      copySuccess 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-medical-600 text-white hover:bg-medical-700'
+                    }`}
+                  >
+                    {copySuccess ? (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={copyUPIId}
-                className="px-3 py-1 text-sm bg-medical-600 text-white rounded hover:bg-medical-700"
-              >
-                Copy UPI ID
-              </button>
+              
+              <div className="text-sm text-gray-600">
+                <strong>Amount:</strong> ₹{(amount / 100).toFixed(2)}
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                Open your UPI app, enter the above UPI ID, and send ₹{(amount / 100).toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
