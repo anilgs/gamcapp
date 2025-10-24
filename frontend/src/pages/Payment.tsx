@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { paymentApi, appointmentApi, authApi, User } from '../lib/api';
+import { paymentApi, appointmentApi, authApi, User, PaymentMethod } from '../lib/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { PaymentMethodSelector } from '../components/PaymentMethodSelector';
+import { UPIPayment } from '../components/UPIPayment';
 
 declare global {
   interface Window {
@@ -34,6 +36,13 @@ interface PaymentResponse {
   razorpay_signature: string;
 }
 
+interface PaymentMethods {
+  available: PaymentMethod[];
+  default: PaymentMethod;
+  razorpay_enabled: boolean;
+  upi_enabled: boolean;
+}
+
 export default function Payment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -45,6 +54,8 @@ export default function Payment() {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [userDetails, setUserDetails] = useState<User | null>(null);
   const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethods | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('upi');
 
   const handleLogout = async () => {
     try {
@@ -71,6 +82,12 @@ export default function Payment() {
           return;
         }
 
+        // Get available payment methods
+        const methodsResult = await paymentApi.getPaymentMethods();
+        if (!methodsResult.success) {
+          throw new Error('Failed to get payment methods');
+        }
+
         // Get user details
         const userResult = await authApi.getProfile();
         if (!userResult.success || !userResult.data?.user) {
@@ -83,13 +100,19 @@ export default function Payment() {
           throw new Error('Failed to get appointment details');
         }
 
-        // Create payment order
-        const orderResult = await paymentApi.createOrder(appointmentId, 150); // Default amount
-        if (!orderResult.success) {
-          throw new Error('Failed to create payment order');
+        const methods = methodsResult.data!;
+        setPaymentMethods(methods);
+        setSelectedPaymentMethod(methods.default);
+
+        // Create payment order for Razorpay if it's the default method
+        if (methods.default === 'razorpay' && methods.razorpay_enabled) {
+          const orderResult = await paymentApi.createOrder(appointmentId, 150); // Default amount
+          if (!orderResult.success) {
+            throw new Error('Failed to create payment order');
+          }
+          setOrderData(orderResult.data || null);
         }
 
-        setOrderData(orderResult.data || null);
         setUserDetails(userResult.data.user);
         setAppointmentDetails(appointmentResult.data || null);
       } catch (error: unknown) {
@@ -116,7 +139,29 @@ export default function Payment() {
 
 
 
-  const handlePayment = async () => {
+  const handlePaymentMethodChange = async (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method);
+    setError('');
+    
+    // If switching to Razorpay and we don't have order data, create it
+    if (method === 'razorpay' && !orderData && appointmentDetails) {
+      setLoading(true);
+      try {
+        const orderResult = await paymentApi.createOrder(appointmentId!, 150);
+        if (orderResult.success) {
+          setOrderData(orderResult.data || null);
+        } else {
+          setError('Failed to initialize Razorpay payment');
+        }
+      } catch {
+        setError('Failed to initialize Razorpay payment');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       setError('Failed to load Razorpay SDK');
@@ -180,6 +225,31 @@ export default function Payment() {
       setError('Failed to open payment gateway. Please try again.');
       setPaymentLoading(false);
     }
+  };
+
+  const handleUPIPaymentComplete = async (paymentData: { upi_transaction_id: string; upi_reference_id: string }) => {
+    try {
+      // Verify UPI payment
+      const verificationResult = await paymentApi.verifyAnyPayment({
+        payment_method: 'upi',
+        appointment_id: appointmentId!,
+        upi_transaction_id: paymentData.upi_transaction_id,
+        upi_reference_id: paymentData.upi_reference_id
+      });
+
+      if (verificationResult.success) {
+        navigate(`/payment/success?appointmentId=${appointmentId}&paymentId=${paymentData.upi_transaction_id}`);
+      } else {
+        throw new Error('Payment verification failed');
+      }
+    } catch (error: unknown) {
+      console.error('UPI payment verification error:', error);
+      setError('Payment verification failed. Please contact support.');
+    }
+  };
+
+  const handleUPIPaymentError = (error: string) => {
+    setError(error);
   };
 
   if (loading) {
@@ -311,23 +381,34 @@ export default function Payment() {
               </div>
             )}
 
-            {orderData && (
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-lg font-medium text-gray-900">Total Amount</span>
-                  <span className="text-2xl font-bold text-medical-600">
-                    ₹{(orderData.amount / 100).toFixed(2)}
-                  </span>
-                </div>
-                
-                <div className="text-sm text-gray-600 mb-6">
-                  <p>• GAMCA Medical Examination Fee</p>
-                  <p>• All required medical tests included</p>
-                  <p>• Digital certificate upon completion</p>
-                </div>
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-lg font-medium text-gray-900">Total Amount</span>
+                <span className="text-2xl font-bold text-medical-600">
+                  ₹{appointmentDetails?.amount ? (appointmentDetails.amount / 100).toFixed(2) : (orderData ? (orderData.amount / 100).toFixed(2) : '150.00')}
+                </span>
+              </div>
+              
+              <div className="text-sm text-gray-600 mb-6">
+                <p>• GAMCA Medical Examination Fee</p>
+                <p>• All required medical tests included</p>
+                <p>• Digital certificate upon completion</p>
+              </div>
 
+              {/* Payment Method Selection */}
+              {paymentMethods && (
+                <PaymentMethodSelector
+                  selectedMethod={selectedPaymentMethod}
+                  onMethodChange={handlePaymentMethodChange}
+                  availableMethods={paymentMethods.available}
+                  disabled={paymentLoading}
+                />
+              )}
+
+              {/* Payment Interface */}
+              {selectedPaymentMethod === 'razorpay' && orderData && (
                 <button
-                  onClick={handlePayment}
+                  onClick={handleRazorpayPayment}
                   disabled={paymentLoading}
                   className={`w-full py-3 px-4 border border-transparent text-lg font-medium rounded-md text-white ${
                     paymentLoading
@@ -341,11 +422,20 @@ export default function Payment() {
                       Processing...
                     </div>
                   ) : (
-                    'Pay Now'
+                    'Pay with Razorpay'
                   )}
                 </button>
-              </div>
-            )}
+              )}
+
+              {selectedPaymentMethod === 'upi' && appointmentId && (
+                <UPIPayment
+                  appointmentId={appointmentId}
+                  amount={appointmentDetails?.amount || orderData?.amount || 15000} // Default to ₹150
+                  onPaymentComplete={handleUPIPaymentComplete}
+                  onPaymentError={handleUPIPaymentError}
+                />
+              )}
+            </div>
           </div>
 
           {/* Security Information */}
@@ -361,7 +451,12 @@ export default function Payment() {
                   Secure Payment
                 </h3>
                 <div className="mt-2 text-sm text-blue-700">
-                  <p>Your payment is secured by Razorpay with 256-bit SSL encryption. We do not store your payment details.</p>
+                  <p>
+                    {selectedPaymentMethod === 'razorpay' 
+                      ? 'Your payment is secured by Razorpay with 256-bit SSL encryption. We do not store your payment details.'
+                      : 'Your UPI payment is processed through secure banking channels. All transactions are encrypted and verified.'
+                    }
+                  </p>
                 </div>
               </div>
             </div>

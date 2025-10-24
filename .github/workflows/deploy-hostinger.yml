@@ -33,6 +33,14 @@ env:
   FRONTEND_URL: ${{ vars.FRONTEND_URL }}
   RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
   RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+  # UPI Payment Configuration
+  RAZORPAY_ENABLED: ${{ vars.RAZORPAY_ENABLED }}
+  UPI_ENABLED: ${{ vars.UPI_ENABLED }}
+  DEFAULT_PAYMENT_METHOD: ${{ vars.DEFAULT_PAYMENT_METHOD }}
+  UPI_VIRTUAL_ADDRESS: ${{ vars.UPI_VIRTUAL_ADDRESS }}
+  UPI_MERCHANT_NAME: ${{ vars.UPI_MERCHANT_NAME }}
+  UPI_MERCHANT_CODE: ${{ vars.UPI_MERCHANT_CODE }}
+  UPI_TRANSACTION_NOTE: ${{ vars.UPI_TRANSACTION_NOTE }}
   DOMAIN: ${{ vars.DOMAIN }}
   HOSTINGER_USER_ID: ${{ vars.HOSTINGER_USER_ID }}
 
@@ -195,8 +203,15 @@ jobs:
            echo "ADMIN_EMAIL=${{ env.ADMIN_EMAIL }}" >> deployment/backend/.env
            echo "FROM_EMAIL=${{ env.FROM_EMAIL }}" >> deployment/backend/.env
             echo "FROM_NAME=\"${{ env.FROM_NAME }}\"" >> deployment/backend/.env
-           echo "BYPASS_OTP_VERIFICATION=true" >> deployment/backend/.env
-           echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
+            echo "BYPASS_OTP_VERIFICATION=true" >> deployment/backend/.env
+            echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
+            echo "RAZORPAY_ENABLED=${{ env.RAZORPAY_ENABLED }}" >> deployment/backend/.env
+            echo "UPI_ENABLED=${{ env.UPI_ENABLED }}" >> deployment/backend/.env
+            echo "DEFAULT_PAYMENT_METHOD=${{ env.DEFAULT_PAYMENT_METHOD }}" >> deployment/backend/.env
+            echo "UPI_VIRTUAL_ADDRESS=${{ env.UPI_VIRTUAL_ADDRESS }}" >> deployment/backend/.env
+            echo "UPI_MERCHANT_NAME=\"${{ env.UPI_MERCHANT_NAME }}\"" >> deployment/backend/.env
+            echo "UPI_MERCHANT_CODE=${{ env.UPI_MERCHANT_CODE }}" >> deployment/backend/.env
+            echo "UPI_TRANSACTION_NOTE=\"${{ env.UPI_TRANSACTION_NOTE }}\"" >> deployment/backend/.env
           
       - name: Deploy Backend to Secure Location (Dev)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -354,6 +369,12 @@ jobs:
                     "${{ env.DB_NAME }}" < backend/database/migrate_appointments_table.sql
               echo "Appointments table migration completed"
             fi
+            if [ -f "backend/database/migrate_upi_support.sql" ]; then
+              echo "Running UPI support migration..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
+              echo "UPI support migration completed"
+            fi
             
 
   deploy-production:
@@ -475,6 +496,13 @@ jobs:
           echo "FTP_USERNAME=${{ env.FTP_USERNAME }}" >> deployment/backend/.env
           echo "FTP_PASSWORD=${{ env.FTP_PASSWORD }}" >> deployment/backend/.env
           echo "HOSTINGER_USER_ID=${{ env.HOSTINGER_USER_ID }}" >> deployment/backend/.env
+          echo "RAZORPAY_ENABLED=${{ env.RAZORPAY_ENABLED }}" >> deployment/backend/.env
+          echo "UPI_ENABLED=${{ env.UPI_ENABLED }}" >> deployment/backend/.env
+          echo "DEFAULT_PAYMENT_METHOD=${{ env.DEFAULT_PAYMENT_METHOD }}" >> deployment/backend/.env
+          echo "UPI_VIRTUAL_ADDRESS=${{ env.UPI_VIRTUAL_ADDRESS }}" >> deployment/backend/.env
+          echo "UPI_MERCHANT_NAME=\"${{ env.UPI_MERCHANT_NAME }}\"" >> deployment/backend/.env
+          echo "UPI_MERCHANT_CODE=${{ env.UPI_MERCHANT_CODE }}" >> deployment/backend/.env
+          echo "UPI_TRANSACTION_NOTE=\"${{ env.UPI_TRANSACTION_NOTE }}\"" >> deployment/backend/.env
 
       - name: Verify Deployment Package
         run: |
@@ -691,6 +719,12 @@ jobs:
               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                     "${{ env.DB_NAME }}" < backend/database/migrate_appointments_table.sql
               echo "Appointments table migration completed"
+           fi
+           if [ -f "backend/database/migrate_upi_support.sql" ]; then
+             echo "Running UPI support migration..."
+             mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                   "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
+             echo "UPI support migration completed"
            fi
 
       - name: Setup PHP Environment (Post-Deployment)

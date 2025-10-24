@@ -304,8 +304,29 @@ export const appointmentApi = {
     api.put<Appointment>(`/admin/appointments/${id}/status`, { status }),
 };
 
+export type PaymentMethod = 'razorpay' | 'upi';
+
+interface UPIPaymentData {
+  upi_url: string;
+  qr_code: string;
+  reference_id: string;
+  app_links: Record<string, string>;
+}
+
+interface PaymentMethods {
+  available: PaymentMethod[];
+  default: PaymentMethod;
+  razorpay_enabled: boolean;
+  upi_enabled: boolean;
+}
+
 // Payment API methods
 export const paymentApi = {
+  // Get available payment methods
+  getPaymentMethods: () => 
+    api.get<PaymentMethods>('/payment/methods'),
+
+  // Razorpay payment methods
   createOrder: (appointmentId: string, amount: number) => 
     api.post<{ 
       order_id: string; 
@@ -320,6 +341,26 @@ export const paymentApi = {
     razorpay_signature: string;
     appointment_id: string;
   }) => api.post<{ appointment: Appointment }>('/payment/verify', paymentData),
+
+  // UPI payment methods
+  createUpiPayment: (appointmentId: string, amount: number) =>
+    api.post<UPIPaymentData>('/payment/create-upi', { appointmentId, amount }),
+
+  verifyUpiPayment: (referenceId: string) =>
+    api.get<{ status: 'pending' | 'completed' | 'failed'; transaction_id?: string }>(`/payment/verify-upi/${referenceId}`),
+
+  // Generic payment verification (supports both Razorpay and UPI)
+  verifyAnyPayment: (paymentData: {
+    payment_method: PaymentMethod;
+    appointment_id: string;
+    // Razorpay fields (optional)
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
+    razorpay_signature?: string;
+    // UPI fields (optional)
+    upi_transaction_id?: string;
+    upi_reference_id?: string;
+  }) => api.post<{ appointment: Appointment }>('/payment/verify-any', paymentData),
   
   getPaymentHistory: () => api.get<Record<string, unknown>[]>('/payment/history'),
 };
