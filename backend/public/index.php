@@ -77,8 +77,11 @@ $router->post('/appointments/save-draft', 'Gamcapp\\Controllers\\AppointmentCont
 $router->get('/appointments/latest-draft', 'Gamcapp\\Controllers\\AppointmentController@getLatestDraft');
 $router->get('/appointments/{id}', 'Gamcapp\\Controllers\\AppointmentController@getById');
 
+$router->get('/payment/methods', 'Gamcapp\\Controllers\\PaymentController@getPaymentMethods');
 $router->post('/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@createOrder');
 $router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
+$router->post('/payment/create-upi', 'Gamcapp\\Controllers\\PaymentController@createUpiPayment');
+$router->post('/payment/verify-upi', 'Gamcapp\\Controllers\\PaymentController@verifyUpiPayment');
 
 $router->post('/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
 
