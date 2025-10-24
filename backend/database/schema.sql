@@ -6,6 +6,8 @@ DROP TABLE IF EXISTS payment_transactions;
 DROP TABLE IF EXISTS otp_tokens;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS migration_log;
 
 -- Users table - Main user data with appointment details
 CREATE TABLE users (
@@ -113,4 +115,11 @@ CREATE TABLE audit_logs (
     INDEX idx_table_record (table_name, record_id),
     INDEX idx_action (action),
     INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create migration log table for tracking database migrations
+CREATE TABLE migration_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration_name VARCHAR(255) UNIQUE NOT NULL,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

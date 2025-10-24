@@ -51,6 +51,13 @@ FROM payment_transactions pt
 LEFT JOIN users u ON pt.user_id = u.id
 LEFT JOIN appointments a ON pt.appointment_id = a.id;
 
+-- Create migration_log table if it doesn't exist
+CREATE TABLE IF NOT EXISTS migration_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration_name VARCHAR(255) UNIQUE NOT NULL,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Log the migration
 INSERT INTO migration_log (migration_name, executed_at) 
 VALUES ('add_upi_payment_support', NOW())
