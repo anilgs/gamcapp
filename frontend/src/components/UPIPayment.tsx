@@ -49,6 +49,18 @@ const UPI_APPS: UPIApp[] = [
 ];
 
 export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPaymentError }: UPIPaymentProps) {
+  // Helper function to safely extract UPI ID
+  const getUpiId = (upiUrl: string): string => {
+    try {
+      return new URL(upiUrl).searchParams.get('pa') || 'N/A';
+    } catch {
+      console.error('Invalid UPI URL format:', upiUrl);
+      // Fallback: try to extract UPI ID manually if URL is malformed
+      const upiMatch = upiUrl.match(/pa=([^&]+)/);
+      return upiMatch ? upiMatch[1] : 'N/A';
+    }
+  };
+
   const [upiData, setUpiData] = useState<{
     upi_url: string;
     qr_code: string;
@@ -151,9 +163,9 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   };
 
   const copyUPIId = () => {
-    if (upiData) {
-      const upiId = new URL(upiData.upi_url).searchParams.get('pa');
-      if (upiId) {
+    if (upiData && upiData.upi_url) {
+      const upiId = getUpiId(upiData.upi_url);
+      if (upiId && upiId !== 'N/A') {
         navigator.clipboard.writeText(upiId);
         // You could show a toast notification here
       }
@@ -274,7 +286,7 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
               <div>
                 <div className="font-medium text-gray-900">Pay using UPI ID</div>
                 <div className="text-sm text-gray-600 mt-1">
-                  UPI ID: {new URL(upiData.upi_url).searchParams.get('pa')}
+                  UPI ID: {upiData.upi_url ? getUpiId(upiData.upi_url) : 'Loading...'}
                 </div>
                 <div className="text-sm text-gray-600">
                   Amount: ₹{(amount / 100).toFixed(2)}
