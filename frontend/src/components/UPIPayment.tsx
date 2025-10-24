@@ -253,8 +253,8 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
                   : 'hover:border-medical-300 cursor-pointer'
               }`}
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${app.color}`}>
-                <img src={app.icon} alt={app.name} className="w-8 h-8" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${app.color}`}>
+                <img src={app.icon} alt={app.name} className="w-12 h-12" />
               </div>
               <span className="text-sm font-medium text-gray-900">{app.name}</span>
             </button>
