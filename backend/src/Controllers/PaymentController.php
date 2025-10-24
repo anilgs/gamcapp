@@ -105,10 +105,8 @@ class PaymentController {
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'available' => $availableMethods,
-                    'default' => $defaultMethod,
-                    'razorpay_enabled' => $this->isRazorpayEnabled(),
-                    'upi_enabled' => $this->isUpiEnabled(),
+                    'available_methods' => $availableMethods,
+                    'default_method' => $defaultMethod,
                     'methods_info' => [
                         'razorpay' => [
                             'name' => 'Razorpay',
@@ -364,7 +362,7 @@ class PaymentController {
         ];
     }
     
-    private function createUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, Appointment $appointment): array {
+    public function createUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, Appointment $appointment): array {
         $amount = UpiPayment::getPaymentAmount($appointmentType);
         $transactionId = UpiPayment::generateTransactionId($userId, $appointmentType);
 
@@ -516,7 +514,7 @@ class PaymentController {
         ];
     }
     
-    private function verifyUpiPayment(int $userId, array $input, ?string $appointmentId): array {
+    public function verifyUpiPayment(int $userId, array $input, ?string $appointmentId): array {
         $transactionId = $input['upi_transaction_id'] ?? null;
         $upiReferenceId = $input['upi_reference_id'] ?? null;
 
@@ -607,5 +605,84 @@ class PaymentController {
             'payment_id' => $paymentId,
             'order_id' => $orderId
         ]);
+    }
+    
+    public function createUpiPaymentEndpoint(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $decoded = Auth::requireAuth();
+            $input = json_decode(file_get_contents('php://input'), true);
+            $userId = $decoded['user_id'];
+            $appointmentId = $input['appointmentId'] ?? null;
+
+            $user = User::findById($userId);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'User not found']);
+                return;
+            }
+
+            if ($appointmentId) {
+                $appointment = Appointment::findById($appointmentId);
+                if (!$appointment || $appointment->user_id !== $userId) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'error' => 'Appointment not found']);
+                    return;
+                }
+                
+                $appointmentType = $appointment->appointment_type;
+                $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment);
+            } else {
+                // For user profile payments without specific appointment
+                $appointmentType = 'medical_examination';
+                $result = $this->createUpiPayment($userId, '', $appointmentType, $user, null);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $error) {
+            error_log('UPI payment creation error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Payment creation failed']);
+        }
+    }
+    
+    public function verifyUpiPaymentEndpoint(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $decoded = Auth::requireAuth();
+            $userId = $decoded['user_id'];
+            $referenceId = $params['reference_id'] ?? null;
+
+            if (!$referenceId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Reference ID is required']);
+                return;
+            }
+
+            $input = ['reference_id' => $referenceId];
+            $result = $this->verifyUpiPayment($userId, $input, null);
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $error) {
+            error_log('UPI payment verification error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
+        }
     }
 }
