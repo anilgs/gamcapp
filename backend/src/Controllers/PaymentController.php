@@ -21,13 +21,27 @@ class PaymentController {
     public function getAvailablePaymentMethods(): array {
         $methods = [];
         
-        // Check if Razorpay is enabled
-        if ($this->isRazorpayEnabled()) {
-            $methods[] = 'razorpay';
+        try {
+            // Check if Razorpay is enabled
+            if ($this->isRazorpayEnabled()) {
+                $methods[] = 'razorpay';
+            }
+        } catch (\Throwable $e) {
+            error_log('Error checking Razorpay status: ' . $e->getMessage());
         }
         
-        // Check if UPI is enabled
-        if ($this->isUpiEnabled()) {
+        try {
+            // Check if UPI is enabled
+            if ($this->isUpiEnabled()) {
+                $methods[] = 'upi';
+            }
+        } catch (\Throwable $e) {
+            error_log('Error checking UPI status: ' . $e->getMessage());
+        }
+        
+        // If no methods are available, default to UPI
+        if (empty($methods)) {
+            error_log('No payment methods available, defaulting to UPI');
             $methods[] = 'upi';
         }
         
@@ -60,15 +74,21 @@ class PaymentController {
     }
     
     private function isUpiEnabled(): bool {
-        $enabled = filter_var($_ENV['UPI_ENABLED'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
-        
-        if (!$enabled) {
+        try {
+            $enabled = filter_var($_ENV['UPI_ENABLED'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
+            
+            if (!$enabled) {
+                return false;
+            }
+            
+            // Check if UPI is properly configured
+            $validation = UpiPayment::validateUpiConfiguration();
+            return $validation['valid'];
+        } catch (\Throwable $e) {
+            error_log('Error checking UPI enabled status: ' . $e->getMessage());
+            // If there's an error checking UPI config, assume it's not enabled
             return false;
         }
-        
-        // Check if UPI is properly configured
-        $validation = UpiPayment::validateUpiConfiguration();
-        return $validation['valid'];
     }
     
     public function getPaymentMethods(array $params = []): void {
