@@ -4,6 +4,7 @@ import Login from '@/pages/Login'
 import BookAppointment from '@/pages/BookAppointment'
 import AppointmentFormPage from '@/pages/AppointmentForm'
 import Payment from '@/pages/Payment'
+import PaymentMethodSelection from '@/pages/PaymentMethodSelection'
 import PaymentSuccess from '@/pages/PaymentSuccess'
 import { UserDashboard } from '@/pages/UserDashboard'
 import UserProfile from '@/pages/UserProfile'
@@ -19,6 +20,7 @@ function App() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/book-appointment" element={<BookAppointment />} />
         <Route path="/appointment-form" element={<AppointmentFormPage />} />
+        <Route path="/payment/method-selection" element={<PaymentMethodSelection />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />

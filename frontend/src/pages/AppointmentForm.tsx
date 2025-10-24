@@ -118,7 +118,7 @@ export default function AppointmentFormPage() {
       if (result.success && result.data) {
         // Use appointmentId from the response (backend returns appointmentId, not id)
         const appointmentId = result.data.appointmentId;
-        navigate(`/payment?appointmentId=${appointmentId}`);
+        navigate(`/payment/method-selection?appointmentId=${appointmentId}`);
       } else {
         throw new Error(result.error || 'Failed to create appointment');
       }
