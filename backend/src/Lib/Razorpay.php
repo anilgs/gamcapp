@@ -9,12 +9,12 @@ class Razorpay {
     private static ?Api $api = null;
     
     private const PAYMENT_AMOUNTS = [
-        'employment_visa' => 350000, // ₹3,500
-        'family_visa' => 300000,     // ₹3,000
-        'visit_visa' => 250000,      // ₹2,500
-        'student_visa' => 300000,    // ₹3,000
-        'business_visa' => 400000,   // ₹4,000
-        'other' => 350000           // ₹3,500 (default)
+        'employment_visa' => 35000, // ₹3,50
+        'family_visa' => 30000,     // ₹3,00
+        'visit_visa' => 25000,      // ₹2,50
+        'student_visa' => 30000,    // ₹3,00
+        'business_visa' => 40000,   // ₹4,00
+        'other' => 35000           // ₹3,50 (default)
     ];
 
     private static function getApi(): Api {
