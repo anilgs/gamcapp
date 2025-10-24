@@ -607,53 +607,6 @@ class PaymentController {
         ]);
     }
     
-    public function createUpiPayment(array $params = []): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-            return;
-        }
-
-        try {
-            $decoded = Auth::requireAuth();
-            $input = json_decode(file_get_contents('php://input'), true);
-            $userId = $decoded['user_id'];
-            $appointmentId = $input['appointmentId'] ?? null;
-
-            $user = User::findById($userId);
-            if (!$user) {
-                http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'User not found']);
-                return;
-            }
-
-            if ($appointmentId) {
-                $appointment = Appointment::findById($appointmentId);
-                if (!$appointment || $appointment->user_id !== $userId) {
-                    http_response_code(404);
-                    echo json_encode(['success' => false, 'error' => 'Appointment not found']);
-                    return;
-                }
-                
-                $appointmentType = $appointment->appointment_type;
-                $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment);
-            } else {
-                // For user profile payments without specific appointment
-                $appointmentType = 'medical_examination';
-                $result = $this->createUpiPayment($userId, '', $appointmentType, $user, null);
-            }
-
-            echo json_encode([
-                'success' => true,
-                'data' => $result
-            ]);
-        } catch (\Exception $error) {
-            error_log('UPI payment creation error: ' . $error->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Payment creation failed']);
-        }
-    }
-    
     public function verifyUpiPayment(array $params = []): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
