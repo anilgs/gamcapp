@@ -378,8 +378,8 @@ class PaymentController {
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'user_phone' => $user->phone,
-                'appointment_date' => $appointment->appointment_date,
-                'medical_center' => $appointment->medical_center
+                'appointment_date' => $appointment ? $appointment->appointment_date : null,
+                'medical_center' => $appointment ? $appointment->medical_center : null
             ]
         ]);
 
@@ -403,12 +403,14 @@ class PaymentController {
         // Update user payment status to pending
         $user->updatePaymentStatus('pending');
 
-        // Update appointment with payment transaction ID and method
-        $appointment->update([
-            'payment_order_id' => $transactionId,
-            'payment_status' => 'pending',
-            'payment_method' => 'upi'
-        ]);
+        // Update appointment with payment transaction ID and method (if appointment exists)
+        if ($appointment) {
+            $appointment->update([
+                'payment_order_id' => $transactionId,
+                'payment_status' => 'pending',
+                'payment_method' => 'upi'
+            ]);
+        }
 
         $this->logger->info('UPI payment request created successfully', [
             'user_id' => $userId,
@@ -674,7 +676,7 @@ class PaymentController {
                 return;
             }
 
-            $input = ['reference_id' => $referenceId];
+            $input = ['upi_transaction_id' => $referenceId];
             $result = $this->verifyUpiPayment($userId, $input, null);
             
             echo json_encode([
