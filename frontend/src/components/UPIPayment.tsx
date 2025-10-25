@@ -75,15 +75,22 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   const [pollingInterval, setPollingInterval] = useState<number | null>(null);
 
   useEffect(() => {
+    // Clear any existing polling interval when amount changes
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    
     initializeUPIPayment();
     return () => {
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeUPIPayment = async () => {
+    setLoading(true); // Set loading state when regenerating
     try {
       const response = await fetch('/api/payment/create-upi', {
         method: 'POST',
