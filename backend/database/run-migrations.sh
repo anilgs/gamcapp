@@ -23,6 +23,8 @@ MIGRATIONS=(
     "migrate_otp_table.sql"
     "migrate_passport_nullable.sql"
     "migrate_appointments_table.sql"
+    "migrate_upi_support.sql"
+    "migrate_payment_tracking.sql"
 )
 
 # Run each migration
