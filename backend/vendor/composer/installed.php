@@ -3,7 +3,7 @@
         'name' => 'gamcapp/backend',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'dd6bd9da0106b6441931dc52aafd56d78eee1152',
+        'reference' => 'ffc1d88c165690b8726af0fddd68d818695bceed',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'gamcapp/backend' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'dd6bd9da0106b6441931dc52aafd56d78eee1152',
+            'reference' => 'ffc1d88c165690b8726af0fddd68d818695bceed',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

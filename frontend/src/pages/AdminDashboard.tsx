@@ -2,11 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { adminApi, AdminAppointment, Pagination, Statistics, handleApiError } from '@/lib/api'
 import { AdminAppointmentList } from '@/components/AdminUserList'
+import { AdminPaymentManagement } from '@/components/AdminPaymentManagement'
 import { ChangePasswordForm } from '@/components/ChangePasswordForm'
+
+type ActiveTab = 'appointments' | 'payments'
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
   const [adminUser, setAdminUser] = useState<{ username: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('appointments')
   const [appointments, setAppointments] = useState<AdminAppointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -305,202 +309,240 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Navigation Tabs */}
         <div className="bg-white shadow rounded-lg mb-6">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Filters</h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input
-                  type="text"
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                  placeholder="Name, email, phone, passport..."
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-                <select
-                  value={filters.payment_status}
-                  onChange={(e) => handleFilterChange('payment_status', e.target.value)}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Type</label>
-                <select
-                  value={filters.appointment_type}
-                  onChange={(e) => handleFilterChange('appointment_type', e.target.value)}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                >
-                  <option value="">All Types</option>
-                  <option value="employment_visa">Employment Visa</option>
-                  <option value="family_visa">Family Visa</option>
-                  <option value="visit_visa">Visit Visa</option>
-                  <option value="student_visa">Student Visa</option>
-                  <option value="business_visa">Business Visa</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                <select
-                  value={`${filters.sort_by}_${filters.sort_order}`}
-                  onChange={(e) => {
-                    const [sortBy, sortOrder] = e.target.value.split('_')
-                    handleFilterChange('sort_by', sortBy)
-                    handleFilterChange('sort_order', sortOrder)
-                  }}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                >
-                  <option value="created_at_desc">Newest First</option>
-                  <option value="created_at_asc">Oldest First</option>
-                  <option value="appointment_date_desc">Appointment Date (Latest)</option>
-                  <option value="appointment_date_asc">Appointment Date (Earliest)</option>
-                  <option value="first_name_asc">Name A-Z</option>
-                  <option value="first_name_desc">Name Z-A</option>
-                  <option value="payment_status_asc">Payment Status</option>
-                  <option value="status_asc">Appointment Status</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 flex justify-between items-center">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex">
               <button
-                onClick={() => {
-                  setFilters({
-                    search: '',
-                    payment_status: '',
-                    appointment_type: '',
-                    sort_by: 'created_at',
-                    sort_order: 'desc'
-                  })
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setActiveTab('appointments')}
+                className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                  activeTab === 'appointments'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
-                Clear Filters
+                Appointments Management
               </button>
               <button
-                onClick={() => fetchAppointments(1)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                onClick={() => setActiveTab('payments')}
+                className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
+                  activeTab === 'payments'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
-                Refresh
+                Payment Management
               </button>
-            </div>
+            </nav>
           </div>
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-6">
-            {successMessage}
-          </div>
-        )}
+        {/* Tab Content */}
+        {activeTab === 'appointments' && (
+          <>
+            {/* Filters */}
+            <div className="bg-white shadow rounded-lg mb-6">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Filters</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input
+                      type="text"
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      placeholder="Name, email, phone, passport..."
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    />
+                  </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
-            {error}
-          </div>
-        )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                    <select
+                      value={filters.payment_status}
+                      onChange={(e) => handleFilterChange('payment_status', e.target.value)}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                      <option value="failed">Failed</option>
+                    </select>
+                  </div>
 
-        {/* Appointments List */}
-        <div className="mb-6">
-          <AdminAppointmentList
-            appointments={appointments}
-            loading={loading}
-            onUploadSlip={handleUploadSlip}
-            onViewDetails={handleViewDetails}
-            onRefresh={() => fetchAppointments()}
-          />
-        </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Type</label>
+                    <select
+                      value={filters.appointment_type}
+                      onChange={(e) => handleFilterChange('appointment_type', e.target.value)}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                      <option value="">All Types</option>
+                      <option value="employment_visa">Employment Visa</option>
+                      <option value="family_visa">Family Visa</option>
+                      <option value="visit_visa">Visit Visa</option>
+                      <option value="student_visa">Student Visa</option>
+                      <option value="business_visa">Business Visa</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
 
-        {/* Pagination */}
-        {pagination.total_pages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => handlePageChange(pagination.current_page - 1)}
-                disabled={!pagination.has_prev}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => handlePageChange(pagination.current_page + 1)}
-                disabled={!pagination.has_next}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing{' '}
-                  <span className="font-medium">
-                    {((pagination.current_page - 1) * pagination.per_page) + 1}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-medium">
-                    {Math.min(pagination.current_page * pagination.per_page, pagination.total_records)}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-medium">{pagination.total_records}</span>{' '}
-                  results
-                </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select
+                      value={`${filters.sort_by}_${filters.sort_order}`}
+                      onChange={(e) => {
+                        const [sortBy, sortOrder] = e.target.value.split('_')
+                        handleFilterChange('sort_by', sortBy)
+                        handleFilterChange('sort_order', sortOrder)
+                      }}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    >
+                      <option value="created_at_desc">Newest First</option>
+                      <option value="created_at_asc">Oldest First</option>
+                      <option value="appointment_date_desc">Appointment Date (Latest)</option>
+                      <option value="appointment_date_asc">Appointment Date (Earliest)</option>
+                      <option value="first_name_asc">Name A-Z</option>
+                      <option value="first_name_desc">Name Z-A</option>
+                      <option value="payment_status_asc">Payment Status</option>
+                      <option value="status_asc">Appointment Status</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-between items-center">
+                  <button
+                    onClick={() => {
+                      setFilters({
+                        search: '',
+                        payment_status: '',
+                        appointment_type: '',
+                        sort_by: 'created_at',
+                        sort_order: 'desc'
+                      })
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Clear Filters
+                  </button>
+                  <button
+                    onClick={() => fetchAppointments(1)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-6">
+                {successMessage}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
+                {error}
+              </div>
+            )}
+
+            {/* Appointments List */}
+            <div className="mb-6">
+              <AdminAppointmentList
+                appointments={appointments}
+                loading={loading}
+                onUploadSlip={handleUploadSlip}
+                onViewDetails={handleViewDetails}
+                onRefresh={() => fetchAppointments()}
+              />
+            </div>
+
+            {/* Pagination */}
+            {pagination.total_pages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
+                <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => handlePageChange(pagination.current_page - 1)}
                     disabled={!pagination.has_prev}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
-                  
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
-                    const pageNum = Math.max(1, pagination.current_page - 2) + i
-                    if (pageNum > pagination.total_pages) return null
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          pageNum === pagination.current_page
-                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  
                   <button
                     onClick={() => handlePageChange(pagination.current_page + 1)}
                     disabled={!pagination.has_next}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
-                </nav>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing{' '}
+                      <span className="font-medium">
+                        {((pagination.current_page - 1) * pagination.per_page) + 1}
+                      </span>{' '}
+                      to{' '}
+                      <span className="font-medium">
+                        {Math.min(pagination.current_page * pagination.per_page, pagination.total_records)}
+                      </span>{' '}
+                      of{' '}
+                      <span className="font-medium">{pagination.total_records}</span>{' '}
+                      results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                      <button
+                        onClick={() => handlePageChange(pagination.current_page - 1)}
+                        disabled={!pagination.has_prev}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
+                        const pageNum = Math.max(1, pagination.current_page - 2) + i
+                        if (pageNum > pagination.total_pages) return null
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              pageNum === pagination.current_page
+                                ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+                      
+                      <button
+                        onClick={() => handlePageChange(pagination.current_page + 1)}
+                        disabled={!pagination.has_next}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
+        )}
+
+        {/* Payment Management Tab */}
+        {activeTab === 'payments' && (
+          <AdminPaymentManagement />
         )}
       </main>
 

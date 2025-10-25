@@ -365,9 +365,100 @@ class PaymentController {
     public function createUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, ?Appointment $appointment, ?int $customAmount = null): array {
         // Use custom amount if provided, otherwise use default amount for appointment type
         $amount = $customAmount ?? UpiPayment::getPaymentAmount($appointmentType);
+        
+        // Check if Razorpay is enabled for UPI (recommended for webhook support)
+        if ($this->isRazorpayEnabled() && ($_ENV['UPI_USE_RAZORPAY'] ?? 'true') === 'true') {
+            // Use Razorpay for UPI payment (supports webhooks)
+            return $this->createRazorpayUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $amount);
+        } else {
+            // Fallback to direct UPI (no webhook support)
+            return $this->createDirectUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $amount);
+        }
+    }
+
+    private function createRazorpayUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, ?Appointment $appointment, int $amount): array {
+        try {
+            // Create Razorpay order for UPI
+            $order = Razorpay::createOrder([
+                'amount' => $amount,
+                'currency' => 'INR',
+                'notes' => [
+                    'user_id' => (string)$userId,
+                    'appointment_id' => (string)$appointmentId,
+                    'appointment_type' => $appointmentType,
+                    'user_name' => $user->name,
+                    'user_email' => $user->email,
+                    'payment_method' => 'upi'
+                ]
+            ]);
+
+            if (!$order['success']) {
+                return $order;
+            }
+
+            $orderData = $order['data'];
+
+            // Store payment transaction in database
+            try {
+                Database::query(
+                    "INSERT INTO payment_transactions (user_id, appointment_id, payment_method, razorpay_order_id, amount, currency, status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [$userId, $appointmentId, 'upi', $orderData['id'], $amount, 'INR', 'created']
+                );
+            } catch (\Exception $dbError) {
+                error_log('Failed to store Razorpay UPI payment transaction: ' . $dbError->getMessage());
+            }
+
+            // Update user payment status to pending
+            $user->updatePaymentStatus('pending');
+
+            // Update appointment with payment order ID and method (if appointment exists)
+            if ($appointment) {
+                $appointment->update([
+                    'payment_order_id' => $orderData['id'],
+                    'payment_status' => 'pending',
+                    'payment_method' => 'upi'
+                ]);
+            }
+
+            $this->logger->info('Razorpay UPI payment request created successfully', [
+                'user_id' => $userId,
+                'order_id' => $orderData['id'],
+                'amount' => $amount
+            ]);
+
+            // Generate UPI QR code and payment links
+            $upiUrl = $this->generateRazorpayUpiUrl($orderData['id'], $amount);
+            $qrCode = $this->generateQrCodeData($upiUrl);
+            $appLinks = $this->generateUpiAppLinks($upiUrl);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'transaction_id' => $orderData['id'],
+                    'reference_id' => $orderData['id'],
+                    'amount' => $amount,
+                    'upi_url' => $upiUrl,
+                    'qr_code' => $qrCode,
+                    'app_links' => $appLinks,
+                    'payment_method' => 'upi',
+                    'provider' => 'razorpay'
+                ]
+            ];
+
+        } catch (\Exception $error) {
+            error_log('Razorpay UPI payment creation failed: ' . $error->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to create UPI payment: ' . $error->getMessage()
+            ];
+        }
+    }
+
+    private function createDirectUpiPayment(int $userId, string $appointmentId, string $appointmentType, User $user, ?Appointment $appointment, int $amount): array {
         $transactionId = UpiPayment::generateTransactionId($userId, $appointmentType);
 
-        // Create UPI payment request
+        // Create UPI payment request using direct UPI
         $paymentResult = UpiPayment::createPaymentRequest([
             'amount' => $amount,
             'transaction_id' => $transactionId,
@@ -412,13 +503,48 @@ class PaymentController {
             ]);
         }
 
-        $this->logger->info('UPI payment request created successfully', [
+        $this->logger->info('Direct UPI payment request created successfully', [
             'user_id' => $userId,
             'transaction_id' => $transactionId,
             'amount' => $amount
         ]);
 
-        return array_merge($paymentData, ['payment_method' => 'upi']);
+        return array_merge($paymentData, ['payment_method' => 'upi', 'provider' => 'direct']);
+    }
+
+    private function generateRazorpayUpiUrl(string $orderId, int $amount): string {
+        // Generate UPI URL for Razorpay order
+        $merchantVPA = $_ENV['UPI_VIRTUAL_ADDRESS'] ?? 'rzp.payto021551929@icici';
+        $merchantName = $_ENV['UPI_MERCHANT_NAME'] ?? 'GAMCA Cochin Medical Services';
+        $amountInRupees = $amount / 100;
+
+        $upiParams = [
+            'pa' => $merchantVPA,
+            'pn' => $merchantName,
+            'am' => $amountInRupees,
+            'tr' => $orderId,
+            'tn' => 'GAMCA Medical Payment',
+            'cu' => 'INR'
+        ];
+
+        return 'upi://pay?' . http_build_query($upiParams);
+    }
+
+    private function generateQrCodeData(string $upiUrl): string {
+        $encodedUrl = urlencode($upiUrl);
+        return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . $encodedUrl;
+    }
+
+    private function generateUpiAppLinks(string $upiUrl): array {
+        $queryString = parse_url($upiUrl, PHP_URL_QUERY);
+        
+        return [
+            'googlepay' => 'tez://upi/pay?' . $queryString,
+            'phonepe' => 'phonepe://pay?' . $queryString,
+            'paytm' => 'paytmmp://pay?' . $queryString,
+            'bhim' => $upiUrl,
+            'amazonpay' => $upiUrl
+        ];
     }
 
     public function verifyPayment(array $params = []): void {
@@ -522,23 +648,128 @@ class PaymentController {
             return ['success' => false, 'error' => 'Missing UPI transaction ID'];
         }
 
-        // Verify UPI payment
+        // Check if this is a Razorpay UPI payment by looking up the transaction
+        try {
+            $transaction = Database::query(
+                "SELECT payment_method, razorpay_order_id, upi_transaction_id, status FROM payment_transactions WHERE (razorpay_order_id = ? OR upi_transaction_id = ?) AND user_id = ?",
+                [$transactionId, $transactionId, $userId]
+            );
+
+            if (!empty($transaction)) {
+                $paymentRecord = $transaction[0];
+                
+                // If this is a Razorpay UPI payment, check Razorpay status
+                if (!empty($paymentRecord['razorpay_order_id']) && $paymentRecord['razorpay_order_id'] === $transactionId) {
+                    return $this->verifyRazorpayUpiPayment($userId, $transactionId, $appointmentId);
+                }
+            }
+        } catch (\Exception $dbError) {
+            error_log('Database error during UPI verification: ' . $dbError->getMessage());
+        }
+
+        // Fallback to direct UPI verification
+        return $this->verifyDirectUpiPayment($userId, $transactionId, $upiReferenceId, $appointmentId);
+    }
+
+    private function verifyRazorpayUpiPayment(int $userId, string $orderId, ?string $appointmentId): array {
+        try {
+            // Check order status with Razorpay
+            $orderResult = Razorpay::fetchOrderDetails($orderId);
+            
+            if (!$orderResult['success']) {
+                return [
+                    'success' => true,
+                    'status' => 'pending',
+                    'message' => 'Payment verification in progress'
+                ];
+            }
+
+            $orderData = $orderResult['data'];
+            $orderStatus = $orderData['status'] ?? 'created';
+
+            // Check if there are any payments associated with this order
+            $payments = $orderData['payments'] ?? [];
+            
+            foreach ($payments as $payment) {
+                if ($payment['status'] === 'captured') {
+                    // Payment is completed
+                    $this->updatePaymentRecords($userId, 'upi', $payment['id'], $orderId, $appointmentId);
+                    
+                    return [
+                        'success' => true,
+                        'status' => 'completed',
+                        'data' => [
+                            'transaction_id' => $payment['id'],
+                            'order_id' => $orderId,
+                            'payment_method' => 'upi',
+                            'provider' => 'razorpay'
+                        ]
+                    ];
+                }
+            }
+
+            // Check database for webhook-updated status
+            $dbTransaction = Database::query(
+                "SELECT status FROM payment_transactions WHERE razorpay_order_id = ? AND user_id = ?",
+                [$orderId, $userId]
+            );
+
+            if (!empty($dbTransaction) && $dbTransaction[0]['status'] === 'paid') {
+                return [
+                    'success' => true,
+                    'status' => 'completed',
+                    'data' => [
+                        'transaction_id' => $orderId,
+                        'order_id' => $orderId,
+                        'payment_method' => 'upi',
+                        'provider' => 'razorpay'
+                    ]
+                ];
+            }
+
+            // Payment is still pending
+            return [
+                'success' => true,
+                'status' => 'pending',
+                'message' => 'UPI payment is pending. Please complete the payment.',
+                'data' => [
+                    'transaction_id' => $orderId,
+                    'order_id' => $orderId,
+                    'payment_method' => 'upi',
+                    'provider' => 'razorpay'
+                ]
+            ];
+
+        } catch (\Exception $error) {
+            error_log('Razorpay UPI verification error: ' . $error->getMessage());
+            return [
+                'success' => true,
+                'status' => 'pending',
+                'message' => 'Payment verification in progress'
+            ];
+        }
+    }
+
+    private function verifyDirectUpiPayment(int $userId, string $transactionId, ?string $upiReferenceId, ?string $appointmentId): array {
+        // Verify UPI payment using direct UPI method
         $verificationResult = UpiPayment::verifyPayment([
             'transaction_id' => $transactionId,
             'upi_reference_id' => $upiReferenceId
         ]);
 
-        // For UPI, we might need manual confirmation, so we'll mark as pending
+        // For direct UPI, we might need manual confirmation, so we'll mark as pending
         // and provide instructions for confirmation
         if ($verificationResult['success'] && !$verificationResult['verified']) {
             return [
                 'success' => true,
                 'verified' => false,
+                'status' => 'pending',
                 'message' => 'UPI payment initiated. Please complete the payment in your UPI app.',
                 'data' => [
                     'transaction_id' => $transactionId,
                     'status' => 'pending_confirmation',
-                    'payment_method' => 'upi'
+                    'payment_method' => 'upi',
+                    'provider' => 'direct'
                 ]
             ];
         }
@@ -550,11 +781,13 @@ class PaymentController {
 
         return [
             'success' => $verificationResult['success'],
+            'status' => $verificationResult['verified'] ? 'completed' : 'pending',
             'message' => $verificationResult['verified'] ? 'UPI payment verified successfully' : 'UPI payment verification pending',
             'data' => [
                 'transaction_id' => $transactionId,
                 'upi_reference_id' => $upiReferenceId,
                 'payment_method' => 'upi',
+                'provider' => 'direct',
                 'verified' => $verificationResult['verified']
             ]
         ];
@@ -684,6 +917,109 @@ class PaymentController {
             error_log('UPI payment verification error: ' . $error->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
+        }
+    }
+
+    public function razorpayWebhook(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Get webhook payload
+            $webhookBody = file_get_contents('php://input');
+            $webhookSignature = $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'] ?? '';
+            $webhookSecret = $_ENV['RAZORPAY_WEBHOOK_SECRET'] ?? '';
+
+            $this->logger->log('Webhook received', [
+                'signature' => $webhookSignature,
+                'body_length' => strlen($webhookBody)
+            ]);
+
+            // Validate webhook signature
+            if (!Razorpay::validateWebhookSignature($webhookBody, $webhookSignature, $webhookSecret)) {
+                $this->logger->log('Invalid webhook signature', ['signature' => $webhookSignature]);
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid signature']);
+                return;
+            }
+
+            $webhookData = json_decode($webhookBody, true);
+            if (!$webhookData) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid JSON']);
+                return;
+            }
+
+            $this->logger->log('Webhook validated', ['event' => $webhookData['event'] ?? 'unknown']);
+
+            // Handle payment.captured event
+            if (($webhookData['event'] ?? '') === 'payment.captured') {
+                $paymentData = $webhookData['payload']['payment']['entity'] ?? [];
+                $paymentId = $paymentData['id'] ?? '';
+                $orderId = $paymentData['order_id'] ?? '';
+                $status = $paymentData['status'] ?? '';
+
+                $this->logger->log('Payment captured webhook', [
+                    'payment_id' => $paymentId,
+                    'order_id' => $orderId,
+                    'status' => $status
+                ]);
+
+                if ($status === 'captured') {
+                    // Update payment status in database
+                    try {
+                        Database::query(
+                            "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE razorpay_order_id = ?",
+                            [$paymentId, 'paid', $orderId]
+                        );
+
+                        // Get user and appointment info from payment transaction
+                        $transaction = Database::query(
+                            "SELECT user_id, appointment_id FROM payment_transactions WHERE razorpay_order_id = ?",
+                            [$orderId]
+                        );
+
+                        if (!empty($transaction)) {
+                            $userId = $transaction[0]['user_id'];
+                            $appointmentId = $transaction[0]['appointment_id'];
+
+                            // Update user payment status
+                            $user = User::findById($userId);
+                            if ($user) {
+                                $user->updatePaymentStatus('paid', $paymentId);
+                            }
+
+                            // Update appointment status
+                            if ($appointmentId) {
+                                $appointment = Appointment::findById($appointmentId);
+                                if ($appointment && $appointment->user_id === $userId) {
+                                    $appointment->update([
+                                        'payment_status' => 'completed',
+                                        'status' => 'confirmed'
+                                    ]);
+                                }
+                            }
+
+                            $this->logger->log('Payment completed successfully', [
+                                'payment_id' => $paymentId,
+                                'user_id' => $userId,
+                                'appointment_id' => $appointmentId
+                            ]);
+                        }
+                    } catch (\Exception $dbError) {
+                        $this->logger->log('Database update failed', ['error' => $dbError->getMessage()]);
+                    }
+                }
+            }
+
+            echo json_encode(['success' => true]);
+        } catch (\Exception $error) {
+            $this->logger->log('Webhook processing error', ['error' => $error->getMessage()]);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Webhook processing failed']);
         }
     }
 }

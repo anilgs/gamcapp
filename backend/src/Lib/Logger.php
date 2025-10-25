@@ -108,25 +108,22 @@ class Logger
     
     private function compressAndArchive(string $logFile): void
     {
+        // Temporarily disabled compression due to missing ZipArchive extension
+        // Just move files to archive directory without compression
         $archiveDir = $this->logDir . '/archive';
+        if (!is_dir($archiveDir)) {
+            mkdir($archiveDir, 0755, true);
+        }
+        
         $fileName = basename($logFile);
         $month = date('Y-m', filemtime($logFile));
-        $archiveFile = $archiveDir . "/logs_{$month}.zip";
+        $archiveFile = $archiveDir . "/logs_{$month}_{$fileName}";
         
-        // Create or update the zip archive
-        $zip = new \ZipArchive();
-        $result = $zip->open($archiveFile, \ZipArchive::CREATE);
-        
-        if ($result === TRUE) {
-            $zip->addFile($logFile, $fileName);
-            $zip->close();
-            
-            // Remove the original log file after successful archiving
-            unlink($logFile);
-            
+        // Simply move the file to archive directory
+        if (rename($logFile, $archiveFile)) {
             $this->log('INFO', "Archived log file: {$fileName} to {$archiveFile}");
         } else {
-            $this->log('ERROR', "Failed to create archive for: {$fileName}");
+            $this->log('ERROR', "Failed to archive file: {$fileName}");
         }
     }
     
@@ -134,13 +131,13 @@ class Logger
     {
         $archiveDir = $this->logDir . '/archive';
         $cutoffTime = time() - ($this->storeDuration * 6); // Keep archives for 6x the log duration
-        $archiveFiles = glob($archiveDir . '/logs_*.zip');
+        $archiveFiles = glob($archiveDir . '/logs_*');
         
         foreach ($archiveFiles as $archiveFile) {
             $fileTime = filemtime($archiveFile);
-            if ($fileTime < $cutoffTime) {
+            if ($fileTime && $fileTime < $cutoffTime) {
                 unlink($archiveFile);
-                $this->log('INFO', "Deleted old archive: " . basename($archiveFile));
+                $this->log('INFO', "Cleaned up old archive: " . basename($archiveFile));
             }
         }
     }

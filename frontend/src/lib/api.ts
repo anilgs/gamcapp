@@ -471,6 +471,40 @@ export const adminApi = {
   },
   changePassword: (currentPassword: string, newPassword: string) => 
     api.post<{ message: string }>('/admin/change-password', { currentPassword, newPassword }, 'adminToken'),
+  
+  // Payment management methods
+  getPendingPayments: (params?: Record<string, string>) => {
+    const queryParams = params ? `?${new URLSearchParams(params)}` : '';
+    return api.get<{
+      payments: {
+        id: string;
+        user_id: string;
+        customer_name: string;
+        email: string;
+        phone: string;
+        payment_status: string;
+        payment_method: string;
+        payment_amount: number;
+        payment_reference: string;
+        appointment_type: string;
+        appointment_date: string;
+        created_at: string;
+        updated_at: string;
+      }[];
+      pagination: Pagination;
+    }>(`/admin/payments/pending${queryParams}`, 'adminToken');
+  },
+  
+  markPaymentComplete: (appointmentId: string, adminNotes?: string) => 
+    api.post<{ 
+      message: string; 
+      data: {
+        appointment_id: string;
+        new_status: string;
+        updated_by: string;
+        updated_at: string;
+      } 
+    }>('/admin/payments/mark-complete', { appointment_id: appointmentId, admin_notes: adminNotes }, 'adminToken'),
 };
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('token');

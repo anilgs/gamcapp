@@ -83,11 +83,14 @@ $router->post('/payment/create-order', 'Gamcapp\\Controllers\\PaymentController@
 $router->post('/payment/verify', 'Gamcapp\\Controllers\\PaymentController@verifyPayment');
 $router->post('/payment/create-upi', 'Gamcapp\\Controllers\\PaymentController@createUpiPaymentEndpoint');
 $router->get('/payment/verify-upi/{reference_id}', 'Gamcapp\\Controllers\\PaymentController@verifyUpiPaymentEndpoint');
+$router->post('/payment/webhook/razorpay', 'Gamcapp\\Controllers\\PaymentController@razorpayWebhook');
 
 $router->post('/upload/appointment-slip', 'Gamcapp\\Controllers\\UploadController@appointmentSlip');
 
 $router->get('/admin/users', 'Gamcapp\\Controllers\\AdminController@getUsers');
 $router->get('/admin/appointments', 'Gamcapp\\Controllers\\AdminController@getAppointments');
+$router->get('/admin/payments/pending', 'Gamcapp\\Controllers\\AdminController@getPendingPayments');
+$router->post('/admin/payments/mark-complete', 'Gamcapp\\Controllers\\AdminController@markPaymentComplete');
 $router->post('/admin/upload-slip', 'Gamcapp\\Controllers\\AdminController@uploadSlip');
 $router->post('/admin/change-password', 'Gamcapp\\Controllers\\AdminController@changePassword');
 
