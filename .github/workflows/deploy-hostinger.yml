@@ -381,6 +381,12 @@ jobs:
                     "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
               echo "Payment tracking migration completed"
             fi
+            if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
+              echo "Running payment tracking migration..."
+              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                    "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
+              echo "Payment tracking migration completed"
+            fi
             
 
   deploy-production:
