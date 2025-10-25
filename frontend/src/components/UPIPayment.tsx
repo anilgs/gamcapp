@@ -98,13 +98,21 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
       });
 
       const result = await response.json();
+      console.log('🔍 UPI API Response:', result);
+      console.log('🔍 Response Status:', response.status, response.statusText);
+      
       if (result.success) {
+        console.log('🔍 UPI Data received:', result.data);
+        console.log('🔍 QR Code URL:', result.data?.qr_code);
         setUpiData(result.data);
         startPaymentPolling(result.data.reference_id);
       } else {
+        console.error('❌ UPI Payment Error:', result.error);
         onPaymentError(result.error || 'Failed to initialize UPI payment');
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ UPI Payment Network Error:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
       onPaymentError('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -291,6 +299,12 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
 
           {showQR && (
             <div className="bg-gray-50 p-6 rounded-lg text-center">
+              {(() => {
+                console.log('🔍 Rendering QR section - upiData:', upiData);
+                console.log('🔍 QR Code src:', upiData?.qr_code);
+                console.log('🔍 QR Image Error state:', qrImageError);
+                return null;
+              })()}
               {qrImageError ? (
                 <div className="w-48 h-48 mx-auto mb-4 border rounded-lg bg-gray-200 flex items-center justify-center">
                   <div className="text-center">

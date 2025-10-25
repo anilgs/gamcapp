@@ -418,10 +418,7 @@ class PaymentController {
             'amount' => $amount
         ]);
 
-        return [
-            'success' => true,
-            'data' => array_merge($paymentData, ['payment_method' => 'upi'])
-        ];
+        return array_merge($paymentData, ['payment_method' => 'upi']);
     }
 
     public function verifyPayment(array $params = []): void {
