@@ -617,20 +617,25 @@ class PaymentController {
         ]);
 
         if (!$verificationResult['success']) {
-            return $verificationResult;
+            // If signature verification fails, keep payment pending for admin verification
+            return [
+                'success' => true,
+                'status' => 'pending',
+                'message' => 'Payment submitted. Admin will verify and update status.',
+                'data' => [
+                    'payment_id' => $razorpayPaymentId,
+                    'order_id' => $razorpayOrderId,
+                    'payment_method' => 'razorpay'
+                ]
+            ];
         }
 
-        // Get payment details
-        $paymentDetailsResult = Razorpay::fetchPaymentDetails($razorpayPaymentId);
-        if (!$paymentDetailsResult['success']) {
-            return ['success' => false, 'error' => 'Failed to fetch payment details'];
-        }
-
-        // Update records
+        // Signature verified - update records and complete payment
         $this->updatePaymentRecords($userId, 'razorpay', $razorpayPaymentId, $razorpayOrderId, $appointmentId);
 
         return [
             'success' => true,
+            'status' => 'completed',
             'message' => 'Razorpay payment verified successfully',
             'data' => [
                 'payment_id' => $razorpayPaymentId,
@@ -677,10 +682,17 @@ class PaymentController {
             $orderResult = Razorpay::fetchOrderDetails($orderId);
             
             if (!$orderResult['success']) {
+                // Return success but keep payment pending for admin verification
                 return [
                     'success' => true,
                     'status' => 'pending',
-                    'message' => 'Payment verification in progress'
+                    'message' => 'Payment submitted. Admin will verify and update status.',
+                    'data' => [
+                        'transaction_id' => $orderId,
+                        'order_id' => $orderId,
+                        'payment_method' => 'upi',
+                        'provider' => 'razorpay'
+                    ]
                 ];
             }
 
@@ -692,7 +704,7 @@ class PaymentController {
             
             foreach ($payments as $payment) {
                 if ($payment['status'] === 'captured') {
-                    // Payment is completed
+                    // Payment is completed - update records
                     $this->updatePaymentRecords($userId, 'upi', $payment['id'], $orderId, $appointmentId);
                     
                     return [
@@ -727,11 +739,11 @@ class PaymentController {
                 ];
             }
 
-            // Payment is still pending
+            // Keep payment pending for admin verification instead of waiting
             return [
                 'success' => true,
                 'status' => 'pending',
-                'message' => 'UPI payment is pending. Please complete the payment.',
+                'message' => 'Payment submitted. Admin will verify and update status.',
                 'data' => [
                     'transaction_id' => $orderId,
                     'order_id' => $orderId,
@@ -742,10 +754,17 @@ class PaymentController {
 
         } catch (\Exception $error) {
             error_log('Razorpay UPI verification error: ' . $error->getMessage());
+            // Return success but keep payment pending for admin verification
             return [
                 'success' => true,
                 'status' => 'pending',
-                'message' => 'Payment verification in progress'
+                'message' => 'Payment submitted. Admin will verify and update status.',
+                'data' => [
+                    'transaction_id' => $orderId,
+                    'order_id' => $orderId,
+                    'payment_method' => 'upi',
+                    'provider' => 'razorpay'
+                ]
             ];
         }
     }
@@ -757,38 +776,35 @@ class PaymentController {
             'upi_reference_id' => $upiReferenceId
         ]);
 
-        // For direct UPI, we might need manual confirmation, so we'll mark as pending
-        // and provide instructions for confirmation
-        if ($verificationResult['success'] && !$verificationResult['verified']) {
+        // If payment is verified by UPI provider, update records
+        if ($verificationResult['success'] && $verificationResult['verified']) {
+            $this->updatePaymentRecords($userId, 'upi', $upiReferenceId ?? $transactionId, $transactionId, $appointmentId);
+            
             return [
                 'success' => true,
-                'verified' => false,
-                'status' => 'pending',
-                'message' => 'UPI payment initiated. Please complete the payment in your UPI app.',
+                'status' => 'completed',
+                'message' => 'UPI payment verified successfully',
                 'data' => [
                     'transaction_id' => $transactionId,
-                    'status' => 'pending_confirmation',
+                    'upi_reference_id' => $upiReferenceId,
                     'payment_method' => 'upi',
-                    'provider' => 'direct'
+                    'provider' => 'direct',
+                    'verified' => true
                 ]
             ];
         }
 
-        if ($verificationResult['verified']) {
-            // Update records if payment is confirmed
-            $this->updatePaymentRecords($userId, 'upi', $upiReferenceId, $transactionId, $appointmentId);
-        }
-
+        // Keep payment pending for admin verification instead of waiting
         return [
-            'success' => $verificationResult['success'],
-            'status' => $verificationResult['verified'] ? 'completed' : 'pending',
-            'message' => $verificationResult['verified'] ? 'UPI payment verified successfully' : 'UPI payment verification pending',
+            'success' => true,
+            'status' => 'pending',
+            'message' => 'Payment submitted. Admin will verify and update status.',
             'data' => [
                 'transaction_id' => $transactionId,
                 'upi_reference_id' => $upiReferenceId,
                 'payment_method' => 'upi',
                 'provider' => 'direct',
-                'verified' => $verificationResult['verified']
+                'verified' => false // Admin verification required
             ]
         ];
     }

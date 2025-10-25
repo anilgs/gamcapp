@@ -52,6 +52,9 @@ export interface AdminAppointment {
   payment_status: 'pending' | 'paid' | 'completed' | 'failed';
   status: 'draft' | 'payment_pending' | 'confirmed' | 'completed' | 'cancelled';
   country_traveling_to: string;
+  payment_amount?: number;
+  payment_reference?: string;
+  admin_notes?: string;
   created_at: string;
   updated_at: string;
   appointment_details?: {

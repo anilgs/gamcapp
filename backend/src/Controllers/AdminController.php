@@ -255,6 +255,9 @@ class AdminController {
                     'payment_status' => $row['payment_status'],
                     'status' => $row['status'],
                     'country_traveling_to' => $row['country_traveling_to'],
+                    'payment_amount' => $row['payment_amount'] ? (float)$row['payment_amount'] : null,
+                    'payment_reference' => $row['payment_reference'],
+                    'admin_notes' => $row['admin_notes'],
                     'created_at' => $row['created_at'],
                     'updated_at' => $row['updated_at'],
                     'appointment_details' => [

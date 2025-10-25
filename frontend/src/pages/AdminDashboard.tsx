@@ -595,7 +595,26 @@ export const AdminDashboard: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-500">Payment Status</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedAppointment.payment_status}</p>
                   </div>
+                  {selectedAppointment.payment_amount && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Payment Amount</label>
+                      <p className="mt-1 text-sm text-gray-900">{formatAmount(selectedAppointment.payment_amount)}</p>
+                    </div>
+                  )}
+                  {selectedAppointment.payment_reference && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Payment Reference</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedAppointment.payment_reference}</p>
+                    </div>
+                  )}
                 </div>
+                
+                {selectedAppointment.admin_notes && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-500">Admin Notes</label>
+                    <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-md">{selectedAppointment.admin_notes}</p>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex justify-end">
