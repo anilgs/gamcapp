@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { adminApi, handleApiError } from '@/lib/api'
 
 interface PendingPayment {
@@ -53,7 +53,7 @@ export const AdminPaymentManagement: React.FC = () => {
     }).format(amount)
   }
 
-  const fetchPendingPayments = async (page = pagination.current_page) => {
+  const fetchPendingPayments = useCallback(async (page = pagination.current_page) => {
     setLoading(true)
     setError('')
 
@@ -75,11 +75,11 @@ export const AdminPaymentManagement: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.current_page, pagination.per_page])
 
   useEffect(() => {
     fetchPendingPayments()
-  }, [])
+  }, [fetchPendingPayments])
 
   const handleMarkComplete = (payment: PendingPayment) => {
     setSelectedPayment(payment)
