@@ -351,9 +351,6 @@ class AdminController {
                         a.payment_status,
                         a.appointment_type,
                         a.appointment_date,
-                        a.payment_amount,
-                        a.payment_reference,
-                        a.admin_notes,
                         a.created_at,
                         a.updated_at
                     FROM appointments a 
@@ -368,21 +365,17 @@ class AdminController {
 
             $payments = [];
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                // If payment_amount is null, calculate based on appointment type
-                $paymentAmount = $row['payment_amount'];
-                if ($paymentAmount === null || $paymentAmount === 0) {
-                    // Use the same payment amounts as defined in Razorpay
-                    $paymentAmounts = [
-                        'employment_visa' => 35000, // ₹350 in paise
-                        'family_visa' => 30000,     // ₹300 in paise
-                        'visit_visa' => 25000,      // ₹250 in paise
-                        'student_visa' => 30000,    // ₹300 in paise
-                        'business_visa' => 40000,   // ₹400 in paise
-                        'other' => 35000           // ₹350 in paise (default)
-                    ];
-                    $appointmentType = $row['appointment_type'] ?? 'other';
-                    $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
-                }
+                // Calculate payment amount based on appointment type (fallback for missing column)
+                $paymentAmounts = [
+                    'employment_visa' => 350, // ₹350
+                    'family_visa' => 300,     // ₹300
+                    'visit_visa' => 250,      // ₹250
+                    'student_visa' => 300,    // ₹300
+                    'business_visa' => 400,   // ₹400
+                    'other' => 350           // ₹350 (default)
+                ];
+                $appointmentType = $row['appointment_type'] ?? 'other';
+                $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
 
                 $payments[] = [
                     'id' => $row['id'],
@@ -393,7 +386,7 @@ class AdminController {
                     'payment_status' => $row['payment_status'],
                     'payment_method' => 'UPI', // Default since we don't have this column yet
                     'payment_amount' => (float)$paymentAmount,
-                    'payment_reference' => $row['payment_reference'] ?? null,
+                    'payment_reference' => null, // Will be populated after migration
                     'appointment_type' => $row['appointment_type'],
                     'appointment_date' => $row['appointment_date'],
                     'created_at' => $row['created_at'],
