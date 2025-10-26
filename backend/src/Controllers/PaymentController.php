@@ -655,10 +655,11 @@ class PaymentController {
 
         // Check if this is a Razorpay UPI payment by looking up the transaction
         try {
-            $transaction = Database::query(
+            $stmt = Database::query(
                 "SELECT payment_method, razorpay_order_id, upi_transaction_id, status FROM payment_transactions WHERE (razorpay_order_id = ? OR upi_transaction_id = ?) AND user_id = ?",
                 [$transactionId, $transactionId, $userId]
             );
+            $transaction = $stmt->fetchAll();
 
             if (!empty($transaction)) {
                 $paymentRecord = $transaction[0];
@@ -721,10 +722,11 @@ class PaymentController {
             }
 
             // Check database for webhook-updated status
-            $dbTransaction = Database::query(
+            $stmt = Database::query(
                 "SELECT status FROM payment_transactions WHERE razorpay_order_id = ? AND user_id = ?",
                 [$orderId, $userId]
             );
+            $dbTransaction = $stmt->fetchAll();
 
             if (!empty($dbTransaction) && $dbTransaction[0]['status'] === 'paid') {
                 return [
@@ -927,10 +929,11 @@ class PaymentController {
 
             // Check if there are multiple payment records for debugging
             try {
-                $allRecords = Database::query(
+                $stmt = Database::query(
                     "SELECT id, appointment_id, amount, payment_method, razorpay_order_id, upi_transaction_id, status, created_at FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
                     [$userId]
                 );
+                $allRecords = $stmt->fetchAll();
                 error_log("UPI Verification Debug - Recent payment records for user {$userId}: " . json_encode($allRecords));
             } catch (\Exception $e) {
                 error_log("UPI Verification Debug - Failed to fetch payment records: " . $e->getMessage());
@@ -1008,10 +1011,11 @@ class PaymentController {
                         );
 
                         // Get user and appointment info from payment transaction
-                        $transaction = Database::query(
+                        $stmt = Database::query(
                             "SELECT user_id, appointment_id FROM payment_transactions WHERE razorpay_order_id = ?",
                             [$orderId]
                         );
+                        $transaction = $stmt->fetchAll();
 
                         if (!empty($transaction)) {
                             $userId = $transaction[0]['user_id'];
