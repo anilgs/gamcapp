@@ -20,7 +20,7 @@ ADD COLUMN IF NOT EXISTS preferred_payment_method ENUM('razorpay', 'upi') DEFAUL
 ALTER TABLE appointments 
 ADD COLUMN IF NOT EXISTS payment_method ENUM('razorpay', 'upi') DEFAULT 'upi' AFTER payment_status;
 
--- Create a view for easier payment method reporting
+-- Create a view for easier payment method reporting (shows latest payment per appointment)
 CREATE OR REPLACE VIEW payment_summary AS
 SELECT 
     pt.id,
@@ -49,7 +49,14 @@ SELECT
     a.medical_center
 FROM payment_transactions pt
 LEFT JOIN users u ON pt.user_id = u.id
-LEFT JOIN appointments a ON pt.appointment_id = a.id;
+LEFT JOIN appointments a ON pt.appointment_id = a.id
+INNER JOIN (
+    SELECT appointment_id, MAX(created_at) as latest_created_at
+    FROM payment_transactions 
+    WHERE appointment_id IS NOT NULL
+    GROUP BY appointment_id
+) latest_pt ON pt.appointment_id = latest_pt.appointment_id 
+              AND pt.created_at = latest_pt.latest_created_at;
 
 -- Create migration_log table if it doesn't exist
 CREATE TABLE IF NOT EXISTS migration_log (
