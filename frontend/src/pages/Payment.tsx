@@ -92,13 +92,13 @@ export default function Payment() {
       return;
     }
     
-    setPaymentAmount(Math.round(newAmount * 100)); // Convert to paise
+    setPaymentAmount(newAmount); // Store amount in rupees
     setIsEditingAmount(false);
     setError('');
   };
 
   const handleAmountCancel = () => {
-    setTempAmount((paymentAmount / 100).toFixed(2));
+    setTempAmount(paymentAmount.toFixed(2));
     setIsEditingAmount(false);
     setError('');
   };
@@ -141,7 +141,7 @@ export default function Payment() {
         // Set payment amount from appointment or default
         if (appointment?.amount) {
           setPaymentAmount(appointment.amount);
-          setTempAmount((appointment.amount / 100).toFixed(2));
+          setTempAmount(appointment.amount.toFixed(2));
         }
 
         const methods = methodsResult.data!;
