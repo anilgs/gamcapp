@@ -9,12 +9,12 @@ class Razorpay {
     private static ?Api $api = null;
     
     private const PAYMENT_AMOUNTS = [
-        'employment_visa' => 35000, // ₹3,50
-        'family_visa' => 30000,     // ₹3,00
-        'visit_visa' => 25000,      // ₹2,50
-        'student_visa' => 30000,    // ₹3,00
-        'business_visa' => 40000,   // ₹4,00
-        'other' => 35000           // ₹3,50 (default)
+        'employment_visa' => 350, // ₹350
+        'family_visa' => 300,     // ₹300
+        'visit_visa' => 250,      // ₹250
+        'student_visa' => 300,    // ₹300
+        'business_visa' => 400,   // ₹400
+        'other' => 350           // ₹350 (default)
     ];
 
     private static function getApi(): Api {
@@ -182,7 +182,7 @@ class Razorpay {
             $notes = $orderData['notes'] ?? [];
 
             $options = [
-                'amount' => $amount, // Amount in paise
+                'amount' => $amount * 100, // Convert rupees to paise for Razorpay API
                 'currency' => $currency,
                 'receipt' => $receipt,
                 'notes' => $notes,
@@ -334,9 +334,8 @@ class Razorpay {
         return "GAMCA_" . strtoupper($appointmentType) . "_{$userIdShort}_{$timestamp}_{$random}";
     }
 
-    public static function formatAmount(int $amountInPaise): string {
-        $rupees = $amountInPaise / 100;
-        return '₹' . number_format($rupees, 0);
+    public static function formatAmount(int $amountInRupees): string {
+        return '₹' . number_format($amountInRupees, 0);
     }
 
     public static function getPaymentMethodDetails(array $payment): array {

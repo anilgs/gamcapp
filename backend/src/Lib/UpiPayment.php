@@ -212,9 +212,8 @@ class UpiPayment {
         return "UPI_GAMCA_" . strtoupper($appointmentType) . "_{$userIdShort}_{$timestamp}_{$random}";
     }
 
-    public static function formatAmount(int $amountInPaise): string {
-        $rupees = $amountInPaise / 100;
-        return '₹' . number_format($rupees, 0);
+    public static function formatAmount(int $amountInRupees): string {
+        return '₹' . number_format($amountInRupees, 0);
     }
 
     public static function getPaymentStatus(string $transactionId): array {

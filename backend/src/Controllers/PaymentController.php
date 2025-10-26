@@ -380,7 +380,7 @@ class PaymentController {
         try {
             // Create Razorpay order for UPI
             $order = Razorpay::createOrder([
-                'amount' => $amount,
+                'amount' => $amount, // Use amount in rupees directly
                 'currency' => 'INR',
                 'notes' => [
                     'user_id' => (string)$userId,
@@ -516,7 +516,7 @@ class PaymentController {
         // Generate UPI URL for Razorpay order
         $merchantVPA = $_ENV['UPI_VIRTUAL_ADDRESS'] ?? 'rzp.payto021551929@icici';
         $merchantName = $_ENV['UPI_MERCHANT_NAME'] ?? 'GAMCA Cochin Medical Services';
-        $amountInRupees = $amount / 100;
+        $amountInRupees = $amount; // Amount is already in rupees
 
         $upiParams = [
             'pa' => $merchantVPA,

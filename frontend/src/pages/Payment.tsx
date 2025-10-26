@@ -57,7 +57,7 @@ export default function Payment() {
   const [appointmentDetails, setAppointmentDetails] = useState<AppointmentDetails | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethods | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(selectedMethod);
-  const [paymentAmount, setPaymentAmount] = useState<number>(15000); // Default ₹150.00 in paise
+  const [paymentAmount, setPaymentAmount] = useState<number>(150); // Default ₹150.00 in rupees
   const [isEditingAmount, setIsEditingAmount] = useState(false);
   const [tempAmount, setTempAmount] = useState<string>('150.00');
 
@@ -73,7 +73,7 @@ export default function Payment() {
   };
 
   const handleAmountEdit = () => {
-    setTempAmount((paymentAmount / 100).toFixed(2));
+    setTempAmount(paymentAmount.toFixed(2));
     setIsEditingAmount(true);
   };
 
@@ -154,7 +154,7 @@ export default function Payment() {
 
         // Create payment order for Razorpay if it's the selected method
         if (selectedPaymentMethod === 'razorpay' && methods.razorpay_enabled) {
-          const orderResult = await paymentApi.createOrder(appointmentId, paymentAmount / 100); // Convert paise to rupees
+          const orderResult = await paymentApi.createOrder(appointmentId, paymentAmount); // Use amount in rupees directly
           if (!orderResult.success) {
             throw new Error('Failed to create payment order');
           }
@@ -194,7 +194,7 @@ export default function Payment() {
     if (method === 'razorpay' && !orderData && appointmentDetails) {
       setLoading(true);
       try {
-        const orderResult = await paymentApi.createOrder(appointmentId!, paymentAmount / 100);
+        const orderResult = await paymentApi.createOrder(appointmentId!, paymentAmount);
         if (orderResult.success) {
           setOrderData(orderResult.data || null);
         } else {
@@ -464,9 +464,9 @@ export default function Payment() {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-medical-600">
-                        ₹{(paymentAmount / 100).toFixed(2)}
-                      </span>
+                       <span className="text-2xl font-bold text-medical-600">
+                         ₹{paymentAmount.toFixed(2)}
+                       </span>
                       <button
                         onClick={handleAmountEdit}
                         disabled={paymentLoading}
