@@ -370,17 +370,35 @@ jobs:
                     "${{ env.DB_NAME }}" < backend/database/migrate_appointments_table.sql
               echo "Appointments table migration completed"
             fi
-            if [ -f "backend/database/migrate_upi_support.sql" ]; then
-              echo "Running UPI support migration..."
-              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
-                    "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
-              echo "UPI support migration completed"
+             if [ -f "backend/database/migrate_upi_support.sql" ]; then
+               echo "Running UPI support migration..."
+               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                     "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
+               echo "UPI support migration completed"
              fi
              if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
                echo "Running payment tracking migration..."
                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                      "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
                echo "Payment tracking migration completed"
+             fi
+             if [ -f "backend/database/migrate_fix_upi_constraint.sql" ]; then
+               echo "Running UPI constraint fix migration..."
+               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                     "${{ env.DB_NAME }}" < backend/database/migrate_fix_upi_constraint.sql
+               echo "UPI constraint fix migration completed"
+             fi
+             if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
+               echo "Running payment tracking migration..."
+               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                     "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
+               echo "Payment tracking migration completed"
+             fi
+             if [ -f "backend/database/migrate_fix_upi_constraint.sql" ]; then
+               echo "Running UPI constraint fix migration..."
+               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                     "${{ env.DB_NAME }}" < backend/database/migrate_fix_upi_constraint.sql
+               echo "UPI constraint fix migration completed"
              fi
              
              # Fix orphaned payment records after migrations
