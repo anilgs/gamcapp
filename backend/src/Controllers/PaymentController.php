@@ -916,10 +916,24 @@ class PaymentController {
             $userId = $decoded['id']; // JWT payload uses 'id', not 'user_id'
             $referenceId = $params['reference_id'] ?? null;
 
+            // Add debug logging
+            error_log("UPI Verification Debug - User ID: {$userId}, Reference ID: {$referenceId}");
+
             if (!$referenceId) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Reference ID is required']);
                 return;
+            }
+
+            // Check if there are multiple payment records for debugging
+            try {
+                $allRecords = Database::query(
+                    "SELECT id, appointment_id, amount, payment_method, razorpay_order_id, upi_transaction_id, status, created_at FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
+                    [$userId]
+                );
+                error_log("UPI Verification Debug - Recent payment records for user {$userId}: " . json_encode($allRecords));
+            } catch (\Exception $e) {
+                error_log("UPI Verification Debug - Failed to fetch payment records: " . $e->getMessage());
             }
 
             $input = ['upi_transaction_id' => $referenceId];
@@ -931,6 +945,7 @@ class PaymentController {
             ]);
         } catch (\Exception $error) {
             error_log('UPI payment verification error: ' . $error->getMessage());
+            error_log('UPI payment verification stack trace: ' . $error->getTraceAsString());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Payment verification failed']);
         }

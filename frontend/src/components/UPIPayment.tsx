@@ -165,12 +165,15 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   };
 
   const startPaymentPolling = (referenceId: string) => {
+    console.log('🔍 Starting payment polling for reference ID:', referenceId);
     // Clear any existing polling interval first
     if (pollingInterval) {
+      console.log('🔍 Clearing existing polling interval');
       clearInterval(pollingInterval);
     }
 
     const interval = setInterval(async () => {
+      console.log('🔍 Polling payment status for reference ID:', referenceId);
       try {
         // Check if user is still logged in
         const token = localStorage.getItem('token');
@@ -188,8 +191,11 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
           }
         });
 
+        console.log('🔍 Verification response status:', response.status);
+        
         // Check if response indicates unauthorized
         if (response.status === 401) {
+          console.log('❌ Verification failed: Unauthorized');
           clearInterval(interval);
           setPollingInterval(null);
           setPaymentStatus('failed');
@@ -198,6 +204,7 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
         }
 
         const result = await response.json();
+        console.log('🔍 Verification result:', result);
         if (result.success && result.data.status === 'completed') {
           clearInterval(interval);
           setPollingInterval(null);
@@ -213,7 +220,8 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
           onPaymentError('Payment failed. Please try again.');
         }
       } catch (error) {
-        console.error('Payment verification error:', error);
+        console.error('❌ Payment verification error:', error);
+        console.error('❌ Verification error details:', error instanceof Error ? error.message : 'Unknown error');
         // Don't stop polling on network errors, just log them
       }
     }, 3000); // Poll every 3 seconds
