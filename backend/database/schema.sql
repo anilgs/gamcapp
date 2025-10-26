@@ -72,29 +72,35 @@ CREATE TABLE otp_tokens (
 CREATE TABLE payment_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    razorpay_order_id VARCHAR(255) NOT NULL,
+    appointment_id INT DEFAULT NULL,
+    razorpay_order_id VARCHAR(255) DEFAULT NULL,
     razorpay_payment_id VARCHAR(255) DEFAULT NULL,
     razorpay_signature VARCHAR(500) DEFAULT NULL,
+    payment_method ENUM('razorpay', 'upi') DEFAULT 'razorpay',
+    upi_transaction_id VARCHAR(255) DEFAULT NULL,
+    upi_reference_id VARCHAR(255) DEFAULT NULL,
+    upi_vpa VARCHAR(255) DEFAULT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     currency VARCHAR(3) DEFAULT 'INR',
     status ENUM('created', 'attempted', 'paid', 'failed', 'cancelled', 'refunded') DEFAULT 'created',
-    payment_method VARCHAR(50) DEFAULT NULL,
     failure_reason TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     -- Foreign key constraints
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
     
     -- Indexes
     INDEX idx_user_id (user_id),
+    INDEX idx_appointment_id (appointment_id),
     INDEX idx_razorpay_order_id (razorpay_order_id),
     INDEX idx_razorpay_payment_id (razorpay_payment_id),
+    INDEX idx_payment_method (payment_method),
+    INDEX idx_upi_transaction_id (upi_transaction_id),
+    INDEX idx_upi_reference_id (upi_reference_id),
     INDEX idx_status (status),
-    INDEX idx_created_at (created_at),
-    
-    -- Unique constraints
-    UNIQUE KEY unique_razorpay_order (razorpay_order_id)
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create audit log table for tracking changes

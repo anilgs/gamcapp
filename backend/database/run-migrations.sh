@@ -25,6 +25,7 @@ MIGRATIONS=(
     "migrate_appointments_table.sql"
     "migrate_upi_support.sql"
     "migrate_payment_tracking.sql"
+    "migrate_fix_upi_constraint.sql"
 )
 
 # Run each migration
