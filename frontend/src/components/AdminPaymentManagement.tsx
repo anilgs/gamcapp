@@ -26,6 +26,8 @@ interface PaymentPagination {
   has_next: boolean
 }
 
+type PaymentFilter = 'all' | 'pending'
+
 export const AdminPaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<PendingPayment[]>([])
   const [pagination, setPagination] = useState<PaymentPagination>({
@@ -43,6 +45,7 @@ export const AdminPaymentManagement: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null)
   const [adminNotes, setAdminNotes] = useState('')
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('pending')
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -53,33 +56,34 @@ export const AdminPaymentManagement: React.FC = () => {
     }).format(amount)
   }
 
-  const fetchPendingPayments = useCallback(async (page = pagination.current_page) => {
+  const fetchPayments = useCallback(async (page = pagination.current_page, filter = paymentFilter) => {
     setLoading(true)
     setError('')
 
     try {
       const result = await adminApi.getPendingPayments({
         page: page.toString(),
-        limit: pagination.per_page.toString()
+        limit: pagination.per_page.toString(),
+        status_filter: filter
       })
 
       if (result.success && result.data) {
         setPayments(result.data.payments)
         setPagination(result.data.pagination)
       } else {
-        setError(result.error || 'Failed to fetch pending payments')
+        setError(result.error || 'Failed to fetch payments')
       }
     } catch (error: unknown) {
-      console.error('Error fetching pending payments:', error)
+      console.error('Error fetching payments:', error)
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
-  }, [pagination.current_page, pagination.per_page])
+  }, [pagination.current_page, pagination.per_page, paymentFilter])
 
   useEffect(() => {
-    fetchPendingPayments()
-  }, [fetchPendingPayments])
+    fetchPayments()
+  }, [fetchPayments])
 
   const handleMarkComplete = (payment: PendingPayment) => {
     setSelectedPayment(payment)
@@ -104,7 +108,7 @@ export const AdminPaymentManagement: React.FC = () => {
         setAdminNotes('')
         
         // Refresh the payments list
-        await fetchPendingPayments()
+        await fetchPayments()
         
         // Clear success message after 5 seconds
         setTimeout(() => setSuccessMessage(''), 5000)
@@ -124,7 +128,16 @@ export const AdminPaymentManagement: React.FC = () => {
       ...prev,
       current_page: newPage
     }))
-    fetchPendingPayments(newPage)
+    fetchPayments(newPage)
+  }
+
+  const handleFilterChange = (newFilter: PaymentFilter) => {
+    setPaymentFilter(newFilter)
+    setPagination(prev => ({
+      ...prev,
+      current_page: 1
+    }))
+    fetchPayments(1, newFilter)
   }
 
   if (loading && payments.length === 0) {
@@ -147,15 +160,27 @@ export const AdminPaymentManagement: React.FC = () => {
       <div className="px-4 py-5 sm:p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Pending Payments ({pagination.total_records})
+            Payment Management ({pagination.total_records})
           </h3>
-          <button
-            onClick={() => fetchPendingPayments()}
-            disabled={loading}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Filter Dropdown */}
+            <select
+              value={paymentFilter}
+              onChange={(e) => handleFilterChange(e.target.value as PaymentFilter)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="pending">Pending Payments</option>
+              <option value="all">All Payments</option>
+            </select>
+            
+            <button
+              onClick={() => fetchPayments()}
+              disabled={loading}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {/* Success Message */}
@@ -177,8 +202,12 @@ export const AdminPaymentManagement: React.FC = () => {
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No pending payments</h3>
-            <p className="mt-1 text-sm text-gray-500">All payments have been processed.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              {paymentFilter === 'pending' ? 'No pending payments' : 'No payments found'}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {paymentFilter === 'pending' ? 'All payments have been processed.' : 'No payment records are available.'}
+            </p>
           </div>
         ) : (
           <>
@@ -236,6 +265,8 @@ export const AdminPaymentManagement: React.FC = () => {
                             ? 'bg-yellow-100 text-yellow-800'
                             : payment.payment_status === 'pending_confirmation'
                             ? 'bg-orange-100 text-orange-800'
+                            : payment.payment_status === 'completed'
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {payment.payment_status.replace('_', ' ')}

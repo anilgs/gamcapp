@@ -326,21 +326,31 @@ class AdminController {
 
         try {
             Auth::requireAdminAuth();
-            $this->logger->log('Admin accessing pending payments list', 'INFO');
+            $this->logger->log('Admin accessing payments list', 'INFO');
 
             $page = (int)($_GET['page'] ?? 1);
             $limit = (int)($_GET['limit'] ?? 20);
+            $statusFilter = $_GET['status_filter'] ?? 'all';
             $offset = ($page - 1) * $limit;
 
             $db = Database::getInstance();
 
-            // Get total count
-            $countSql = "SELECT COUNT(*) as total FROM appointments WHERE payment_status IN ('pending', 'pending_confirmation')";
+            // Build WHERE clause based on filter
+            $whereClause = '';
+            $whereParams = [];
+            
+            if ($statusFilter === 'pending') {
+                $whereClause = "WHERE a.payment_status IN ('pending', 'pending_confirmation')";
+            }
+            // For 'all', we don't add any WHERE clause to show all payments
+
+            // Get total count with filter
+            $countSql = "SELECT COUNT(*) as total FROM appointments a {$whereClause}";
             $countStmt = $db->prepare($countSql);
-            $countStmt->execute();
+            $countStmt->execute($whereParams);
             $totalRecords = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
 
-            // Get pending payments with appointment details and actual payment amount
+            // Get payments with filter applied
             $sql = "SELECT 
                         a.id,
                         a.user_id,
@@ -359,11 +369,14 @@ class AdminController {
                         ps.upi_transaction_id
                     FROM appointments a 
                     LEFT JOIN payment_summary ps ON a.id = ps.appointment_id
-                    WHERE a.payment_status IN ('pending', 'pending_confirmation')
+                    {$whereClause}
                     ORDER BY a.created_at DESC
                     LIMIT :limit OFFSET :offset";
 
             $stmt = $db->prepare($sql);
+            foreach ($whereParams as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
             $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
             $stmt->execute();
@@ -424,7 +437,7 @@ class AdminController {
             ]);
 
         } catch (\Exception $error) {
-            $this->logger->log('Error getting pending payments: ' . $error->getMessage(), 'ERROR');
+            $this->logger->log('Error getting payments: ' . $error->getMessage(), 'ERROR');
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internal server error']);
         }
