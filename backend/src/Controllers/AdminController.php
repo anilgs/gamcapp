@@ -386,8 +386,14 @@ class AdminController {
                 // Use actual payment amount from payment_transactions if available
                 $paymentAmount = null;
                 
+                // Debug logging to understand what's happening
+                $this->logger->log('Processing appointment ID: ' . $row['id'] . 
+                                 ', actual_payment_amount: ' . ($row['actual_payment_amount'] ?? 'NULL') . 
+                                 ', payment_method: ' . ($row['payment_method'] ?? 'NULL'), 'DEBUG');
+                
                 if (!empty($row['actual_payment_amount'])) {
                     $paymentAmount = (float)$row['actual_payment_amount'];
+                    $this->logger->log('Using actual payment amount: ' . $paymentAmount . ' for appointment ' . $row['id'], 'DEBUG');
                 } else {
                     // Fallback: Calculate payment amount based on appointment type
                     $paymentAmounts = [
@@ -400,6 +406,8 @@ class AdminController {
                     ];
                     $appointmentType = $row['appointment_type'] ?? 'other';
                     $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
+                    $this->logger->log('Using fallback payment amount: ' . $paymentAmount . ' for appointment ' . $row['id'] . 
+                                     ' (type: ' . $appointmentType . ')', 'DEBUG');
                 }
 
                 $payments[] = [
