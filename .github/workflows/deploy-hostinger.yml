@@ -182,11 +182,12 @@ jobs:
             cp fix-permissions.php deployment/frontend/
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
-             cp test-admin-auth.php deployment/frontend/
-             cp admin-auth-health-check.php deployment/frontend/
-             cp update-admin-password.php deployment/frontend/
+              cp test-admin-auth.php deployment/frontend/
+              cp admin-auth-health-check.php deployment/frontend/
+              cp update-admin-password.php deployment/frontend/
+              cp fix-orphaned-payments.php deployment/frontend/
  
-            # Create environment file for development
+             # Create environment file for development
            echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
            echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
            echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
@@ -374,20 +375,38 @@ jobs:
               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                     "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
               echo "UPI support migration completed"
-            fi
-            if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
-              echo "Running payment tracking migration..."
-              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
-                    "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
-              echo "Payment tracking migration completed"
-            fi
-            if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
-              echo "Running payment tracking migration..."
-              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
-                    "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
-              echo "Payment tracking migration completed"
-            fi
-            
+             fi
+             if [ -f "backend/database/migrate_payment_tracking.sql" ]; then
+               echo "Running payment tracking migration..."
+               mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                     "${{ env.DB_NAME }}" < backend/database/migrate_payment_tracking.sql
+               echo "Payment tracking migration completed"
+             fi
+             
+             # Fix orphaned payment records after migrations
+             echo "Running orphaned payment fix script..."
+             DEV_URL="${{ env.FRONTEND_URL }}"
+             if [[ "$DEV_URL" == *"/dev"* ]]; then
+               DEV_ORPHAN_URL="$DEV_URL"
+             else
+               DEV_ORPHAN_URL="${DEV_URL%/}/dev"
+             fi
+             
+             ORPHAN_FIX_RESPONSE=$(curl -s "$DEV_ORPHAN_URL/fix-orphaned-payments.php?live=1" 2>&1 || echo "curl_failed")
+             
+             if [ "$ORPHAN_FIX_RESPONSE" != "curl_failed" ]; then
+               echo "Orphaned payment fix response:"
+               echo "$ORPHAN_FIX_RESPONSE"
+               
+               if echo "$ORPHAN_FIX_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
+                 echo "✅ Orphaned payment fix completed successfully"
+               else
+                 echo "⚠️  Orphaned payment fix may have encountered issues"
+               fi
+             else
+               echo "❌ Failed to call orphaned payment fix script"
+             fi
+             
 
   deploy-production:
     name: Deploy to Production
@@ -481,10 +500,11 @@ jobs:
             cp fix-permissions.php deployment/frontend/
             cp api.php deployment/frontend/
             cp env-diagnostic.php deployment/frontend/
-             cp test-admin-auth.php deployment/frontend/
-             cp admin-auth-health-check.php deployment/frontend/
-             cp update-admin-password.php deployment/frontend/
-           # Create environment file for production
+              cp test-admin-auth.php deployment/frontend/
+              cp admin-auth-health-check.php deployment/frontend/
+              cp update-admin-password.php deployment/frontend/
+              cp fix-orphaned-payments.php deployment/frontend/
+            # Create environment file for production
           echo "DB_HOST=${{ env.DB_HOST }}" >> deployment/backend/.env
           echo "DB_PORT=${{ env.DB_PORT }}" >> deployment/backend/.env
           echo "DB_NAME=${{ env.DB_NAME }}" >> deployment/backend/.env
@@ -737,9 +757,26 @@ jobs:
              mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                    "${{ env.DB_NAME }}" < backend/database/migrate_upi_support.sql
              echo "UPI support migration completed"
-           fi
+            fi
+             
+             # Fix orphaned payment records after migrations
+             echo "Running orphaned payment fix script..."
+             ORPHAN_FIX_RESPONSE=$(curl -s "${{ env.FRONTEND_URL }}/fix-orphaned-payments.php?live=1" 2>&1 || echo "curl_failed")
+             
+             if [ "$ORPHAN_FIX_RESPONSE" != "curl_failed" ]; then
+               echo "Orphaned payment fix response:"
+               echo "$ORPHAN_FIX_RESPONSE"
+               
+               if echo "$ORPHAN_FIX_RESPONSE" | grep -q '"success":[[:space:]]*true'; then
+                 echo "✅ Orphaned payment fix completed successfully"
+               else
+                 echo "⚠️  Orphaned payment fix may have encountered issues"
+               fi
+             else
+               echo "❌ Failed to call orphaned payment fix script"
+             fi
 
-      - name: Setup PHP Environment (Post-Deployment)
+       - name: Setup PHP Environment (Post-Deployment)
         run: |
           echo "PHP environment setup completed via FTP deployment."
           echo "Note: Shared hosting providers typically handle PHP configuration automatically."

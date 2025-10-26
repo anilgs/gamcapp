@@ -858,6 +858,74 @@ class PaymentController {
         ]);
     }
     
+    /**
+     * Create UPI payment with draft appointment and transaction rollback
+     */
+    public function createUpiPaymentWithDraftEndpoint(array $params = []): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            $decoded = Auth::requireAuth();
+            $input = json_decode(file_get_contents('php://input'), true);
+            $userId = $decoded['id'];
+            $appointmentData = $input['appointmentData'] ?? null;
+            $customAmount = $input['amount'] ?? null;
+
+            $user = User::findById($userId);
+            if (!$user) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'User not found']);
+                return;
+            }
+
+            // Validate appointment data is provided
+            if (!$appointmentData) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Appointment data is required']);
+                return;
+            }
+
+            // Use database transaction for rollback safety
+            $result = Database::transaction(function($pdo) use ($userId, $appointmentData, $customAmount, $user) {
+                // Create draft appointment first
+                $appointmentData['user_id'] = $userId;
+                $appointmentData['status'] = 'draft';
+                $appointmentData['payment_status'] = 'pending';
+                
+                $draftAppointment = Appointment::create($appointmentData);
+                if (!$draftAppointment) {
+                    throw new \Exception('Failed to create draft appointment');
+                }
+
+                // Create payment with the draft appointment
+                $appointmentType = $draftAppointment->appointment_type;
+                $paymentResult = $this->createUpiPayment($userId, $draftAppointment->id, $appointmentType, $user, $draftAppointment, $customAmount);
+
+                if (!$paymentResult['success']) {
+                    throw new \Exception($paymentResult['error'] ?? 'Payment creation failed');
+                }
+
+                return [
+                    'success' => true,
+                    'data' => array_merge($paymentResult, [
+                        'appointmentId' => $draftAppointment->id
+                    ])
+                ];
+            });
+
+            echo json_encode($result);
+
+        } catch (\Exception $error) {
+            error_log('UPI payment with draft creation error: ' . $error->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Payment creation failed: ' . $error->getMessage()]);
+        }
+    }
+
     public function createUpiPaymentEndpoint(array $params = []): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
@@ -879,21 +947,22 @@ class PaymentController {
                 return;
             }
 
-            if ($appointmentId) {
-                $appointment = Appointment::findById($appointmentId);
-                if (!$appointment || $appointment->user_id !== $userId) {
-                    http_response_code(404);
-                    echo json_encode(['success' => false, 'error' => 'Appointment not found']);
-                    return;
-                }
-                
-                $appointmentType = $appointment->appointment_type;
-                $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $customAmount);
-            } else {
-                // For user profile payments without specific appointment
-                $appointmentType = 'medical_examination';
-                $result = $this->createUpiPayment($userId, '', $appointmentType, $user, null, $customAmount);
+            // Require appointment ID for all payments
+            if (!$appointmentId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Appointment ID is required for payment']);
+                return;
             }
+
+            $appointment = Appointment::findById($appointmentId);
+            if (!$appointment || $appointment->user_id !== $userId) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Appointment not found']);
+                return;
+            }
+            
+            $appointmentType = $appointment->appointment_type;
+            $result = $this->createUpiPayment($userId, $appointmentId, $appointmentType, $user, $appointment, $customAmount);
 
             echo json_encode([
                 'success' => true,
