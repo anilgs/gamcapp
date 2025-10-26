@@ -469,13 +469,27 @@ class AdminController {
                 return;
             }
 
+            // Check if admin_notes column exists
+            $columnCheckSql = "SHOW COLUMNS FROM appointments LIKE 'admin_notes'";
+            $columnCheckStmt = $db->prepare($columnCheckSql);
+            $columnCheckStmt->execute();
+            $adminNotesExists = $columnCheckStmt->fetch(\PDO::FETCH_ASSOC) !== false;
+
             // Update payment status to completed
-            $updateSql = "UPDATE appointments 
-                         SET payment_status = 'completed', 
-                             status = 'confirmed',
-                             updated_at = NOW(),
-                             admin_notes = CONCAT(COALESCE(admin_notes, ''), :admin_note)
-                         WHERE id = :id";
+            if ($adminNotesExists) {
+                $updateSql = "UPDATE appointments 
+                             SET payment_status = 'completed', 
+                                 status = 'confirmed',
+                                 updated_at = NOW(),
+                                 admin_notes = CONCAT(COALESCE(admin_notes, ''), :admin_note)
+                             WHERE id = :id";
+            } else {
+                $updateSql = "UPDATE appointments 
+                             SET payment_status = 'completed', 
+                                 status = 'confirmed',
+                                 updated_at = NOW()
+                             WHERE id = :id";
+            }
             
             $adminNote = "\n[" . date('Y-m-d H:i:s') . "] Payment manually marked complete by admin: {$admin['username']}";
             if (!empty($adminNotes)) {
@@ -484,7 +498,9 @@ class AdminController {
 
             $updateStmt = $db->prepare($updateSql);
             $updateStmt->bindValue(':id', $appointmentId);
-            $updateStmt->bindValue(':admin_note', $adminNote);
+            if ($adminNotesExists) {
+                $updateStmt->bindValue(':admin_note', $adminNote);
+            }
             
             if ($updateStmt->execute()) {
                 $customerName = trim(($appointment['first_name'] ?? '') . ' ' . ($appointment['last_name'] ?? ''));
