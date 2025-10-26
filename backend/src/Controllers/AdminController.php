@@ -391,12 +391,12 @@ class AdminController {
                 } else {
                     // Fallback: Calculate payment amount based on appointment type
                     $paymentAmounts = [
-                        'employment_visa' => 350, // ₹350
-                        'family_visa' => 300,     // ₹300
-                        'visit_visa' => 250,      // ₹250
-                        'student_visa' => 300,    // ₹300
-                        'business_visa' => 400,   // ₹400
-                        'other' => 350           // ₹350 (default)
+                        'employment_visa' => 10, // ₹10
+                        'family_visa' => 10,     // ₹10
+                        'visit_visa' => 10,      // ₹10
+                        'student_visa' => 10,    // ₹10
+                        'business_visa' => 10,   // ₹10
+                        'other' => 10           // ₹10 (default)
                     ];
                     $appointmentType = $row['appointment_type'] ?? 'other';
                     $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
