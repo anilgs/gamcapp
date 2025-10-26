@@ -776,7 +776,7 @@ jobs:
                echo "❌ Failed to call orphaned payment fix script"
              fi
 
-       - name: Setup PHP Environment (Post-Deployment)
+      - name: Setup PHP Environment (Post-Deployment)
         run: |
           echo "PHP environment setup completed via FTP deployment."
           echo "Note: Shared hosting providers typically handle PHP configuration automatically."
