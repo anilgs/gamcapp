@@ -5,12 +5,12 @@ namespace Gamcapp\Lib;
 
 class UpiPayment {
     private const PAYMENT_AMOUNTS = [
-        'employment_visa' => 35000, // ₹3,50
-        'family_visa' => 30000,     // ₹3,00
-        'visit_visa' => 25000,      // ₹2,50
-        'student_visa' => 30000,    // ₹3,00
-        'business_visa' => 40000,   // ₹4,00
-        'other' => 35000           // ₹3,50 (default)
+        'employment_visa' => 350, // ₹350
+        'family_visa' => 300,     // ₹300
+        'visit_visa' => 250,      // ₹250
+        'student_visa' => 300,    // ₹300
+        'business_visa' => 400,   // ₹400
+        'other' => 350           // ₹350 (default)
     ];
 
     public static function getPaymentAmount(string $appointmentType): int {
@@ -34,14 +34,11 @@ class UpiPayment {
                 throw new \Exception('UPI configuration missing. Please set UPI_VIRTUAL_ADDRESS environment variable.');
             }
             
-            // Convert amount from paise to rupees
-            $amountInRupees = $amount / 100;
-            
             // Generate UPI payment URL
             $upiUrl = self::generateUpiUrl([
                 'vpa' => $merchantVPA,
                 'name' => $merchantName,
-                'amount' => $amountInRupees,
+                'amount' => $amount,
                 'transaction_id' => $transactionId,
                 'note' => $notes['appointment_type'] ?? 'GAMCA Medical Payment'
             ]);

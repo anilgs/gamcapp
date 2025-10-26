@@ -340,7 +340,7 @@ class AdminController {
             $countStmt->execute();
             $totalRecords = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
 
-            // Get pending payments with appointment details
+            // Get pending payments with appointment details and actual payment amount
             $sql = "SELECT 
                         a.id,
                         a.user_id,
@@ -352,8 +352,13 @@ class AdminController {
                         a.appointment_type,
                         a.appointment_date,
                         a.created_at,
-                        a.updated_at
+                        a.updated_at,
+                        ps.amount as actual_payment_amount,
+                        ps.payment_method,
+                        ps.razorpay_order_id,
+                        ps.upi_transaction_id
                     FROM appointments a 
+                    LEFT JOIN payment_summary ps ON a.id = ps.appointment_id
                     WHERE a.payment_status IN ('pending', 'pending_confirmation')
                     ORDER BY a.created_at DESC
                     LIMIT :limit OFFSET :offset";
@@ -365,17 +370,24 @@ class AdminController {
 
             $payments = [];
             while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                // Calculate payment amount based on appointment type (fallback for missing column)
-                $paymentAmounts = [
-                    'employment_visa' => 350, // ₹350
-                    'family_visa' => 300,     // ₹300
-                    'visit_visa' => 250,      // ₹250
-                    'student_visa' => 300,    // ₹300
-                    'business_visa' => 400,   // ₹400
-                    'other' => 350           // ₹350 (default)
-                ];
-                $appointmentType = $row['appointment_type'] ?? 'other';
-                $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
+                // Use actual payment amount from payment_transactions if available
+                $paymentAmount = null;
+                
+                if (!empty($row['actual_payment_amount'])) {
+                    $paymentAmount = (float)$row['actual_payment_amount'];
+                } else {
+                    // Fallback: Calculate payment amount based on appointment type
+                    $paymentAmounts = [
+                        'employment_visa' => 350, // ₹350
+                        'family_visa' => 300,     // ₹300
+                        'visit_visa' => 250,      // ₹250
+                        'student_visa' => 300,    // ₹300
+                        'business_visa' => 400,   // ₹400
+                        'other' => 350           // ₹350 (default)
+                    ];
+                    $appointmentType = $row['appointment_type'] ?? 'other';
+                    $paymentAmount = $paymentAmounts[$appointmentType] ?? $paymentAmounts['other'];
+                }
 
                 $payments[] = [
                     'id' => $row['id'],
@@ -384,9 +396,9 @@ class AdminController {
                     'email' => $row['email'],
                     'phone' => $row['phone'],
                     'payment_status' => $row['payment_status'],
-                    'payment_method' => 'UPI', // Default since we don't have this column yet
-                    'payment_amount' => (float)$paymentAmount,
-                    'payment_reference' => null, // Will be populated after migration
+                    'payment_method' => $row['payment_method'] ?? 'UPI', // Use actual payment method or default to UPI
+                    'payment_amount' => $paymentAmount,
+                    'payment_reference' => $row['razorpay_order_id'] ?? $row['upi_transaction_id'] ?? null,
                     'appointment_type' => $row['appointment_type'],
                     'appointment_date' => $row['appointment_date'],
                     'created_at' => $row['created_at'],

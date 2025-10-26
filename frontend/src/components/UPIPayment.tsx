@@ -75,21 +75,59 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   const [pollingInterval, setPollingInterval] = useState<number | null>(null);
 
   useEffect(() => {
-    // Clear any existing polling interval when amount changes
+    initializeUPIPayment();
+    
+    // Cleanup function runs on component unmount
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+    };
+  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Separate effect to handle polling cleanup on logout or navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // If token is removed (logout), stop polling
+      if (e.key === 'token' && !e.newValue && pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+        setPaymentStatus('failed');
+        onPaymentError('Session expired. Please login again.');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [pollingInterval, onPaymentError]);
+
+  // Stop polling when payment status changes to completed or failed
+  useEffect(() => {
+    if ((paymentStatus === 'completed' || paymentStatus === 'failed') && pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [paymentStatus, pollingInterval]);
+
+  const initializeUPIPayment = async () => {
+    // Clear any existing polling before starting new payment
     if (pollingInterval) {
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
     
-    initializeUPIPayment();
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const initializeUPIPayment = async () => {
     setLoading(true); // Set loading state when regenerating
     try {
       const response = await fetch('/api/payment/create-upi', {
@@ -127,17 +165,42 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
   };
 
   const startPaymentPolling = (referenceId: string) => {
+    // Clear any existing polling interval first
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
     const interval = setInterval(async () => {
       try {
+        // Check if user is still logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setPaymentStatus('failed');
+          onPaymentError('Session expired. Please login again.');
+          return;
+        }
+
         const response = await fetch(`/api/payment/verify-upi/${referenceId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           }
         });
+
+        // Check if response indicates unauthorized
+        if (response.status === 401) {
+          clearInterval(interval);
+          setPollingInterval(null);
+          setPaymentStatus('failed');
+          onPaymentError('Session expired. Please login again.');
+          return;
+        }
 
         const result = await response.json();
         if (result.success && result.data.status === 'completed') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPaymentStatus('completed');
           onPaymentComplete({
             upi_transaction_id: result.data.transaction_id,
@@ -145,25 +208,32 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
           });
         } else if (result.data?.status === 'failed') {
           clearInterval(interval);
+          setPollingInterval(null);
           setPaymentStatus('failed');
           onPaymentError('Payment failed. Please try again.');
         }
       } catch (error) {
         console.error('Payment verification error:', error);
+        // Don't stop polling on network errors, just log them
       }
     }, 3000); // Poll every 3 seconds
 
     setPollingInterval(interval);
 
     // Stop polling after 10 minutes
-    setTimeout(() => {
-      if (interval) {
-        clearInterval(interval);
-        if (paymentStatus === 'pending' || paymentStatus === 'checking') {
-          onPaymentError('Payment timeout. Please try again.');
-        }
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setPollingInterval(null);
+      if (paymentStatus === 'pending' || paymentStatus === 'checking') {
+        setPaymentStatus('failed');
+        onPaymentError('Payment timeout. Please try again.');
       }
     }, 600000);
+
+    // Store timeout reference to clear it if needed
+    return () => {
+      clearTimeout(timeout);
+    };
   };
 
   const handleAppClick = (app: UPIApp) => {
@@ -337,7 +407,7 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
                 />
               )}
               <p className="text-sm text-gray-600 mb-2">
-                Scan this QR code with any UPI app to pay ₹{(amount / 100).toFixed(2)}
+                Scan this QR code with any UPI app to pay ₹{amount.toFixed(2)}
               </p>
               <div className="bg-white p-3 rounded border mb-3">
                 <div className="text-sm text-gray-600 mb-1">UPI ID</div>
@@ -428,11 +498,11 @@ export function UPIPayment({ appointmentId, amount, onPaymentComplete, onPayment
               </div>
               
               <div className="text-sm text-gray-600">
-                <strong>Amount:</strong> ₹{(amount / 100).toFixed(2)}
+                <strong>Amount:</strong> ₹{amount.toFixed(2)}
               </div>
               
               <div className="text-xs text-gray-500">
-                Open your UPI app, enter the above UPI ID, and send ₹{(amount / 100).toFixed(2)}
+                Open your UPI app, enter the above UPI ID, and send ₹{amount.toFixed(2)}
               </div>
             </div>
           </div>
