@@ -28,6 +28,18 @@ MIGRATIONS=(
     "migrate_fix_upi_constraint.sql"
 )
 
+# Check for emergency fix in root directory
+EMERGENCY_FIX="../../../IMMEDIATE_UPI_FIX.sql"
+if [[ -f "$EMERGENCY_FIX" ]]; then
+    echo "Found emergency UPI fix - applying immediately..."
+    if mysql -h"$DB_HOST" -P"${DB_PORT:-3306}" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$EMERGENCY_FIX"; then
+        echo "✅ Emergency UPI constraint fix applied successfully"
+    else
+        echo "❌ Emergency UPI constraint fix failed"
+        exit 1
+    fi
+fi
+
 # Run each migration
 for migration in "${MIGRATIONS[@]}"; do
     migration_file="$SCRIPT_DIR/$migration"
