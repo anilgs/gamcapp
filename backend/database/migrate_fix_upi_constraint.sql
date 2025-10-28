@@ -1,5 +1,5 @@
 -- Migration: Fix UPI payment constraint violation
--- Makes razorpay_order_id nullable and removes problematic unique constraint
+-- Makes order_id nullable and removes problematic unique constraint
 -- This allows UPI payments to coexist with Razorpay payments
 
 -- First, add appointment_id column if it doesn't exist (from payment tracking migration)
@@ -7,9 +7,9 @@ ALTER TABLE payment_transactions
 ADD COLUMN IF NOT EXISTS appointment_id INT DEFAULT NULL AFTER user_id,
 ADD INDEX IF NOT EXISTS idx_appointment_id (appointment_id);
 
--- Make razorpay_order_id nullable to support UPI payments
+-- Make order_id nullable to support UPI payments (updated from razorpay_order_id)
 ALTER TABLE payment_transactions 
-MODIFY COLUMN razorpay_order_id VARCHAR(255) DEFAULT NULL;
+MODIFY COLUMN order_id VARCHAR(255) DEFAULT NULL;
 
 -- Drop the existing unique constraint that causes issues with UPI payments
 ALTER TABLE payment_transactions 

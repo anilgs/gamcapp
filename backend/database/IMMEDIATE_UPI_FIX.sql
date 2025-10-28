@@ -1,9 +1,9 @@
 -- IMMEDIATE EMERGENCY FIX FOR UPI PAYMENT CONSTRAINT VIOLATION
 -- Apply this SQL directly to production database to fix the constraint issue
 
--- Step 1: Make razorpay_order_id nullable to support UPI payments
+-- Step 1: Make order_id nullable to support UPI payments (updated from razorpay_order_id)
 ALTER TABLE payment_transactions 
-MODIFY COLUMN razorpay_order_id VARCHAR(255) DEFAULT NULL;
+MODIFY COLUMN order_id VARCHAR(255) DEFAULT NULL;
 
 -- Step 2: Drop the problematic unique constraint
 ALTER TABLE payment_transactions 
