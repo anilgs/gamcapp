@@ -339,7 +339,7 @@ export const paymentApi = {
     }>('/payment/create-order', { appointmentId: appointmentId, amount }),
   
   verifyPayment: (paymentData: {
-    razorpay_order_id: string;
+    order_id: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
     appointment_id: string;
@@ -357,7 +357,7 @@ export const paymentApi = {
     payment_method: PaymentMethod;
     appointment_id: string;
     // Razorpay fields (optional)
-    razorpay_order_id?: string;
+    order_id?: string;
     razorpay_payment_id?: string;
     razorpay_signature?: string;
     // UPI fields (optional)

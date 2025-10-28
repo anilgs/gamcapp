@@ -32,7 +32,7 @@ interface AppointmentDetails {
 
 interface PaymentResponse {
   razorpay_payment_id: string;
-  razorpay_order_id: string;
+  order_id: string;
   razorpay_signature: string;
 }
 
@@ -242,7 +242,7 @@ export default function Payment() {
           try {
             // Verify payment
             const verificationResult = await paymentApi.verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
+              order_id: response.order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               appointment_id: appointmentId!

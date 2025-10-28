@@ -601,17 +601,17 @@ class PaymentController {
     }
     
     private function verifyRazorpayPayment(int $userId, array $input, ?string $appointmentId): array {
-        $razorpayOrderId = $input['razorpay_order_id'] ?? null;
+        $orderId = $input['order_id'] ?? null;
         $razorpayPaymentId = $input['razorpay_payment_id'] ?? null;
         $razorpaySignature = $input['razorpay_signature'] ?? null;
 
-        if (!$razorpayOrderId || !$razorpayPaymentId || !$razorpaySignature) {
+        if (!$orderId || !$razorpayPaymentId || !$razorpaySignature) {
             return ['success' => false, 'error' => 'Missing Razorpay payment verification data'];
         }
 
         // Verify payment signature
         $verificationResult = Razorpay::verifyPaymentSignature([
-            'razorpay_order_id' => $razorpayOrderId,
+            'razorpay_order_id' => $orderId, // Map order_id from frontend to razorpay_order_id for Razorpay library
             'razorpay_payment_id' => $razorpayPaymentId,
             'razorpay_signature' => $razorpaySignature
         ]);
@@ -624,14 +624,14 @@ class PaymentController {
                 'message' => 'Payment submitted. Admin will verify and update status.',
                 'data' => [
                     'payment_id' => $razorpayPaymentId,
-                    'order_id' => $razorpayOrderId,
+                    'order_id' => $orderId,
                     'payment_method' => 'razorpay'
                 ]
             ];
         }
 
         // Signature verified - update records and complete payment
-        $this->updatePaymentRecords($userId, 'razorpay', $razorpayPaymentId, $razorpayOrderId, $appointmentId);
+        $this->updatePaymentRecords($userId, 'razorpay', $razorpayPaymentId, $orderId, $appointmentId);
 
         return [
             'success' => true,
@@ -639,7 +639,7 @@ class PaymentController {
             'message' => 'Razorpay payment verified successfully',
             'data' => [
                 'payment_id' => $razorpayPaymentId,
-                'order_id' => $razorpayOrderId,
+                'order_id' => $orderId,
                 'payment_method' => 'razorpay'
             ]
         ];
