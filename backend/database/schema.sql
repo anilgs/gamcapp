@@ -73,7 +73,7 @@ CREATE TABLE payment_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     appointment_id INT DEFAULT NULL,
-    razorpay_order_id VARCHAR(255) DEFAULT NULL,
+    order_id VARCHAR(255) DEFAULT NULL,
     razorpay_payment_id VARCHAR(255) DEFAULT NULL,
     razorpay_signature VARCHAR(500) DEFAULT NULL,
     payment_method ENUM('razorpay', 'upi') DEFAULT 'razorpay',
@@ -94,7 +94,7 @@ CREATE TABLE payment_transactions (
     -- Indexes
     INDEX idx_user_id (user_id),
     INDEX idx_appointment_id (appointment_id),
-    INDEX idx_razorpay_order_id (razorpay_order_id),
+    INDEX idx_order_id (order_id),
     INDEX idx_razorpay_payment_id (razorpay_payment_id),
     INDEX idx_payment_method (payment_method),
     INDEX idx_upi_transaction_id (upi_transaction_id),

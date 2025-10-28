@@ -72,7 +72,7 @@ class OrphanedPaymentFixer {
         $sql = "SELECT 
                     pt.id,
                     pt.user_id,
-                    pt.razorpay_order_id,
+                    pt.order_id,
                     pt.amount,
                     pt.status,
                     pt.payment_method,
@@ -91,7 +91,7 @@ class OrphanedPaymentFixer {
     }
 
     private function processOrphanedPayment(array $payment): void {
-        $this->logger->log("Processing payment ID {$payment['id']} (Order: {$payment['razorpay_order_id']}, Amount: ₹{$payment['amount']}, User: {$payment['user_name']})", 'INFO');
+        $this->logger->log("Processing payment ID {$payment['id']} (Order: {$payment['order_id']}, Amount: ₹{$payment['amount']}, User: {$payment['user_name']})", 'INFO');
 
         // Find potential matching appointments
         $potentialMatches = $this->findPotentialAppointmentMatches($payment);
@@ -191,7 +191,7 @@ class OrphanedPaymentFixer {
                                        WHERE id = :appointment_id";
                 $stmt = $this->db->prepare($updateAppointmentSql);
                 $stmt->bindValue(':amount', $payment['amount']);
-                $stmt->bindValue(':reference', $payment['razorpay_order_id']);
+                $stmt->bindValue(':reference', $payment['order_id']);
                 $stmt->bindValue(':appointment_id', $appointment['id']);
                 $appointmentUpdated = $stmt->execute();
             } else {

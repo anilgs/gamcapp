@@ -33,7 +33,7 @@ SELECT
     pt.created_at,
     pt.updated_at,
     -- Razorpay fields
-    pt.razorpay_order_id,
+    pt.order_id,
     pt.razorpay_payment_id,
     -- UPI fields
     pt.upi_transaction_id,

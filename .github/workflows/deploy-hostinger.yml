@@ -387,8 +387,20 @@ jobs:
                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
                      "${{ env.DB_NAME }}" < backend/database/migrate_fix_upi_constraint.sql
                echo "CRITICAL UPI constraint fix migration completed"
-             fi
-               # Apply immediate emergency UPI fix if it exists
+              fi
+              if [ -f "backend/database/migrate_rename_order_id_column.sql" ]; then
+                echo "Running column rename migration..."
+                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      "${{ env.DB_NAME }}" < backend/database/migrate_rename_order_id_column.sql
+                echo "Column rename migration completed"
+              fi
+              if [ -f "backend/database/migrate_rename_order_id_column.sql" ]; then
+                echo "Running order ID column rename migration..."
+                mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \
+                      "${{ env.DB_NAME }}" < backend/database/migrate_rename_order_id_column.sql
+                echo "Order ID column rename migration completed"
+              fi
+              # Apply immediate emergency UPI fix if it exists
                if [ -f "backend/database/IMMEDIATE_UPI_FIX.sql" ]; then
                  echo "Running EMERGENCY UPI constraint fix..."
                  mysql -h"${{ env.DB_HOST }}" -P"${{ env.DB_PORT }}" -u"${{ env.DB_USER }}" -p"${{ env.DB_PASSWORD }}" \

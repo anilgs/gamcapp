@@ -101,20 +101,9 @@ class AppointmentController {
                 'payment_status' => 'pending'
             ];
 
-            // Check if user has a draft appointment to update instead of creating new
-            $existingDraft = Appointment::findLatestEditableByUserId($userId);
-            
-            $appointment = null;
-            if ($existingDraft) {
-                // Update existing draft
-                $appointmentData['status'] = 'payment_pending';
-                if ($existingDraft->update($appointmentData)) {
-                    $appointment = $existingDraft;
-                }
-            } else {
-                // Create new appointment
-                $appointment = Appointment::create($appointmentData);
-            }
+            // Always create a new appointment for payment processing
+            // Each payment attempt should have its own appointment record for proper tracking
+            $appointment = Appointment::create($appointmentData);
 
             if (!$appointment) {
                 $this->logger->error('Failed to save appointment', [
@@ -196,7 +185,7 @@ class AppointmentController {
                 'appointment_date' => $input['appointmentDate'],
                 'passport_number' => substr($input['passportNumber'], 0, 4) . '***', // Log only first 4 chars
                 'country_traveling_to' => $input['countryTravelingTo'],
-                'was_draft_update' => $existingDraft ? true : false
+                'is_new_appointment' => true
             ]);
 
             error_log("Appointment saved with ID: {$appointment->id} for user: {$userId}");

@@ -326,7 +326,7 @@ class PaymentController {
         // Store payment transaction in database
         try {
             Database::query(
-                "INSERT INTO payment_transactions (user_id, appointment_id, payment_method, razorpay_order_id, amount, currency, status)
+                "INSERT INTO payment_transactions (user_id, appointment_id, payment_method, order_id, amount, currency, status)
                  VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [$userId, $appointmentId, 'razorpay', $order['id'], $amount, 'INR', 'created']
             );
@@ -401,7 +401,7 @@ class PaymentController {
             // Store payment transaction in database
             try {
                 Database::query(
-                    "INSERT INTO payment_transactions (user_id, appointment_id, payment_method, razorpay_order_id, amount, currency, status)
+                    "INSERT INTO payment_transactions (user_id, appointment_id, payment_method, order_id, amount, currency, status)
                      VALUES (?, ?, ?, ?, ?, ?, ?)",
                     [$userId, $appointmentId, 'upi', $orderData['id'], $amount, 'INR', 'created']
                 );
@@ -656,7 +656,7 @@ class PaymentController {
         // Check if this is a Razorpay UPI payment by looking up the transaction
         try {
             $stmt = Database::query(
-                "SELECT payment_method, razorpay_order_id, upi_transaction_id, status FROM payment_transactions WHERE (razorpay_order_id = ? OR upi_transaction_id = ?) AND user_id = ?",
+                "SELECT payment_method, order_id, upi_transaction_id, status FROM payment_transactions WHERE (order_id = ? OR upi_transaction_id = ?) AND user_id = ?",
                 [$transactionId, $transactionId, $userId]
             );
             $transaction = $stmt->fetchAll();
@@ -665,7 +665,7 @@ class PaymentController {
                 $paymentRecord = $transaction[0];
                 
                 // If this is a Razorpay UPI payment, check Razorpay status
-                if (!empty($paymentRecord['razorpay_order_id']) && $paymentRecord['razorpay_order_id'] === $transactionId) {
+                if (!empty($paymentRecord['order_id']) && $paymentRecord['order_id'] === $transactionId) {
                     return $this->verifyRazorpayUpiPayment($userId, $transactionId, $appointmentId);
                 }
             }
@@ -723,7 +723,7 @@ class PaymentController {
 
             // Check database for webhook-updated status
             $stmt = Database::query(
-                "SELECT status FROM payment_transactions WHERE razorpay_order_id = ? AND user_id = ?",
+                "SELECT status FROM payment_transactions WHERE order_id = ? AND user_id = ?",
                 [$orderId, $userId]
             );
             $dbTransaction = $stmt->fetchAll();
@@ -822,7 +822,7 @@ class PaymentController {
         try {
             if ($paymentMethod === 'razorpay') {
                 Database::query(
-                    "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE razorpay_order_id = ?",
+                    "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE order_id = ?",
                     [$paymentId, 'paid', $orderId]
                 );
             } elseif ($paymentMethod === 'upi') {
@@ -999,7 +999,7 @@ class PaymentController {
             // Check if there are multiple payment records for debugging
             try {
                 $stmt = Database::query(
-                    "SELECT id, appointment_id, amount, payment_method, razorpay_order_id, upi_transaction_id, status, created_at FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
+                    "SELECT id, appointment_id, amount, payment_method, order_id, upi_transaction_id, status, created_at FROM payment_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
                     [$userId]
                 );
                 $allRecords = $stmt->fetchAll();
@@ -1075,13 +1075,13 @@ class PaymentController {
                     // Update payment status in database
                     try {
                         Database::query(
-                            "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE razorpay_order_id = ?",
+                    "UPDATE payment_transactions SET razorpay_payment_id = ?, status = ? WHERE order_id = ?",
                             [$paymentId, 'paid', $orderId]
                         );
 
                         // Get user and appointment info from payment transaction
                         $stmt = Database::query(
-                            "SELECT user_id, appointment_id FROM payment_transactions WHERE razorpay_order_id = ?",
+                            "SELECT user_id, appointment_id FROM payment_transactions WHERE order_id = ?",
                             [$orderId]
                         );
                         $transaction = $stmt->fetchAll();

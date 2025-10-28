@@ -365,7 +365,7 @@ class AdminController {
                         a.updated_at,
                         ps.amount as actual_payment_amount,
                         ps.payment_method,
-                        ps.razorpay_order_id,
+                        ps.order_id,
                         ps.upi_transaction_id
                     FROM appointments a 
                     LEFT JOIN payment_summary ps ON a.id = ps.appointment_id
@@ -419,7 +419,7 @@ class AdminController {
                     'payment_status' => $row['payment_status'],
                     'payment_method' => $row['payment_method'] ?? 'UPI', // Use actual payment method or default to UPI
                     'payment_amount' => $paymentAmount,
-                    'payment_reference' => $row['razorpay_order_id'] ?? $row['upi_transaction_id'] ?? null,
+                    'payment_reference' => $row['order_id'] ?? $row['upi_transaction_id'] ?? null,
                     'appointment_type' => $row['appointment_type'],
                     'appointment_date' => $row['appointment_date'],
                     'created_at' => $row['created_at'],
