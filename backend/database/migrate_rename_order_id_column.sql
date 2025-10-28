@@ -10,7 +10,6 @@ CHANGE COLUMN razorpay_order_id order_id VARCHAR(255) NULL;
 ALTER TABLE payment_transactions 
 DROP INDEX IF EXISTS unique_razorpay_order;
 
--- Add a more generic unique constraint for order_id (excluding NULL values)
--- This ensures each order_id is unique but allows multiple NULL values
-CREATE UNIQUE INDEX unique_order_id ON payment_transactions (order_id) 
-WHERE order_id IS NOT NULL;
+-- Add a more generic unique constraint for order_id
+-- MariaDB automatically allows multiple NULL values in unique indexes
+CREATE UNIQUE INDEX unique_order_id ON payment_transactions (order_id);
